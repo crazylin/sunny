@@ -235,7 +235,7 @@ CameraMvs::~CameraMvs()
 void CameraMvs::_Init()
 {
   try {
-    _pub = this->create_publisher<Image>(_pubName, 60);
+    _pub = this->create_publisher<Image>(_pubName, rclcpp::SensorDataQoS());
 
     _impl = std::make_unique<_Impl>(this);
 

@@ -1,17 +1,3 @@
-laser_line_center_node_l:
-  ros__parameters:
-    ksize: 5        #int
-    threshold: 35   #int
-    width_min: 1    #int
-    width_max: 20   #int
-
-laser_line_center_node_r:
-  ros__parameters:
-    ksize: 5        #int
-    threshold: 35   #int
-    width_min: 1    #int
-    width_max: 20   #int
-
 laser_line_center_node:
   ros__parameters:
     ksize: 5        #int

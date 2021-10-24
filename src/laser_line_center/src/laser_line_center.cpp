@@ -150,7 +150,7 @@ private:
   }
 
 private:
-  int _ksize = 1;
+  int _ksize = 5;
   int _threshold = 35;
   int _widthMin = 1;
   int _widthMax = 20;
