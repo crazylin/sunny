@@ -1,0 +1,5 @@
+camera_mvs_node:
+  ros__parameters:
+    acqusition_buffer_number: 300   #int
+    acqusition_frame_rate: 60.      #float
+    exposure_time: 500.             #float
