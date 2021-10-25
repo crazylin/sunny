@@ -95,7 +95,7 @@ private:
 RotateImage::RotateImage(const rclcpp::NodeOptions & options)
 : Node("rotate_image_node", options)
 {
-  _pub = this->create_publisher<Image>(_pubName, 10);
+  _pub = this->create_publisher<Image>(_pubName, rclcpp::SensorDataQoS());
 
   _impl = std::make_unique<_Impl>(this);
 

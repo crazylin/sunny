@@ -52,12 +52,28 @@ def generate_launch_description():
         parameters=[configParams2],
         extra_arguments=[{'use_intra_process_comms': True}])
 
+    configFile3 = os.path.join(
+        get_package_share_directory('laser_line_center'),
+        'config',
+        'params.yaml')
+
+    with open(configFile3, 'r') as file:
+        handle = yaml.safe_load(file)
+        configParams3 = handle['laser_line_center_node']['ros__parameters']
+
+    node3 = ComposableNode(
+        package='laser_line_center',
+        plugin='laser_line_center::LaserLineCenter',
+        remappings=[('~/image', '/rotate_image_node/image_rotated')],
+        parameters=[configParams3],
+        extra_arguments=[{'use_intra_process_comms': True}])
+
     container = ComposableNodeContainer(
         name='pipeline_container',
         namespace='',
         package='rclcpp_components',
         executable='component_container_mt',
-        composable_node_descriptions=[node1, node2],
+        composable_node_descriptions=[node1, node2, node3],
         output='screen')
 
     return launch.LaunchDescription([container])
