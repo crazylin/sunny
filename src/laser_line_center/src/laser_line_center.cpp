@@ -173,13 +173,13 @@ private:
 LaserLineCenter::LaserLineCenter(const rclcpp::NodeOptions & options)
 : Node("laser_line_center_node", options)
 {
-  _pub = this->create_publisher<LineCenter>(_pubName, 50);
+  _pub = this->create_publisher<LineCenter>(_pubName, rclcpp::SensorDataQoS());
 
   _impl = std::make_unique<_Impl>(this);
 
   _sub = this->create_subscription<Image>(
     _subName,
-    50,
+    rclcpp::SensorDataQoS(),
     [this](Image::UniquePtr ptr)
     {
       _impl->PushBack(ptr);

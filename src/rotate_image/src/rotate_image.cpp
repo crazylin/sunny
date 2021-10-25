@@ -43,7 +43,10 @@ public:
 
   void PushBack(Image::UniquePtr ptr)
   {
+    std::unique_lock<std::mutex> lk(_mutex);
     _deq.emplace_back(std::move(ptr));
+    lk.unlock();
+    _con.notify_all();
   }
 
 private:
@@ -63,20 +66,16 @@ private:
           if (ptr->encoding != "mono8") {
             RCLCPP_WARN(_node->get_logger(), "Can not handle color image");
             continue;
+          } else {
+            _buf.resize(ptr->width * ptr->height);
+            cv::Mat dst(ptr->width, ptr->height, CV_8UC1, _buf.data());
+            cv::Mat img(ptr->height, ptr->width, CV_8UC1, ptr->data.data());
+            cv::rotate(img, dst, cv::ROTATE_90_COUNTERCLOCKWISE);
+            std::swap(ptr->data, _buf);
+            std::swap(ptr->width, ptr->height);
+            ptr->step = ptr->width;
+            _node->Publish(ptr);
           }
-          /*
-          cv::Mat img(ptr->height, ptr->width, CV_8UC1, ptr->data.data());
-          if (img.empty()) {
-            RCLCPP_WARN(_node->get_logger(), "Image message is empty");
-            continue;
-          }
-
-          _UpdateParameters();
-
-          auto line = _Execute(img);
-          line->header = ptr->header;
-          _node->Publish(line);
-          */
         }
       } else {
         _con.wait(lk);
@@ -86,6 +85,7 @@ private:
 
 private:
   RotateImage * _node;
+  Image::_data_type _buf;
   std::mutex _mutex;              ///< Mutex to protect shared storage
   std::condition_variable _con;   ///< Conditional variable rely on mutex
   std::deque<Image::UniquePtr> _deq;
@@ -95,7 +95,7 @@ private:
 RotateImage::RotateImage(const rclcpp::NodeOptions & options)
 : Node("rotate_image_node", options)
 {
-  _pub = this->create_publisher<Image>(_pubName, rclcpp::SensorDataQoS());
+  _pub = this->create_publisher<Image>(_pubName, 10);
 
   _impl = std::make_unique<_Impl>(this);
 
@@ -107,6 +107,8 @@ RotateImage::RotateImage(const rclcpp::NodeOptions & options)
       _impl->PushBack(std::move(ptr));
     }
   );
+
+  RCLCPP_INFO(this->get_logger(), "Ininitialized successfully");
 }
 
 RotateImage::~RotateImage()
