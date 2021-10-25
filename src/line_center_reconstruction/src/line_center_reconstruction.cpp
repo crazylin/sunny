@@ -14,7 +14,13 @@
 
 #include "line_center_reconstruction/line_center_reconstruction.hpp"
 
+#include <deque>
+#include <exception>
 #include <memory>
+#include <utility>
+#include <vector>
+
+#include "opencv2/opencv.hpp"
 
 namespace line_center_reconstruction
 {
@@ -28,23 +34,81 @@ public:
   explicit _Impl(LineCenterReconstruction * ptr)
   : _node(ptr)
   {
+    _InitializeParameters();
+    _UpdateParameters();
+
+    _thread = std::thread(&LineCenterReconstruction::_Impl::_Worker, this);
   }
 
   ~_Impl()
   {
+    _con.notify_all();
+    _thread.join();
+  }
+
+  void PushBack(LineCenter::UniquePtr & ptr)
+  {
+    std::unique_lock<std::mutex> lk(_mutex);
+    _deq.emplace_back(std::move(ptr));
+    lk.unlock();
+    _con.notify_all();
+  }
+
+private:
+  void _InitializeParameters()
+  {
+    std::vector<double> temp;
+    _node->declare_parameter("camera_matrix", temp);
+    _node->declare_parameter("distort_coeffs", temp);
+    _node->declare_parameter("homography_matrix", temp);
+  }
+
+  void _UpdateParameters()
+  {
+    std::vector<double> c, d, h;
+    _node->get_parameter("camera_matrix", c);
+    _node->get_parameter("distort_coeffs", d);
+    _node->get_parameter("homography_matrix", h);
+
+    _coef = cv::Mat(3, 3, CV_64F, c.data()).clone();
+    _dist = cv::Mat(1, 5, CV_64F, d.data()).clone();
+    _H = cv::Mat(3, 3, CV_64F, h.data()).clone();
+  }
+
+  void _Worker()
+  {
+    cv::Mat dx;
+
+    while (rclcpp::ok()) {
+      std::unique_lock<std::mutex> lk(_mutex);
+      if (_deq.empty() == false) {
+        auto ptr = std::move(_deq.front());
+        _deq.pop_front();
+        lk.unlock();
+        if (ptr->header.frame_id == "-1") {
+          auto pnts = std::make_unique<PointCloud2>();
+          pnts->header = ptr->header;
+          _node->Publish(pnts);
+        } else {
+        }
+      } else {
+        _con.wait(lk);
+      }
+    }
   }
 
 private:
   LineCenterReconstruction * _node;
+  cv::Mat _coef, _dist, _H;
+  std::mutex _mutex;              ///< Mutex to protect shared storage
+  std::condition_variable _con;   ///< Conditional variable rely on mutex
+  std::deque<LineCenter::UniquePtr> _deq;
+  std::thread _thread;
 };
 
 LineCenterReconstruction::LineCenterReconstruction(const rclcpp::NodeOptions & options)
 : Node("line_center_reconstruction_node", options)
 {
-  _InitializeParameters();
-
-  _UpdateParameters();
-
   _pub = this->create_publisher<PointCloud2>(_pubName, rclcpp::SensorDataQoS());
 
   _impl = std::make_unique<_Impl>(this);
@@ -52,8 +116,9 @@ LineCenterReconstruction::LineCenterReconstruction(const rclcpp::NodeOptions & o
   _sub = this->create_subscription<LineCenter>(
     _subName,
     rclcpp::SensorDataQoS(),
-    [this](LineCenter::UniquePtr /*ptr*/)
+    [this](LineCenter::UniquePtr ptr)
     {
+      _impl->PushBack(ptr);
     }
   );
 
@@ -67,16 +132,6 @@ LineCenterReconstruction::~LineCenterReconstruction()
   _pub.reset();
 
   RCLCPP_INFO(this->get_logger(), "Destroyed successfully");
-}
-
-void LineCenterReconstruction::_InitializeParameters()
-{
-  // this->declare_parameter("");
-}
-
-void LineCenterReconstruction::_UpdateParameters()
-{
-  // this->get_parameter("", );
 }
 
 }  // namespace line_center_reconstruction

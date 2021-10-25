@@ -16,6 +16,7 @@
 #define LINE_CENTER_RECONSTRUCTION__LINE_CENTER_RECONSTRUCTION_HPP_
 
 #include <memory>
+#include <utility>
 
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/point_cloud2.hpp"
@@ -30,9 +31,10 @@ public:
   explicit LineCenterReconstruction(const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
   virtual ~LineCenterReconstruction();
 
-private:
-  void _InitializeParameters();
-  void _UpdateParameters();
+  void Publish(sensor_msgs::msg::PointCloud2::UniquePtr & msg)
+  {
+    _pub->publish(std::move(msg));
+  }
 
 private:
   const char * _pubName = "~/pnts";
