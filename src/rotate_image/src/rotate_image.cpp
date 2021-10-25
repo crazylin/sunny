@@ -15,7 +15,11 @@
 #include "rotate_image/rotate_image.hpp"
 
 #include <deque>
+#include <exception>
 #include <memory>
+#include <utility>
+
+#include "opencv2/opencv.hpp"
 
 namespace rotate_image
 {
@@ -28,10 +32,13 @@ public:
   explicit _Impl(RotateImage * ptr)
   : _node(ptr)
   {
+    _thread = std::thread(&_Impl::_Worker, this);
   }
 
   ~_Impl()
   {
+    _con.notify_all();
+    _thread.join();
   }
 
   void PushBack(Image::UniquePtr ptr)
@@ -40,8 +47,49 @@ public:
   }
 
 private:
+  void _Worker()
+  {
+    while (rclcpp::ok()) {
+      std::unique_lock<std::mutex> lk(_mutex);
+      if (_deq.empty() == false) {
+        auto ptr = std::move(_deq.front());
+        _deq.pop_front();
+        lk.unlock();
+        if (ptr->header.frame_id == "-1") {
+          auto img = std::make_unique<Image>();
+          img->header = ptr->header;
+          _node->Publish(img);
+        } else {
+          if (ptr->encoding != "mono8") {
+            RCLCPP_WARN(_node->get_logger(), "Can not handle color image");
+            continue;
+          }
+          /*
+          cv::Mat img(ptr->height, ptr->width, CV_8UC1, ptr->data.data());
+          if (img.empty()) {
+            RCLCPP_WARN(_node->get_logger(), "Image message is empty");
+            continue;
+          }
+
+          _UpdateParameters();
+
+          auto line = _Execute(img);
+          line->header = ptr->header;
+          _node->Publish(line);
+          */
+        }
+      } else {
+        _con.wait(lk);
+      }
+    }
+  }
+
+private:
   RotateImage * _node;
+  std::mutex _mutex;              ///< Mutex to protect shared storage
+  std::condition_variable _con;   ///< Conditional variable rely on mutex
   std::deque<Image::UniquePtr> _deq;
+  std::thread _thread;
 };
 
 RotateImage::RotateImage(const rclcpp::NodeOptions & options)

@@ -16,6 +16,7 @@
 #define ROTATE_IMAGE__ROTATE_IMAGE_HPP_
 
 #include <memory>
+#include <utility>
 
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/image.hpp"

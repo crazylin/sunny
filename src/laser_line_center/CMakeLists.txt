@@ -19,7 +19,6 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
-find_package(std_srvs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(shared_interfaces REQUIRED)
 find_package(OpenCV REQUIRED)
@@ -35,16 +34,11 @@ target_include_directories(laser_line_center
 ament_target_dependencies(laser_line_center
   rclcpp
   rclcpp_components
-  std_srvs
   sensor_msgs
   shared_interfaces
 )
 
-if(opencv_world IN_LIST OpenCV_LIBS)
-  target_link_libraries(laser_line_center opencv_world)
-else()
-  target_link_libraries(laser_line_center ${OpenCV_LIBS})
-endif()
+target_link_libraries(laser_line_center ${OpenCV_LIBS})
 
 rclcpp_components_register_node(laser_line_center
   PLUGIN "laser_line_center::LaserLineCenter"

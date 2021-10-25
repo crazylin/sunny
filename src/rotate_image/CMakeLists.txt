@@ -19,7 +19,8 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
-find_package(std_srvs REQUIRED)
+find_package(sensor_msgs REQUIRED)
+find_package(OpenCV REQUIRED)
 
 add_library(rotate_image SHARED src/rotate_image.cpp)
 
@@ -32,8 +33,10 @@ target_include_directories(rotate_image
 ament_target_dependencies(rotate_image
   rclcpp
   rclcpp_components
-  std_srvs
+  sensor_msgs
 )
+
+target_link_libraries(rotate_image ${OpenCV_LIBS})
 
 rclcpp_components_register_node(rotate_image
   PLUGIN "rotate_image::RotateImage"

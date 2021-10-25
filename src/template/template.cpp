@@ -335,6 +335,7 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
+find_package(std_msgs REQUIRED)
 find_package(std_srvs REQUIRED)
 
 add_library(xxx_yyy_zzz SHARED src/xxx_yyy_zzz.cpp)
@@ -348,6 +349,7 @@ target_include_directories(xxx_yyy_zzz
 ament_target_dependencies(xxx_yyy_zzz
   rclcpp
   rclcpp_components
+  std_msgs
   std_srvs
 )
 
@@ -400,6 +402,8 @@ void CreatePackage()
   <buildtool_depend>ament_cmake</buildtool_depend>
 
   <depend>rclcpp</depend>
+  <depend>std_msgs</depend>
+  <depend>std_srvs</depend>
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>
