@@ -33,11 +33,11 @@ void CreateConfig()
 
 void CreateLaunch()
 {
-    if(Exists(ns + "/launch/" + ns + ".launch.py"))
+    if(Exists(ns + "/launch/main.launch.py"))
         return;
     auto dir = ns + "/launch/";
     mkdir(dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-    std::ofstream ofile(dir + ns + ".launch.py");
+    std::ofstream ofile(dir + "main.launch.py");
 
     string content = R"----(# Copyright 2019 Zhushi Tech, Inc.
 #
