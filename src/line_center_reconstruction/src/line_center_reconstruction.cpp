@@ -27,6 +27,7 @@ namespace line_center_reconstruction
 
 using shared_interfaces::msg::LineCenter;
 using sensor_msgs::msg::PointCloud2;
+using sensor_msgs::msg::PointField;
 
 class LineCenterReconstruction::_Impl
 {
@@ -85,16 +86,84 @@ private:
         auto ptr = std::move(_deq.front());
         _deq.pop_front();
         lk.unlock();
-        if (ptr->header.frame_id == "-1") {
-          auto pnts = std::make_unique<PointCloud2>();
-          pnts->header = ptr->header;
-          _node->Publish(pnts);
-        } else {
-        }
+        _Execute(ptr);
       } else {
         _con.wait(lk);
       }
     }
+  }
+
+  void _Execute(LineCenter::UniquePtr & ptr)
+  {
+    if (ptr->header.frame_id == "-1") {
+      auto pnts = std::make_unique<PointCloud2>();
+      pnts->header = ptr->header;
+      _node->Publish(pnts);
+    } else {
+      std::vector<cv::Point2f> line, temp;
+      line.reserve(ptr->center.size());
+      temp.reserve(ptr->center.size());
+      for (size_t i = 0; i < ptr->center.size(); ++i) {
+        if (ptr->center[i] != -1) {
+          line.emplace_back(ptr->center[i], i);
+        }
+      }
+
+      if (line.empty()) {
+        return;
+      }
+
+      cv::undistortPoints(line, temp, _coef, _dist, cv::noArray(), _coef);
+      cv::perspectiveTransform(temp, line, _H);
+
+      std::vector<float> xyz;
+      xyz.reserve(line.size() * 3);
+      for (const auto & p : line) {
+        xyz.push_back(0);
+        xyz.push_back(p.x);
+        xyz.push_back(p.y);
+      }
+
+      auto pnts = _ConstructPointCloud2(line.size(), xyz.data());
+
+      _node->Publish(pnts);
+    }
+  }
+
+  PointCloud2::UniquePtr _ConstructPointCloud2(size_t num, const void * src)
+  {
+    auto pnts = std::make_unique<PointCloud2>();
+
+    pnts->height = 1;
+    pnts->width = num;
+
+    pnts->fields.resize(3);
+    pnts->fields[0].name = "x";
+    pnts->fields[0].offset = 0;
+    pnts->fields[0].datatype = 7;
+    pnts->fields[0].count = 1;
+
+    pnts->fields[1].name = "y";
+    pnts->fields[1].offset = 4;
+    pnts->fields[1].datatype = 7;
+    pnts->fields[1].count = 1;
+
+    pnts->fields[2].name = "z";
+    pnts->fields[2].offset = 8;
+    pnts->fields[2].datatype = 7;
+    pnts->fields[2].count = 1;
+
+    pnts->is_bigendian = false;
+    pnts->point_step = 4 * 3;
+    pnts->row_step = 12 * num;
+
+    pnts->data.resize(12 * num);
+
+    pnts->is_dense = true;
+
+    memcpy(pnts->data.data(), src, 12 * num);
+
+    return pnts;
   }
 
 private:
