@@ -1,4 +1,4 @@
-name: ci
+name: build ROS image
 
 # Controls when the workflow will run
 on: workflow_dispatch
