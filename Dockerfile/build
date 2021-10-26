@@ -20,17 +20,3 @@ COPY --from=OPENCV /opt/opencv /opt/opencv
 RUN echo "/opt/MVS/lib" >> /etc/ld.so.conf.d/MVS.conf \
   && echo "/opt/opencv/lib" >> /etc/ld.so.conf.d/OpenCV.conf \
   && ldconfig
-
-# Copy source codes
-COPY ./src /ws/src
-
-# Use /ws as working directory
-WORKDIR /ws
-
-# colcon build
-RUN /ros_entrypoint.sh \
-  colcon build --cmake-args -DCMAKE_BUILD_TYPE=Release
-
-# colcon test
-RUN /ros_entrypoint.sh \
-  colcon test
