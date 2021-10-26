@@ -83,6 +83,9 @@ private:
     while (rclcpp::ok()) {
       std::unique_lock<std::mutex> lk(_mutex);
       if (_deq.empty() == false) {
+        if (_deq.size() == 60) {
+          RCLCPP_WARN(_node->get_logger(), "Buffer exceed 60");
+        }
         auto ptr = std::move(_deq.front());
         _deq.pop_front();
         lk.unlock();
