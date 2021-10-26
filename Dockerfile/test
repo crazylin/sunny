@@ -16,4 +16,4 @@ RUN /ros_entrypoint.sh \
   colcon test
 
 # Change ROS overlay
-RUN sed -i 's?opt/ros/$ROS_DISTRO?ws/install?g' ros_entrypoint.sh
+RUN sed -i 's?opt/ros/$ROS_DISTRO?ws/install?g' /ros_entrypoint.sh
