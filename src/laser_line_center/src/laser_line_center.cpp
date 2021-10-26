@@ -156,7 +156,7 @@ private:
   int _ksize = 5;
   int _threshold = 35;
   int _widthMin = 1;
-  int _widthMax = 20;
+  int _widthMax = 30;
   cv::Mat _dx;
   std::map<int, double> _scale = {
     {1, 1.},

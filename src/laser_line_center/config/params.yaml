@@ -3,4 +3,4 @@ laser_line_center_node:
     ksize: 5        #int
     threshold: 35   #int
     width_min: 1    #int
-    width_max: 20   #int
+    width_max: 30   #int
