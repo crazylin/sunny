@@ -1,0 +1,36 @@
+# Build enviroments
+FROM zhuoqiw/ros-mvs:2.1.0 AS MVS
+
+FROM zhuoqiw/ros-opencv:4.5.2 AS OPENCV
+
+FROM ros:galactic
+
+# Install dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+  libgpiod-dev \
+  && rm -rf /var/lib/apt/lists/*
+
+# Install MVS
+COPY --from=MVS /opt/MVS /opt/MVS
+
+# Install OpenCV
+COPY --from=OPENCV /opt/opencv /opt/opencv
+
+# Update ldconfig
+RUN echo "/opt/MVS/lib" >> /etc/ld.so.conf.d/MVS.conf \
+  && echo "/opt/opencv/lib" >> /etc/ld.so.conf.d/OpenCV.conf \
+  && ldconfig
+
+# Copy source codes
+COPY ./src /ws/src
+
+# Use /ws as working directory
+WORKDIR /ws
+
+# colcon build
+RUN /ros_entrypoint.sh \
+  colcon build --cmake-args -DCMAKE_BUILD_TYPE=Release
+
+# colcon test
+RUN /ros_entrypoint.sh \
+  colcon test

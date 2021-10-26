@@ -1,0 +1,8 @@
+# Build enviroments
+FROM zhuoqiw/sunny-build:1.0.0
+
+# Remove source code
+RUN rm -r build/ src/
+
+# Change ROS overlay
+RUN sed -i 's?opt/ros/$ROS_DISTRO?ws/install?g' ros_entrypoint.sh
