@@ -68,12 +68,28 @@ def generate_launch_description():
         parameters=[configParams3],
         extra_arguments=[{'use_intra_process_comms': True}])
 
+    configFile4 = os.path.join(
+        get_package_share_directory('line_center_reconstruction'),
+        'config',
+        'params.yaml')
+
+    with open(configFile4, 'r') as file:
+        handle = yaml.safe_load(file)
+        configParams4 = handle['line_center_reconstruction_node']['ros__parameters']
+
+    node4 = ComposableNode(
+        package='line_center_reconstruction',
+        plugin='line_center_reconstruction::LineCenterReconstruction',
+        remappings=[('~/line', '/laser_line_center_node/line')],
+        parameters=[configParams4],
+        extra_arguments=[{'use_intra_process_comms': True}])
+
     container = ComposableNodeContainer(
         name='pipeline_container',
         namespace='',
         package='rclcpp_components',
         executable='component_container_mt',
-        composable_node_descriptions=[node1, node2, node3],
+        composable_node_descriptions=[node1, node2, node3, node4],
         output='screen')
 
     return launch.LaunchDescription([container])

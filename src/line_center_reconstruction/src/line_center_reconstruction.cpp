@@ -120,8 +120,8 @@ private:
       xyz.reserve(line.size() * 3);
       for (const auto & p : line) {
         xyz.push_back(0);
-        xyz.push_back(p.x);
-        xyz.push_back(p.y);
+        xyz.push_back(p.x / 100.);
+        xyz.push_back(p.y / 100.);
       }
 
       auto pnts = _ConstructPointCloud2(line.size(), xyz.data());
@@ -133,6 +133,8 @@ private:
   PointCloud2::UniquePtr _ConstructPointCloud2(size_t num, const void * src)
   {
     auto pnts = std::make_unique<PointCloud2>();
+
+    pnts->header.frame_id = "map";
 
     pnts->height = 1;
     pnts->width = num;

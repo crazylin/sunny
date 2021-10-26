@@ -13,6 +13,7 @@
   <depend>camera_mvs</depend>
   <depend>rotate_image</depend>
   <depend>laser_line_center</depend>
+  <depend>line_center_reconstruction</depend>
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>
