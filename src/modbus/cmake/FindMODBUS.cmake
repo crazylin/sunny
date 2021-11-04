@@ -1,3 +1,17 @@
+# Copyright 2019 Zhushi Tech, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 # Distributed under the OSI-approved BSD 3-Clause License.  See accompanying
 # file Copyright.txt or https://cmake.org/licensing for details.
 
@@ -49,22 +63,11 @@ find_path(MODBUS_INCLUDE_DIR
   DOC "The directory containing modbus.h."
 )
 
-# Find the specific libary under <prefix>/lib/[x64|x86]/
-if(WIN32)
-  if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-    set(CMAKE_LIBRARY_ARCHITECTURE x64)
-  else()
-    set(CMAKE_LIBRARY_ARCHITECTURE x86)
-  endif()
-endif()
-
 # Find the specific libary
 find_library(MODBUS_LIBRARY
   NAMES "modbus"
   DOC "The path to the MODBUS library."
 )
-
-unset(CMAKE_LIBRARY_ARCHITECTURE)
 
 # Extract version information
 file(STRINGS "${MODBUS_INCLUDE_DIR}/modbus-version.h" MODBUS_VERSION REGEX "LIBMODBUS_VERSION_STRING")

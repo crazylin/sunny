@@ -22,6 +22,8 @@
 namespace gpio_raspberry
 {
 
+using std_srvs::srv::Trigger;
+
 class GpioRaspberry::_Impl
 {
 public:
@@ -50,8 +52,6 @@ private:
   std::unique_ptr<gpiod_chip, void (*)(gpiod_chip *)> _chip;
   std::unique_ptr<gpiod_line, void (*)(gpiod_line *)> _line;
 };
-
-using std_srvs::srv::Trigger;
 
 GpioRaspberry::GpioRaspberry(const rclcpp::NodeOptions & options)
 : Node("gpio_raspberry_node", options), _impl(new _Impl)

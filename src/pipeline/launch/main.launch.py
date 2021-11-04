@@ -80,7 +80,9 @@ def generate_launch_description():
         package='laser_line_center',
         plugin='laser_line_center::LaserLineCenter',
         name='laser_line_center_node_l',
-        remappings=[('~/image', '/branch_image_node/image_l'), ('~/line', 'laser_line_center_node/line')],
+        remappings=[
+            ('~/image', '/branch_image_node/image_l'),
+            ('~/line', 'laser_line_center_node/line')],
         parameters=[configParams4],
         extra_arguments=[{'use_intra_process_comms': True}])
 
@@ -88,7 +90,9 @@ def generate_launch_description():
         package='laser_line_center',
         plugin='laser_line_center::LaserLineCenter',
         name='laser_line_center_node_r',
-        remappings=[('~/image', '/branch_image_node/image_r'), ('~/line', 'laser_line_center_node/line')],
+        remappings=[
+            ('~/image', '/branch_image_node/image_r'),
+            ('~/line', 'laser_line_center_node/line')],
         parameters=[configParams4],
         extra_arguments=[{'use_intra_process_comms': True}])
 

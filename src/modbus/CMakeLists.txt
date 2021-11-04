@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-project(modbus_ros)
+project(modbus)
 
 # Default to C99
 if(NOT CMAKE_C_STANDARD)
@@ -25,15 +25,15 @@ find_package(shared_interfaces REQUIRED)
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake" CMAKE_MODULE_PATH)
 find_package(MODBUS REQUIRED)
 
-add_library(modbus_ros SHARED src/modbus_ros.cpp)
+add_library(modbus SHARED src/modbus.cpp)
 
-target_include_directories(modbus_ros PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include> $<INSTALL_INTERFACE:include>)
+target_include_directories(modbus PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include> $<INSTALL_INTERFACE:include>)
 
-ament_target_dependencies(modbus_ros rclcpp rclcpp_components std_srvs shared_interfaces)
+ament_target_dependencies(modbus rclcpp rclcpp_components std_srvs shared_interfaces)
 
-target_link_libraries(modbus_ros MODBUS::MODBUS)
+target_link_libraries(modbus MODBUS::MODBUS)
 
-rclcpp_components_register_node(modbus_ros PLUGIN "modbus_ros::ModbusRos" EXECUTABLE modbus_ros_node)
+rclcpp_components_register_node(modbus PLUGIN "modbus::Modbus" EXECUTABLE modbus_node)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -46,12 +46,12 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 endif()
 
-install(TARGETS modbus_ros EXPORT export_modbus_ros DESTINATION lib)
+install(TARGETS modbus EXPORT export_modbus DESTINATION lib)
 install(DIRECTORY include/ DESTINATION include)
 install(DIRECTORY launch DESTINATION share/${PROJECT_NAME})
 install(DIRECTORY config DESTINATION share/${PROJECT_NAME})
 
-ament_export_targets(export_modbus_ros HAS_LIBRARY_TARGET)
+ament_export_targets(export_modbus HAS_LIBRARY_TARGET)
 
 ament_package()
 
