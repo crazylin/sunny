@@ -76,7 +76,7 @@ find_package_handle_standard_args(GPIOD
 
 # Setup import target which can be utilized by target_link_libraries
 if(GPIOD_FOUND AND NOT TARGET GPIOD::GPIOD)
-  add_library(GPIOD::GPIOD UNKNOWN IMPORTED)
+  add_library(GPIOD::GPIOD SHARED IMPORTED)
   set_target_properties(GPIOD::GPIOD PROPERTIES
     INTERFACE_INCLUDE_DIRECTORIES "${GPIOD_INCLUDE_DIR}"
     IMPORTED_LOCATION "${GPIOD_LIBRARY}"

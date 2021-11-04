@@ -9,6 +9,7 @@ FROM ros:galactic
 RUN apt-get update && apt-get install -y --no-install-recommends \
   nano \
   libgpiod-dev \
+  libmodbus-dev \
   && rm -rf /var/lib/apt/lists/*
 
 # Install MVS
