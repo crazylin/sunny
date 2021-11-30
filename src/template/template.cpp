@@ -28,7 +28,7 @@ void CreateConfig()
     std::ofstream ofile(ns + "/config/params.yaml");
     ofile << ns << "_node:\n";
     ofile << "  ros__parameters:\n";
-    ofile << "    test: TODO";
+    ofile << "    test: TODO\n";
 }
 
 void CreateLaunch()
@@ -84,11 +84,12 @@ def generate_launch_description():
         composable_node_descriptions=[node],
         output='screen')
 
-    return launch.LaunchDescription([container]))----";
+    return launch.LaunchDescription([container])
+)----";
 
     content = std::regex_replace(content, std::regex("xxx_yyy_zzz"), ns);
     content = std::regex_replace(content, std::regex("XxxYyyZzz"), cn);
-    ofile << content << endl;
+    ofile << content;
 }
 
 void CreateHeader()
@@ -161,12 +162,13 @@ private:
 
 }  // namespace xxx_yyy_zzz
 
-#endif  // XXX_YYY_ZZZ__XXX_YYY_ZZZ_HPP_)----";
+#endif  // XXX_YYY_ZZZ__XXX_YYY_ZZZ_HPP_
+)----";
 
     content = std::regex_replace(content, std::regex("xxx_yyy_zzz"), ns);
     content = std::regex_replace(content, std::regex("XXX_YYY_ZZZ"), NS);
     content = std::regex_replace(content, std::regex("XxxYyyZzz"), cn);
-    ofile << content << endl;
+    ofile << content;
 }
 
 void CreateSource()
@@ -301,11 +303,12 @@ void XxxYyyZzz::_UpdateParameters()
 // Register the component with class_loader.
 // This acts as a sort of entry point, allowing the component to be discoverable when its library
 // is being loaded into a running process.
-RCLCPP_COMPONENTS_REGISTER_NODE(xxx_yyy_zzz::XxxYyyZzz))----";
+RCLCPP_COMPONENTS_REGISTER_NODE(xxx_yyy_zzz::XxxYyyZzz)
+)----";
 
     content = std::regex_replace(content, std::regex("xxx_yyy_zzz"), ns);
     content = std::regex_replace(content, std::regex("XxxYyyZzz"), cn);
-    ofile << content << endl;
+    ofile << content;
 }
 
 void CreateCMake()
@@ -381,7 +384,7 @@ ament_package()
 
     content = std::regex_replace(content, std::regex("xxx_yyy_zzz"), ns);
     content = std::regex_replace(content, std::regex("XxxYyyZzz"), cn);
-    ofile << content << endl;
+    ofile << content;
 }
 
 void CreatePackage()
@@ -417,7 +420,7 @@ void CreatePackage()
 
     content = std::regex_replace(content, std::regex("xxx_yyy_zzz"), ns);
     content = std::regex_replace(content, std::regex("XxxYyyZzz"), cn);
-    ofile << content << endl;
+    ofile << content;
 }
 
 int main(int argc, char * argv[])

@@ -1,5 +1,5 @@
-cmake_minimum_required(VERSION 3.5)
-project(camera_mvs)
+cmake_minimum_required(VERSION 3.6)
+project(camera_tis)
 
 # Default to C99
 if(NOT CMAKE_C_STANDARD)
@@ -21,28 +21,29 @@ find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
 find_package(std_srvs REQUIRED)
 find_package(sensor_msgs REQUIRED)
-find_package(MVS REQUIRED)
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(TIS REQUIRED IMPORTED_TARGET gstreamer-1.0 gstreamer-video-1.0 gobject-introspection-1.0 tcam)
 
-add_library(camera_mvs SHARED src/camera_mvs.cpp)
+add_library(camera_tis SHARED src/camera_tis.cpp)
 
-target_include_directories(camera_mvs
+target_include_directories(camera_tis
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
 )
 
-ament_target_dependencies(camera_mvs
+ament_target_dependencies(camera_tis
   rclcpp
   rclcpp_components
   std_srvs
   sensor_msgs
 )
 
-target_link_libraries(camera_mvs MVS::MVS)
+target_link_libraries(camera_tis PkgConfig::TIS)
 
-rclcpp_components_register_node(camera_mvs
-  PLUGIN "camera_mvs::CameraMvs"
-  EXECUTABLE camera_mvs_node
+rclcpp_components_register_node(camera_tis
+  PLUGIN "camera_tis::CameraTis"
+  EXECUTABLE camera_tis_node
 )
 
 if(BUILD_TESTING)
@@ -56,11 +57,11 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 endif()
 
-install(TARGETS camera_mvs EXPORT export_camera_mvs DESTINATION lib)
+install(TARGETS camera_tis EXPORT export_camera_tis DESTINATION lib)
 install(DIRECTORY include/ DESTINATION include)
 install(DIRECTORY launch DESTINATION share/${PROJECT_NAME})
 install(DIRECTORY config DESTINATION share/${PROJECT_NAME})
 
-ament_export_targets(export_camera_mvs HAS_LIBRARY_TARGET)
+ament_export_targets(export_camera_tis HAS_LIBRARY_TARGET)
 
 ament_package()

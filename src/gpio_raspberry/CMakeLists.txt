@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.6)
 project(gpio_raspberry)
 
 # Default to C99
@@ -20,9 +20,8 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
 find_package(std_srvs REQUIRED)
-
-set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake" CMAKE_MODULE_PATH)
-find_package(GPIOD REQUIRED)
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(GPIOD REQUIRED IMPORTED_TARGET libgpiod)
 
 add_library(gpio_raspberry SHARED src/gpio_raspberry.cpp)
 
@@ -38,7 +37,7 @@ ament_target_dependencies(gpio_raspberry
   std_srvs
 )
 
-target_link_libraries(gpio_raspberry GPIOD::GPIOD)
+target_link_libraries(gpio_raspberry PkgConfig::GPIOD)
 
 rclcpp_components_register_node(gpio_raspberry
   PLUGIN "gpio_raspberry::GpioRaspberry"

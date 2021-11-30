@@ -29,7 +29,7 @@ class GpioRaspberry::_Impl
 public:
   _Impl()
   : _chip(gpiod_chip_open_by_name("gpiochip0"), gpiod_chip_close),
-    _line(gpiod_chip_get_line(_chip.get(), 26), gpiod_line_release)
+    _line(gpiod_chip_get_line(_chip.get(), 6), gpiod_line_release)
   {
     gpiod_line_request_output(_line.get(), "ros", 0);
   }

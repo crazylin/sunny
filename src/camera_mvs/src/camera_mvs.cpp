@@ -19,15 +19,15 @@
 
 extern "C"
 {
-    #include "MvCameraControl.h"
+  #include "MvCameraControl.h"
 }
 
 namespace camera_mvs
 {
 
 using namespace std::chrono_literals;
-using sensor_msgs::msg::Image;
 using std_srvs::srv::Trigger;
+using sensor_msgs::msg::Image;
 
 void __stdcall ImageCallBackEx(
   unsigned char * pData,
