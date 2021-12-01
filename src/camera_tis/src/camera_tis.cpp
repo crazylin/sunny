@@ -14,15 +14,15 @@
 
 #include "camera_tis/camera_tis.hpp"
 
-#include <exception>
-#include <memory>
-
 extern "C"
 {
   #include <gst/gst.h>
   #include <gst/video/video.h>
   #include <tcamprop.h>
 }
+
+#include <exception>
+#include <memory>
 
 namespace camera_tis
 {
@@ -45,7 +45,7 @@ extern "C" GstFlowReturn callback(GstElement * sink, void * user_data)
   if (sample) {
     static guint framecount = 0;
     GstBuffer * buffer = gst_sample_get_buffer(sample);
-    GstMapInfo info; // contains the actual image
+    GstMapInfo info;  // contains the actual image
     if (gst_buffer_map(buffer, &info, GST_MAP_READ)) {
       GstVideoInfo * video_info = gst_video_info_new();
       if (!gst_video_info_from_caps(video_info, gst_sample_get_caps(sample))) {
@@ -71,26 +71,25 @@ extern "C" GstFlowReturn callback(GstElement * sink, void * user_data)
       gst_video_info_free(video_info);
     }
     framecount++;
-    gst_sample_unref (sample);
+    gst_sample_unref(sample);
     return GST_FLOW_OK;
   } else {
     return GST_FLOW_ERROR;
   }
 }
 
-gboolean block_until_playing (GstElement* pipeline)
+gboolean block_until_playing(GstElement * pipeline)
 {
   while (TRUE) {
     GstState state;
     GstState pending;
 
     // wait 0.5 seconds for something to happen
-    GstStateChangeReturn ret = gst_element_get_state(pipeline ,&state, &pending, 500000000);
+    GstStateChangeReturn ret = gst_element_get_state(pipeline, &state, &pending, 500000000);
 
     if (ret == GST_STATE_CHANGE_SUCCESS) {
       return TRUE;
-    }
-    else if (ret == GST_STATE_CHANGE_FAILURE) {
+    } else if (ret == GST_STATE_CHANGE_FAILURE) {
       return FALSE;
     }
   }
@@ -104,7 +103,8 @@ public:
   {
     gst_debug_set_default_threshold(GST_LEVEL_WARNING);
     gst_init(NULL, NULL);
-    const char * pipeline_str = "tcambin name=source ! video/x-raw,format=GRAY8,width=640,height=480,framerate=30/1 ! videoconvert ! appsink name=sink";
+    const char * pipeline_str =
+      "tcambin name=source ! video/x-raw,format=GRAY8,width=640,height=480,framerate=30/1 ! videoconvert ! appsink name=sink";  // NOLINT
     GError * err = NULL;
     _pipeline = gst_parse_launch(pipeline_str, &err);
     if (_pipeline == NULL) {
@@ -118,10 +118,10 @@ public:
     g_value_set_static_string(&val, serial);
 
     g_object_set_property(G_OBJECT(source), "serial", &val);
-    gst_object_unref( source );
-    
+    gst_object_unref(source);
+
     /* retrieve the appsink from the pipeline */
-    GstElement* sink = gst_bin_get_by_name(GST_BIN(_pipeline), "sink");
+    GstElement * sink = gst_bin_get_by_name(GST_BIN(_pipeline), "sink");
 
     // tell appsink to notify us when it receives an image
     g_object_set(G_OBJECT(sink), "emit-signals", TRUE, NULL);
