@@ -148,7 +148,7 @@ public:
 
     GValue set_expo = G_VALUE_INIT;
     g_value_init(&set_expo, G_TYPE_INT);
-    g_value_set_int(&set_expo, 6000);
+    g_value_set_int(&set_expo, 1000);
     tcam_prop_set_tcam_property(TCAM_PROP(source), "Exposure Time (us)", &set_expo);
     g_value_unset(&set_expo);
   }
