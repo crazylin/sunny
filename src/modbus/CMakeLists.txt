@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.6)
 project(modbus)
 
 # Default to C99
@@ -21,9 +21,8 @@ find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
 find_package(std_srvs REQUIRED)
 find_package(shared_interfaces REQUIRED)
-
-set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake" CMAKE_MODULE_PATH)
-find_package(MODBUS REQUIRED)
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(MODBUS REQUIRED IMPORTED_TARGET libmodbus)
 
 add_library(modbus SHARED src/modbus.cpp)
 
@@ -31,7 +30,7 @@ target_include_directories(modbus PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURC
 
 ament_target_dependencies(modbus rclcpp rclcpp_components std_srvs shared_interfaces)
 
-target_link_libraries(modbus MODBUS::MODBUS)
+target_link_libraries(modbus PkgConfig::MODBUS)
 
 rclcpp_components_register_node(modbus PLUGIN "modbus::Modbus" EXECUTABLE modbus_node)
 
@@ -54,4 +53,3 @@ install(DIRECTORY config DESTINATION share/${PROJECT_NAME})
 ament_export_targets(export_modbus HAS_LIBRARY_TARGET)
 
 ament_package()
-

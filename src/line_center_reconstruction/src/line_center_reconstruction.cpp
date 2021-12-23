@@ -28,6 +28,9 @@ namespace line_center_reconstruction
 using shared_interfaces::msg::LineCenter;
 using sensor_msgs::msg::PointCloud2;
 using sensor_msgs::msg::PointField;
+using shared_interfaces::msg::ModbusCoord;
+
+auto COUNT = 0;
 
 class LineCenterReconstruction::_Impl
 {
@@ -102,6 +105,7 @@ private:
       auto pnts = std::make_unique<PointCloud2>();
       pnts->header = ptr->header;
       _node->Publish(pnts);
+      _node->PublishCoord(false, 0, 0, 0);
     } else {
       std::vector<cv::Point2f> line, temp;
       line.reserve(ptr->center.size());
@@ -113,6 +117,7 @@ private:
       }
 
       if (line.empty()) {
+        _node->PublishCoord(false, 0, 0, 0);
         return;
       }
 
@@ -130,6 +135,7 @@ private:
       auto pnts = _ConstructPointCloud2(line.size(), xyz.data());
 
       _node->Publish(pnts);
+      _node->PublishCoord(true, 0, line[0].x / 1000, line[0].y / 1000);
     }
   }
 
@@ -184,6 +190,7 @@ LineCenterReconstruction::LineCenterReconstruction(const rclcpp::NodeOptions & o
 : Node("line_center_reconstruction_node", options)
 {
   _pub = this->create_publisher<PointCloud2>(_pubName, rclcpp::SensorDataQoS());
+  _pubCoord = this->create_publisher<ModbusCoord>(_pubNameCoord, 10);
 
   _impl = std::make_unique<_Impl>(this);
 
@@ -193,6 +200,7 @@ LineCenterReconstruction::LineCenterReconstruction(const rclcpp::NodeOptions & o
     [this](LineCenter::UniquePtr ptr)
     {
       _impl->PushBack(ptr);
+      ++COUNT;
     }
   );
 
@@ -205,7 +213,7 @@ LineCenterReconstruction::~LineCenterReconstruction()
   _impl.reset();
   _pub.reset();
 
-  RCLCPP_INFO(this->get_logger(), "Destroyed successfully");
+  RCLCPP_INFO(this->get_logger(), "Destroyed successfully: %d", COUNT);
 }
 
 }  // namespace line_center_reconstruction

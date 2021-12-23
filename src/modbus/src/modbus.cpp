@@ -18,6 +18,7 @@ extern "C"
 {
     #include <errno.h>
     #include <modbus.h>
+    #include <stdio.h>
     #include <unistd.h>
 }
 
@@ -26,6 +27,7 @@ extern "C"
 #include <string>
 #include <utility>
 #include <vector>
+#include <iostream>
 
 namespace modbus
 {
@@ -57,24 +59,28 @@ public:
   explicit _Impl(Modbus * ptr)
   : _node(ptr)
   {
-    ctx = modbus_new_tcp(NULL, 502);
+    ctx = modbus_new_tcp(NULL, 2345);
     if (!ctx) {
       throw std::runtime_error("Can not create modbus context");
     }
 
-    header_length = modbus_get_header_length(ctx);
-
-    mb_mapping = modbus_mapping_new(0, 0, 40, 0);
+    mb_mapping = modbus_mapping_new(0, 0, 400, 0);
     if (!mb_mapping) {
       modbus_free(ctx);
       throw std::runtime_error("Can not initialize modbus registers");
     }
 
+    //mb_mapping->tab_registers[0] = 255;
+    mb_mapping->tab_registers[1] = 255;
+    /*mb_mapping->tab_registers[2] = 255;
+    mb_mapping->tab_registers[3] = 255;
+    mb_mapping->tab_registers[4] = 254;*/
     std::thread temp(
       [this]() {
         while (rclcpp::ok()) {
           _ListenAndAccept();
           _Receive();
+          RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Initialized listen and accept stopped");
         }
       }
     );
@@ -84,16 +90,17 @@ public:
 
   ~_Impl()
   {
-    close(sock);
+    if (sock != -1) close(sock);
     modbus_mapping_free(mb_mapping);
     modbus_close(ctx);
     modbus_free(ctx);
   }
 
-  void Update(bool valid, double x = 0, double y = 0, double z = 0)
+  void Update(bool valid, float x = 0, float y = 0, float z = 0)
   {
     std::lock_guard<std::mutex> lock(_mutex);
-    if (z * 10000 > SHRT_MAX) {
+    
+    /*if (z * 10000 > SHRT_MAX) {
       mb_mapping->tab_registers[16] = 0;
       mb_mapping->tab_registers[17] = 0;
       mb_mapping->tab_registers[18] = 0;
@@ -103,21 +110,25 @@ public:
       mb_mapping->tab_registers[17] = (uint16_t) x;
       mb_mapping->tab_registers[18] = (uint16_t) y * 10000;
       mb_mapping->tab_registers[19] = (uint16_t) z * 10000;
+    }*/
+    if (valid) {
+      mb_mapping->tab_registers[2] = 255;
+      mb_mapping->tab_registers[3] = static_cast<uint16_t>(y * 1000 * 100 + 5000);
+      mb_mapping->tab_registers[4] = static_cast<uint16_t>(z * 1000 * 100 - 10000);
+    } else {
+      mb_mapping->tab_registers[2] = 0;
     }
   }
 
 private:
   void _ListenAndAccept()
   {
-    while (rclcpp::ok()) {
-      close(sock);
-      sock = modbus_tcp_listen(ctx, 1);
-      if (sock != -1 && modbus_tcp_accept(ctx, &sock) != -1) {
-        RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Initialized listen and accept successfully");
-        return;
-      }
-
-      std::this_thread::sleep_for(200ms);
+    if (sock != -1) close(sock);
+    sock = modbus_tcp_listen(ctx, 1);
+    if (sock != -1 && modbus_tcp_accept(ctx, &sock) != -1) {
+      RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Initialized listen and accept successfully");
+    } else {
+      RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Initialized listen and accept failed");
     }
   }
 
@@ -129,13 +140,19 @@ private:
         rc = modbus_receive(ctx, query);
       } while (rc == 0 && rclcpp::ok());
 
-      if (rc <= 0) {break;}
+      if (rc <= 0) break;
 
-      if (query[7] == 0x06 && query[9] == 0x01) {
-        if (query[11]) {
-          CheckAndSend(_node->_map["/camera_spinnaker_node/start"]);
+      for (int i = 0; i < rc; ++i) {
+        //std::cout << i << ' ' << int(query[i]) << std::endl;
+        printf("%02d: %02hhx\n", i, query[i]);
+      }
+      std::cout << "========================\n" << std::endl;
+
+      if (query[7] == 0x10 && query[8] == 0x01 && query[9] == 0x01) {
+        if (query[14]) {
+          CheckAndSend(_node->_map["/gpio_raspberry_node/high"]);
         } else {
-          CheckAndSend(_node->_map["/camera_spinnaker_node/stop"]);
+          CheckAndSend(_node->_map["/gpio_raspberry_node/low"]);
         }
       }
       std::lock_guard<std::mutex> lock(_mutex);
@@ -146,7 +163,6 @@ private:
 private:
   Modbus * _node;
   modbus_t * ctx = NULL;
-  int header_length;
   modbus_mapping_t * mb_mapping = NULL;
   int sock = -1;
   unsigned char query[MODBUS_TCP_MAX_ADU_LENGTH];
@@ -183,7 +199,7 @@ void Modbus::_Init()
     auto srvs = this->get_service_names_and_types();
     auto pos = std::find_if(
       srvs.begin(), srvs.end(), [](const std::pair<std::string, std::vector<std::string>> & p) {
-        return EndsWith(p.first, "/camera_spinnaker_node/start");
+        return EndsWith(p.first, "/gpio_raspberry_node/high");
       }
     );
 
@@ -200,7 +216,7 @@ void Modbus::_Init()
     auto srvs = this->get_service_names_and_types();
     auto pos = std::find_if(
       srvs.begin(), srvs.end(), [](const std::pair<std::string, std::vector<std::string>> & p) {
-        return EndsWith(p.first, "/camera_spinnaker_node/stop");
+        return EndsWith(p.first, "/gpio_raspberry_node/low");
       }
     );
 
@@ -216,7 +232,7 @@ void Modbus::_Init()
   for (auto & p : _map) {
     const auto & n = p.first;
     p.second = this->create_client<Trigger>(n);
-    RCLCPP_DEBUG(rclcpp::get_logger("rclcpp"), "Services ready [%s]", n.c_str());
+    RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Services ready [%s]", n.c_str());
   }
 
   _impl = std::make_unique<_Impl>(this);
@@ -229,7 +245,7 @@ void Modbus::_Init()
 
 void Modbus::_Sub(ModbusCoord::UniquePtr ptr)
 {
-  _impl->Update(ptr->a, ptr->b, ptr->c, ptr->d);
+  _impl->Update(ptr->valid, ptr->x, ptr->y, ptr->z);
 }
 
 void Modbus::_InitializeParameters()
@@ -250,3 +266,4 @@ void Modbus::_UpdateParameters()
 // This acts as a sort of entry point, allowing the component to be discoverable when its library
 // is being loaded into a running process.
 RCLCPP_COMPONENTS_REGISTER_NODE(modbus::Modbus)
+

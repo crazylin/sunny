@@ -30,6 +30,8 @@ namespace camera_tis
 using std_srvs::srv::Trigger;
 using sensor_msgs::msg::Image;
 
+const auto HEIGHT = 1024, WIDTH = 1536, FPS = 60, EXPO = 2000;
+
 /*
   This function will be called in a separate thread when our appsink
   says there is data for us. user_data has to be defined
@@ -58,13 +60,13 @@ extern "C" GstFlowReturn callback(GstElement * sink, void * user_data)
       auto ptr = std::make_unique<Image>();
       ptr->header.stamp = node->now();
       ptr->header.frame_id = std::to_string(framecount);
-      ptr->height = 480;
-      ptr->width = 640;
+      ptr->height = HEIGHT;
+      ptr->width = WIDTH;
       ptr->encoding = "mono8";
       ptr->is_bigendian = false;
-      ptr->step = 640;
-      ptr->data.resize(640 * 480);
-      memcpy(ptr->data.data(), data, 640 * 480);
+      ptr->step = WIDTH;
+      ptr->data.resize(HEIGHT * WIDTH);
+      memcpy(ptr->data.data(), data, HEIGHT * WIDTH);
       node->Publish(ptr);
 
       gst_buffer_unmap(buffer, &info);
@@ -103,10 +105,12 @@ public:
   {
     gst_debug_set_default_threshold(GST_LEVEL_WARNING);
     gst_init(NULL, NULL);
-    const char * pipeline_str =
-      "tcambin name=source ! video/x-raw,format=GRAY8,width=640,height=480,framerate=30/1 ! videoconvert ! appsink name=sink";  // NOLINT
+    char str[200];
+    sprintf(str, "tcambin name=source ! video/x-raw,format=GRAY8,width=%d,height=%d,framerate=%d/1 ! videoconvert ! appsink name=sink", WIDTH, HEIGHT, FPS);
+    //const char * pipeline_str =
+    //  "tcambin name=source ! video/x-raw,format=GRAY8,width=1536,height=1024,framerate=60/1 ! videoconvert ! appsink name=sink";  // NOLINT
     GError * err = NULL;
-    _pipeline = gst_parse_launch(pipeline_str, &err);
+    _pipeline = gst_parse_launch(str, &err);
     if (_pipeline == NULL) {
       throw std::runtime_error("TIS pipeline fail");
     }
@@ -148,7 +152,7 @@ public:
 
     GValue set_expo = G_VALUE_INIT;
     g_value_init(&set_expo, G_TYPE_INT);
-    g_value_set_int(&set_expo, 1000);
+    g_value_set_int(&set_expo, EXPO);
     tcam_prop_set_tcam_property(TCAM_PROP(source), "Exposure Time (us)", &set_expo);
     g_value_unset(&set_expo);
   }

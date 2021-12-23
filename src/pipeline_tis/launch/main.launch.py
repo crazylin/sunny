@@ -112,12 +112,43 @@ def generate_launch_description():
         parameters=[configParams5],
         extra_arguments=[{'use_intra_process_comms': True}])
 
+    configFile6 = os.path.join(
+        get_package_share_directory('modbus'),
+        'config',
+        'params.yaml')
+
+    with open(configFile6, 'r') as file:
+        handle = yaml.safe_load(file)
+        configParams6 = handle['modbus_node']['ros__parameters']
+
+    node6 = ComposableNode(
+        package='modbus',
+        plugin='modbus::Modbus',
+        remappings=[('~/coord', '/line_center_reconstruction_node/coord')],
+        parameters=[configParams6],
+        extra_arguments=[{'use_intra_process_comms': True}])
+
+    configFile7 = os.path.join(
+        get_package_share_directory('gpio_raspberry'),
+        'config',
+        'params.yaml')
+
+    with open(configFile7, 'r') as file:
+        handle = yaml.safe_load(file)
+        configParams7 = handle['gpio_raspberry_node']['ros__parameters']
+
+    node7 = ComposableNode(
+        package='gpio_raspberry',
+        plugin='gpio_raspberry::GpioRaspberry',
+        parameters=[configParams7],
+        extra_arguments=[{'use_intra_process_comms': True}])
+        
     container = ComposableNodeContainer(
         name='pipeline_container',
         namespace='',
         package='rclcpp_components',
         executable='component_container_mt',
-        composable_node_descriptions=[node1, node2, node3, node4_l, node4_r, node5],
+        composable_node_descriptions=[node1, node2, node3, node4_l, node4_r, node5, node6, node7],
         output='screen')
 
     return launch.LaunchDescription([container])
