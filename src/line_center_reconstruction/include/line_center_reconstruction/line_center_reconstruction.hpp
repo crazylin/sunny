@@ -37,22 +37,22 @@ public:
     _pub->publish(std::move(msg));
   }
 
-  void PublishCoord(bool valid, float x, float y, float z)
-  {
-    auto msg = std::make_unique<shared_interfaces::msg::ModbusCoord>();
-    msg->valid = valid;
-    msg->x = x;
-    msg->y = y;
-    msg->z = z;
-    _pubCoord->publish(std::move(msg));
-  }
+  // void PublishCoord(bool valid, float x, float y, float z)
+  // {
+    // auto msg = std::make_unique<shared_interfaces::msg::ModbusCoord>();
+    // msg->valid = valid;
+    // msg->x = x;
+    // msg->y = y;
+    // msg->z = z;
+    // _pubCoord->publish(std::move(msg));
+  // }
 
 private:
   const char * _pubName = "~/pnts";
   rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr _pub;
 
-  const char * _pubNameCoord = "~/coord";
-  rclcpp::Publisher<shared_interfaces::msg::ModbusCoord>::SharedPtr _pubCoord;
+  // const char * _pubNameCoord = "~/coord";
+  // rclcpp::Publisher<shared_interfaces::msg::ModbusCoord>::SharedPtr _pubCoord;
 
   class _Impl;
   std::unique_ptr<_Impl> _impl;

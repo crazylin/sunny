@@ -23,6 +23,7 @@ extern "C"
 
 #include <exception>
 #include <memory>
+#include <time.h>
 
 namespace camera_tis
 {
@@ -30,7 +31,7 @@ namespace camera_tis
 using std_srvs::srv::Trigger;
 using sensor_msgs::msg::Image;
 
-const auto HEIGHT = 1024, WIDTH = 1536, FPS = 60, EXPO = 2000;
+const auto HEIGHT = 1024, WIDTH = 1536, FPS = 60, EXPO = 1000;
 
 /*
   This function will be called in a separate thread when our appsink
@@ -71,6 +72,10 @@ extern "C" GstFlowReturn callback(GstElement * sink, void * user_data)
 
       gst_buffer_unmap(buffer, &info);
       gst_video_info_free(video_info);
+      
+      // time_t T = time(NULL);
+      // struct tm tm = *localtime(&T);
+      // printf("f:%d, t:%d\n", framecount, tm.tm_sec);
     }
     framecount++;
     gst_sample_unref(sample);
@@ -103,39 +108,28 @@ public:
   explicit _Impl(CameraTis * ptr)
   : _node(ptr)
   {
+    _InitializeParameters();
+    _UpdateParameters();
     gst_debug_set_default_threshold(GST_LEVEL_WARNING);
     gst_init(NULL, NULL);
-    char str[200];
-    sprintf(str, "tcambin name=source ! video/x-raw,format=GRAY8,width=%d,height=%d,framerate=%d/1 ! videoconvert ! appsink name=sink", WIDTH, HEIGHT, FPS);
-    //const char * pipeline_str =
-    //  "tcambin name=source ! video/x-raw,format=GRAY8,width=1536,height=1024,framerate=60/1 ! videoconvert ! appsink name=sink";  // NOLINT
+    //char str[200];
+    //sprintf(str, "tcambin name=source ! video/x-raw,format=GRAY8,width=%d,height=%d,framerate=%d/1 ! videoconvert ! appsink name=sink", WIDTH, HEIGHT, FPS);
+    const char * pipeline_str =
+      "tcambin name=source ! capsfilter name=filter ! videoconvert ! appsink name=sink";  // NOLINT
     GError * err = NULL;
-    _pipeline = gst_parse_launch(str, &err);
+    _pipeline = gst_parse_launch(pipeline_str, &err);
     if (_pipeline == NULL) {
       throw std::runtime_error("TIS pipeline fail");
     }
+
     GstElement * source = gst_bin_get_by_name(GST_BIN(_pipeline), "source");
 
-    GValue val = {};
-    const char * serial = NULL;
-    g_value_init(&val, G_TYPE_STRING);
-    g_value_set_static_string(&val, serial);
+    // GValue val = {};
+    // const char * serial = NULL;
+    // g_value_init(&val, G_TYPE_STRING);
+    // g_value_set_static_string(&val, serial);
 
-    g_object_set_property(G_OBJECT(source), "serial", &val);
-    gst_object_unref(source);
-
-    /* retrieve the appsink from the pipeline */
-    GstElement * sink = gst_bin_get_by_name(GST_BIN(_pipeline), "sink");
-
-    // tell appsink to notify us when it receives an image
-    g_object_set(G_OBJECT(sink), "emit-signals", TRUE, NULL);
-
-    // tell appsink what function to call when it notifies us
-    g_signal_connect(sink, "new-sample", G_CALLBACK(callback), _node);
-
-    gst_object_unref(sink);
-
-    block_until_playing(_pipeline);
+    // g_object_set_property(G_OBJECT(source), "serial", &val);
 
     GValue expo_auto = G_VALUE_INIT, gain_auto = G_VALUE_INIT;
     g_value_init(&expo_auto, G_TYPE_BOOLEAN);
@@ -147,19 +141,57 @@ public:
     tcam_prop_set_tcam_property(TCAM_PROP(source), "Exposure Auto", &expo_auto);
     tcam_prop_set_tcam_property(TCAM_PROP(source), "Gain Auto", &gain_auto);
 
-    g_value_unset(&expo_auto);
-    g_value_unset(&gain_auto);
-
     GValue set_expo = G_VALUE_INIT;
     g_value_init(&set_expo, G_TYPE_INT);
-    g_value_set_int(&set_expo, EXPO);
+    g_value_set_int(&set_expo, _expo);
     tcam_prop_set_tcam_property(TCAM_PROP(source), "Exposure Time (us)", &set_expo);
+
+    g_value_unset(&expo_auto);
+    g_value_unset(&gain_auto);
     g_value_unset(&set_expo);
+    gst_object_unref(source);
+
+    GstCaps* caps = gst_caps_new_empty();
+
+    GstStructure* structure = gst_structure_from_string("video/x-raw", NULL);
+    gst_structure_set(structure,
+                      "format", G_TYPE_STRING, "GRAY8",
+                      "width", G_TYPE_INT, WIDTH,
+                      "height", G_TYPE_INT, HEIGHT,
+                      "framerate", GST_TYPE_FRACTION, FPS, 1,
+                      NULL);
+
+    gst_caps_append_structure (caps, structure);
+
+    GstElement* capsfilter = gst_bin_get_by_name(GST_BIN(_pipeline), "filter");
+
+    if (capsfilter == NULL)
+    {
+        throw std::runtime_error("TIS caps fail");
+    }
+
+    g_object_set(G_OBJECT(capsfilter), "caps", caps, NULL);
+    gst_object_unref(capsfilter);
+    gst_caps_unref(caps);
+
+    /* retrieve the appsink from the pipeline */
+    GstElement * sink = gst_bin_get_by_name(GST_BIN(_pipeline), "sink");
+
+    // tell appsink to notify us when it receives an image
+    g_object_set(G_OBJECT(sink), "emit-signals", TRUE, NULL);
+
+    // tell appsink what function to call when it notifies us
+    g_signal_connect(sink, "new-sample", G_CALLBACK(callback), _node);
+    
+    gst_object_unref(sink);
+
+    block_until_playing(_pipeline);
   }
 
   ~_Impl()
   {
-    // gst_object_unref(_pipeline);
+    gst_element_set_state(_pipeline, GST_STATE_NULL);
+    gst_object_unref(_pipeline);
   }
 
   void Start()
@@ -169,12 +201,23 @@ public:
 
   void Stop()
   {
-    gst_element_set_state(_pipeline, GST_STATE_NULL);
+    gst_element_set_state(_pipeline, GST_STATE_PAUSED);
+  }
+
+  void _InitializeParameters()
+  {
+    _node->declare_parameter("exposure_time", _expo);
+  }
+
+  void _UpdateParameters()
+  {
+    _node->get_parameter("exposure_time", _expo);
   }
 
 private:
   CameraTis * _node;
   GstElement * _pipeline;
+  int _expo = 1000;
 };
 
 CameraTis::CameraTis(const rclcpp::NodeOptions & options)

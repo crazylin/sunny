@@ -124,7 +124,7 @@ def generate_launch_description():
     node6 = ComposableNode(
         package='modbus',
         plugin='modbus::Modbus',
-        remappings=[('~/coord', '/line_center_reconstruction_node/coord')],
+        remappings=[('~/coord', '/seam_tracking_node/coord')],
         parameters=[configParams6],
         extra_arguments=[{'use_intra_process_comms': True}])
 
@@ -142,7 +142,7 @@ def generate_launch_description():
         plugin='gpio_raspberry::GpioRaspberry',
         parameters=[configParams7],
         extra_arguments=[{'use_intra_process_comms': True}])
-        
+
     container = ComposableNodeContainer(
         name='pipeline_container',
         namespace='',

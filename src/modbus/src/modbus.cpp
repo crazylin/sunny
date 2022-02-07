@@ -113,8 +113,8 @@ public:
     }*/
     if (valid) {
       mb_mapping->tab_registers[2] = 255;
-      mb_mapping->tab_registers[3] = static_cast<uint16_t>(y * 1000 * 100 + 5000);
-      mb_mapping->tab_registers[4] = static_cast<uint16_t>(z * 1000 * 100 - 10000);
+      mb_mapping->tab_registers[3] = static_cast<uint16_t>(y * 100 + 9000);
+      mb_mapping->tab_registers[4] = static_cast<uint16_t>(z * 100 + 10400);
     } else {
       mb_mapping->tab_registers[2] = 0;
     }
@@ -142,19 +142,22 @@ private:
 
       if (rc <= 0) break;
 
-      for (int i = 0; i < rc; ++i) {
-        //std::cout << i << ' ' << int(query[i]) << std::endl;
-        printf("%02d: %02hhx\n", i, query[i]);
-      }
-      std::cout << "========================\n" << std::endl;
+      // for (int i = 0; i < rc; ++i) {
+        // //std::cout << i << ' ' << int(query[i]) << std::endl;
+        // printf("%02d: %02hhx\n", i, query[i]);
+      // }
+      // std::cout << "========================\n" << std::endl;
 
       if (query[7] == 0x10 && query[8] == 0x01 && query[9] == 0x01) {
         if (query[14]) {
-          CheckAndSend(_node->_map["/gpio_raspberry_node/high"]);
+          CheckAndSend(_node->_map["gpio_high"]);
+          CheckAndSend(_node->_map["camera_start"]);
         } else {
-          CheckAndSend(_node->_map["/gpio_raspberry_node/low"]);
+          CheckAndSend(_node->_map["camera_stop"]);
+          CheckAndSend(_node->_map["gpio_low"]);
         }
       }
+
       std::lock_guard<std::mutex> lock(_mutex);
       modbus_reply(ctx, query, rc, mb_mapping);
     }
@@ -195,7 +198,7 @@ void Modbus::_Init()
 
   _UpdateParameters();
 
-  while (rclcpp::ok()) {
+  /*while (rclcpp::ok()) {
     auto srvs = this->get_service_names_and_types();
     auto pos = std::find_if(
       srvs.begin(), srvs.end(), [](const std::pair<std::string, std::vector<std::string>> & p) {
@@ -227,12 +230,23 @@ void Modbus::_Init()
       _map[pos->first] = nullptr;
       break;
     }
-  }
-
+  }*/
+  _map["gpio_high"] = this->create_client<Trigger>("/gpio_raspberry_node/high");
+  _map["gpio_low"] = this->create_client<Trigger>("/gpio_raspberry_node/low");
+  _map["camera_start"] = this->create_client<Trigger>("/camera_tis_node/start");
+  _map["camera_stop"] = this->create_client<Trigger>("/camera_tis_node/stop");
   for (auto & p : _map) {
-    const auto & n = p.first;
+    while (rclcpp::ok()) {
+      if (!p.second->service_is_ready()) {
+        std::this_thread::sleep_for(200ms);
+      } else {
+        RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Services ready [%s]", p.first.c_str());
+        break;
+      }
+    }
+    /*const auto & n = p.first;
     p.second = this->create_client<Trigger>(n);
-    RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Services ready [%s]", n.c_str());
+    RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Services ready [%s]", n.c_str());*/
   }
 
   _impl = std::make_unique<_Impl>(this);
