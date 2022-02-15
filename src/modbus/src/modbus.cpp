@@ -70,7 +70,7 @@ public:
       throw std::runtime_error("Can not initialize modbus registers");
     }
 
-    //mb_mapping->tab_registers[0] = 255;
+    // mb_mapping->tab_registers[0] = 255;
     mb_mapping->tab_registers[1] = 255;
     /*mb_mapping->tab_registers[2] = 255;
     mb_mapping->tab_registers[3] = 255;
@@ -90,16 +90,18 @@ public:
 
   ~_Impl()
   {
-    if (sock != -1) close(sock);
+    if (sock != -1) {
+      close(sock);
+    }
     modbus_mapping_free(mb_mapping);
     modbus_close(ctx);
     modbus_free(ctx);
   }
 
-  void Update(bool valid, float x = 0, float y = 0, float z = 0)
+  void Update(bool valid, float /*x = 0*/, float y = 0, float z = 0)
   {
     std::lock_guard<std::mutex> lock(_mutex);
-    
+
     /*if (z * 10000 > SHRT_MAX) {
       mb_mapping->tab_registers[16] = 0;
       mb_mapping->tab_registers[17] = 0;
@@ -123,7 +125,9 @@ public:
 private:
   void _ListenAndAccept()
   {
-    if (sock != -1) close(sock);
+    if (sock != -1) {
+      close(sock);
+    }
     sock = modbus_tcp_listen(ctx, 1);
     if (sock != -1 && modbus_tcp_accept(ctx, &sock) != -1) {
       RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Initialized listen and accept successfully");
@@ -140,11 +144,13 @@ private:
         rc = modbus_receive(ctx, query);
       } while (rc == 0 && rclcpp::ok());
 
-      if (rc <= 0) break;
+      if (rc <= 0) {
+        break;
+      }
 
       // for (int i = 0; i < rc; ++i) {
-        // //std::cout << i << ' ' << int(query[i]) << std::endl;
-        // printf("%02d: %02hhx\n", i, query[i]);
+      // //std::cout << i << ' ' << int(query[i]) << std::endl;
+      //   printf("%02d: %02hhx\n", i, query[i]);
       // }
       // std::cout << "========================\n" << std::endl;
 
@@ -280,4 +286,3 @@ void Modbus::_UpdateParameters()
 // This acts as a sort of entry point, allowing the component to be discoverable when its library
 // is being loaded into a running process.
 RCLCPP_COMPONENTS_REGISTER_NODE(modbus::Modbus)
-

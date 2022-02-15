@@ -105,7 +105,6 @@ private:
       auto pnts = std::make_unique<PointCloud2>();
       pnts->header = ptr->header;
       _node->Publish(pnts);
-      //_node->PublishCoord(false, 0, 0, 0);
     } else {
       std::vector<cv::Point2f> line, temp;
       line.reserve(ptr->center.size());
@@ -123,8 +122,6 @@ private:
         return;
       }
 
-      //cv::undistortPoints(line, temp, _coef, _dist, cv::noArray(), _coef);
-      //cv::perspectiveTransform(line, temp, _H);
       cv::perspectiveTransform(line, temp, _H);
 
       std::vector<float> xyz;
@@ -139,15 +136,12 @@ private:
       pnts->header = ptr->header;
 
       _node->Publish(pnts);
-      // _node->PublishCoord(true, 0, line[0].x / 1000, line[0].y / 1000);
     }
   }
 
   PointCloud2::UniquePtr _ConstructPointCloud2(size_t num, const void * src)
   {
     auto pnts = std::make_unique<PointCloud2>();
-
-    //pnts->header.frame_id = "map";
 
     pnts->height = 1;
     pnts->width = num;
@@ -194,7 +188,6 @@ LineCenterReconstruction::LineCenterReconstruction(const rclcpp::NodeOptions & o
 : Node("line_center_reconstruction_node", options)
 {
   _pub = this->create_publisher<PointCloud2>(_pubName, rclcpp::SensorDataQoS());
-  // _pubCoord = this->create_publisher<ModbusCoord>(_pubNameCoord, 10);
 
   _impl = std::make_unique<_Impl>(this);
 
