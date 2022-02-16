@@ -28,12 +28,10 @@ RUN /ros_entrypoint.sh \
   colcon build \
     --cmake-args -DCMAKE_BUILD_TYPE=Release \
     --packages-select camera_tis
-  
 
 # colcon test
 RUN /ros_entrypoint.sh \
-  colcon test
-    --packages-select camera_tis
+  colcon test --packages-select camera_tis
 
 # Change ROS overlay
 RUN sed -i 's?opt/ros/$ROS_DISTRO?ws/install?g' /ros_entrypoint.sh
