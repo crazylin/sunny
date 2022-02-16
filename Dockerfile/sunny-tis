@@ -33,6 +33,7 @@ RUN /ros_entrypoint.sh colcon build --cmake-args -DCMAKE_BUILD_TYPE=Release  --p
   line_center_reconstruction \
   modbus \
   seam_tracking \
+  gpio_raspberry \
   pipeline_tis
 
 # colcon test
@@ -45,6 +46,7 @@ RUN /ros_entrypoint.sh colcon test --packages-select \
   line_center_reconstruction \
   modbus \
   seam_tracking \
+  gpio_raspberry \
   pipeline_tis
 
 # Change ROS overlay
