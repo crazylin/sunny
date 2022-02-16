@@ -11,10 +11,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   && rm -rf /var/lib/apt/lists/*
 
 # Install OpenCV
-COPY --from=OPENCV /opt/opencv /opt/opencv
+COPY --from=OPENCV /opt/OpenCV /opt/OpenCV
 
 # Update ldconfig
-RUN echo "/opt/opencv/lib" >> /etc/ld.so.conf.d/OpenCV.conf \
+RUN echo "/opt/OpenCV/lib" >> /etc/ld.so.conf.d/OpenCV.conf \
   && ldconfig
 
 # Copy source codes
