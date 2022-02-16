@@ -31,5 +31,5 @@ jobs:
           file: Dockerfile/sunny-tis
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: zhuoqiw/sunny-tis
+          tags: zhuoqiw/sunny-tis:latest
 
