@@ -4,7 +4,7 @@ from rclpy.node import Node
 from shared_interfaces.msg import ModbusCoord
 from sensor_msgs.msg import PointCloud2
 
-import ros2_numpy as rnp
+from . import ros2_numpy as rnp
 
 def Calculate(x, y, num, delta):
     index = y.index(max(y))
