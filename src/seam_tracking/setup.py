@@ -1,11 +1,11 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 package_name = 'seam_tracking'
 
 setup(
     name=package_name,
     version='0.0.0',
-    packages=[package_name],
+    packages=[package_name, 'seam_tracking.ros2_numpy'],
     data_files=[
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),

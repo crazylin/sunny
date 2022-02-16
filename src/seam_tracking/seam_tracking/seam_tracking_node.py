@@ -77,6 +77,7 @@ class SeamTracking(Node):
         qos = rclpy.qos.qos_profile_sensor_data
         self.pub = self.create_publisher(ModbusCoord, '~/coord', 10)
         self.sub = self.create_subscription(PointCloud2, '~/pnts', self._cb, qos)
+        self.get_logger().info('Initialized successfully')
         
     def _cb(self, msg):
         ret = ModbusCoord()
