@@ -1,0 +1,40 @@
+# Build enviroments
+FROM zhuoqiw/ros-opencv:4.5.2 AS OPENCV
+
+FROM zhuoqiw/ros-tis:0.14.0
+
+# Install dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+  nano \
+  libgpiod-dev \
+  libmodbus-dev \
+  && rm -rf /var/lib/apt/lists/*
+
+# Install OpenCV
+COPY --from=OPENCV /opt/opencv /opt/opencv
+
+# Update ldconfig
+RUN echo "/opt/opencv/lib" >> /etc/ld.so.conf.d/OpenCV.conf \
+  && ldconfig
+
+# Copy source codes
+COPY ./src /ws/src
+
+# Use /ws as working directory
+WORKDIR /ws
+
+# colcon build
+RUN /ros_entrypoint.sh \
+  colcon build \
+    --cmake-args -DCMAKE_BUILD_TYPE=Release \
+    --packages-select camera_tis
+  
+
+# colcon test
+RUN /ros_entrypoint.sh \
+  colcon test
+    --packages-select camera_tis
+
+# Change ROS overlay
+RUN sed -i 's?opt/ros/$ROS_DISTRO?ws/install?g' /ros_entrypoint.sh
+
