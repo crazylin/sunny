@@ -18,6 +18,7 @@ import launch
 from ament_index_python.packages import get_package_share_directory
 from launch_ros.descriptions import ComposableNode
 from launch_ros.actions import ComposableNodeContainer
+from launch_ros.actions import Node
 
 
 def generate_launch_description():
@@ -151,4 +152,9 @@ def generate_launch_description():
         composable_node_descriptions=[node1, node2, node3, node4_l, node4_r, node5, node6, node7],
         output='screen')
 
-    return launch.LaunchDescription([container])
+    node8 = Node(
+        package='seam_tracking',
+        executable='main',
+        remappings=[('~/pnts', '/line_center_reconstruction_node/pnts')])
+
+    return launch.LaunchDescription([container, node8])
