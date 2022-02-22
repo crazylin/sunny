@@ -45,7 +45,7 @@ target_include_directories(camera_tis
     ${TCAM_INCLUDE_DIRS}
 )
 
-target_link_libraries(camera_tis PRIVATE ${TCAM_LIBRARIES} ${GSTREAMER_LIBRARIES})
+target_link_libraries(camera_tis ${TCAM_LIBRARIES} ${GSTREAMER_LIBRARIES})
 
 rclcpp_components_register_node(camera_tis
   PLUGIN "camera_tis::CameraTis"
