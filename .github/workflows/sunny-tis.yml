@@ -1,4 +1,4 @@
-name: build tis images
+name: Build sunny-tis images
 
 # Controls when the workflow will run
 on: workflow_dispatch
@@ -32,4 +32,6 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: zhuoqiw/sunny-tis:latest
+          cache-from: type=registry,ref=zhuoqiw/sunny-tis:latest
+          cache-to: type=inline
 
