@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.6)
+cmake_minimum_required(VERSION 3.5)
 project(camera_tis)
 
 # Default to C99
@@ -22,15 +22,10 @@ find_package(rclcpp_components REQUIRED)
 find_package(std_srvs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(PkgConfig REQUIRED)
-pkg_check_modules(TIS REQUIRED IMPORTED_TARGET gstreamer-1.0 gstreamer-video-1.0 gobject-introspection-1.0 tcam)
+pkg_check_modules(GSTREAMER REQUIRED gstreamer-1.0 gstreamer-app-1.0 gstreamer-video-1.0)
+pkg_check_modules(TCAM REQUIRED tcam)
 
 add_library(camera_tis SHARED src/camera_tis.cpp)
-
-target_include_directories(camera_tis
-  PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-    $<INSTALL_INTERFACE:include>
-)
 
 ament_target_dependencies(camera_tis
   rclcpp
@@ -39,7 +34,18 @@ ament_target_dependencies(camera_tis
   sensor_msgs
 )
 
-target_link_libraries(camera_tis PkgConfig::TIS)
+target_compile_definitions(camera_tis PRIVATE ${GSTREAMER_CFLAGS_OTHER})
+
+target_include_directories(camera_tis
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+  PRIVATE
+    ${GSTREAMER_INCLUDE_DIRS}
+    ${TCAM_INCLUDE_DIRS}
+)
+
+target_link_libraries(camera_tis PRIVATE ${TCAM_LIBRARIES} ${GSTREAMER_LIBRARIES})
 
 rclcpp_components_register_node(camera_tis
   PLUGIN "camera_tis::CameraTis"
