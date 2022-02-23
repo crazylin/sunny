@@ -1,8 +1,11 @@
 import rclpy
+import json
 from rclpy.node import Node
 
 from shared_interfaces.msg import ModbusCoord
 from sensor_msgs.msg import PointCloud2
+from share_interfaces.srv import Code
+from share_interfaces.srv import CodeList
 
 from . import ros2_numpy as rnp
 
@@ -77,10 +80,18 @@ class SeamTracking(Node):
         qos = rclpy.qos.qos_profile_sensor_data
         self.pub = self.create_publisher(ModbusCoord, '~/coord', 10)
         self.sub = self.create_subscription(PointCloud2, '~/pnts', self._cb, qos)
+        self.srv_code_list = self.create_service(CodeList, '~/codeList', self._cb_code_list)
+        self.srv_code = self.create_service(Code, '~/code', self._cb_code)
         self.get_logger().info('Initialized successfully')
 
     def __del__(self):
         self.get_logger().info('Destroyed successfully')
+
+    def _cb_code_list(self, request, response):
+        pass
+
+    def _cb_code(self, request, response):
+        pass
 
     def _cb(self, msg):
         ret = ModbusCoord()
@@ -100,6 +111,17 @@ class SeamTracking(Node):
             self.pub.publish(ret)
         else:
             self.pub.publish(ret)
+
+    def _load_codes(self):
+        try:
+            with open('codes.json', 'r') as f:
+                self.codes = json.load(f)
+        except FileNotFoundError:
+            self.codes = {}
+
+    def _save_codes(self):
+        with open('codes.json', 'w') as f:
+            json.dump(self.codes, f)
 
 def main(args=None):
     rclpy.init(args=args)
