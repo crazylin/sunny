@@ -4,8 +4,8 @@ from rclpy.node import Node
 
 from shared_interfaces.msg import ModbusCoord
 from sensor_msgs.msg import PointCloud2
-from share_interfaces.srv import Code
-from share_interfaces.srv import CodeList
+from shared_interfaces.srv import SetCode
+from shared_interfaces.srv import ListCodes
 
 from . import ros2_numpy as rnp
 
@@ -80,8 +80,8 @@ class SeamTracking(Node):
         qos = rclpy.qos.qos_profile_sensor_data
         self.pub = self.create_publisher(ModbusCoord, '~/coord', 10)
         self.sub = self.create_subscription(PointCloud2, '~/pnts', self._cb, qos)
-        self.srv_code_list = self.create_service(CodeList, '~/codeList', self._cb_code_list)
-        self.srv_code = self.create_service(Code, '~/code', self._cb_code)
+        self.srv_code_list = self.create_service(ListCodes, '~/list_codes', self._cb_code_list)
+        self.srv_code = self.create_service(SetCode, '~/set_code', self._cb_code)
         self.get_logger().info('Initialized successfully')
 
     def __del__(self):
