@@ -78,7 +78,10 @@ class SeamTracking(Node):
         self.pub = self.create_publisher(ModbusCoord, '~/coord', 10)
         self.sub = self.create_subscription(PointCloud2, '~/pnts', self._cb, qos)
         self.get_logger().info('Initialized successfully')
-        
+
+    def __del__(self):
+        self.get_logger().info('Destroyed successfully')
+
     def _cb(self, msg):
         ret = ModbusCoord()
         ret.valid = False
@@ -103,14 +106,16 @@ def main(args=None):
 
     sm = SeamTracking()
 
-    rclpy.spin(sm)
-
-    # Destroy the node explicitly
-    # (optional - otherwise it will be done automatically
-    # when the garbage collector destroys the node object)
-    sm.destroy_node()
-    rclpy.shutdown()
-
+    try:
+        rclpy.spin(sm)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        # Destroy the node explicitly
+        # (optional - otherwise it will be done automatically
+        # when the garbage collector destroys the node object)
+        sm.destroy_node()
+        rclpy.shutdown()
 
 if __name__ == '__main__':
     main()
