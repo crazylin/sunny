@@ -58,6 +58,8 @@ private:
   const char * _srvStopName = "~/stop";
   rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr _srvStop;
 
+  OnSetParametersCallbackHandle::SharedPtr _parCallbackHandle;
+
   std::thread _init;
 };
 

@@ -31,6 +31,20 @@ using std_srvs::srv::Trigger;
 using sensor_msgs::msg::Image;
 
 const auto WIDTH = 1440, HEIGHT = 1080, FPS = 60, EXPO = 1000;
+rcl_interfaces::msg::SetParametersResult
+param_callback(const std::vector<rclcpp::Parameter> & parameters)
+{
+  rcl_interfaces::msg::SetParametersResult result;
+  result.successful = true;
+  for (const auto & parameter : parameters) {
+    if (parameter.get_name() == "exposure_time") {
+      
+      result.successful = false;
+      result.reason = "the reason it could not be allowed";
+    }
+  }
+  return result;
+}
 
 /*
   This function will be called in a separate thread when our appsink
@@ -257,6 +271,21 @@ void CameraTis::_Init()
       _srvStartName,
       std::bind(&CameraTis::_Start, this, std::placeholders::_1, std::placeholders::_2));
 
+    _parCallbackHandle = this->add_on_set_parameters_callback(
+      [this] (const std::vector<rclcpp::Parameter> & parameters) {
+        rcl_interfaces::msg::SetParametersResult result;
+        result.successful = true;
+        for (const auto & parameter : parameters) {
+          if (parameter.get_name() == "exposure_time") {
+            auto ret = this->_impl->_SetProperty("Exposure", parameter.as_int());
+            if (ret != TRUE) { 
+              result.successful = false;
+              result.reason = "Failed to set exposure time";
+            }
+          }
+        }
+        return result;
+      });
     RCLCPP_INFO(this->get_logger(), "Initialized successfully");
   } catch (const std::exception & e) {
     RCLCPP_ERROR(this->get_logger(), "Exception in initializer: %s", e.what());
