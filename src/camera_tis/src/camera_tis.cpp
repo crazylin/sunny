@@ -277,7 +277,7 @@ void CameraTis::_Init()
         result.successful = true;
         for (const auto & parameter : parameters) {
           if (parameter.get_name() == "exposure_time") {
-            auto ret = this->_impl->_SetProperty("Exposure", parameter.as_int());
+            auto ret = this->_impl->_SetProperty("Exposure", int (parameter.as_int()));
             if (ret != TRUE) { 
               result.successful = false;
               result.reason = "Failed to set exposure time";
