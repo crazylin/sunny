@@ -1,0 +1,1 @@
+["def fn(x, y):\n    if not x or not y or len(x) != len(y):\n        return False, 0, 0, 0\n    else:\n        return True, 0, x[0], y[0]\n"]

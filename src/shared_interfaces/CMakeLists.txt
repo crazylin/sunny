@@ -27,6 +27,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   msg/ModbusCoord.msg
   srv/SetCode.srv
   srv/ListCodes.srv
+  srv/SelectCode.srv
   DEPENDENCIES std_msgs
 )
 

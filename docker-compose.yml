@@ -6,3 +6,5 @@ services:
     container_name: ros
     privileged: true
     network_mode: "host"
+    restart: on-failure
+

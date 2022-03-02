@@ -30,21 +30,7 @@ namespace camera_tis
 using std_srvs::srv::Trigger;
 using sensor_msgs::msg::Image;
 
-const auto WIDTH = 1440, HEIGHT = 1080, FPS = 60, EXPO = 1000;
-rcl_interfaces::msg::SetParametersResult
-param_callback(const std::vector<rclcpp::Parameter> & parameters)
-{
-  rcl_interfaces::msg::SetParametersResult result;
-  result.successful = true;
-  for (const auto & parameter : parameters) {
-    if (parameter.get_name() == "exposure_time") {
-      
-      result.successful = false;
-      result.reason = "the reason it could not be allowed";
-    }
-  }
-  return result;
-}
+const auto WIDTH = 1440, HEIGHT = 1080, FPS = 60;
 
 /*
   This function will be called in a separate thread when our appsink
@@ -136,9 +122,9 @@ public:
       throw std::runtime_error("TIS pipeline fail");
     }
 
-    _SetProperty("Exposure Auto", FALSE);
-    _SetProperty("Gain Auto", FALSE);
-    _SetProperty("Exposure", EXPO);
+    _SetProperty("Exposure Auto", "Off");
+    _SetProperty("Gain Auto", "Off");
+    _SetProperty("Exposure", _expo);
 
     _SetCaps("GRAY8", WIDTH, HEIGHT, FPS);
 
@@ -179,12 +165,24 @@ public:
     _node->get_parameter("exposure_time", _expo);
   }
 
-  gboolean _SetProperty(const char * property, bool value)
+  /*gboolean _SetProperty(const char * property, bool value)
   {
     GstElement * bin = gst_bin_get_by_name(GST_BIN(_pipeline), "source");
     GValue val = G_VALUE_INIT;
     g_value_init(&val, G_TYPE_BOOLEAN);
     g_value_set_boolean(&val, value);
+    gboolean ret = tcam_prop_set_tcam_property(TCAM_PROP(bin), property, &val);
+    g_value_unset(&val);
+    gst_object_unref(bin);
+    return ret;
+  }*/
+
+  gboolean _SetProperty(const char * property, const char * value)
+  {
+    GstElement * bin = gst_bin_get_by_name(GST_BIN(_pipeline), "source");
+    GValue val = G_VALUE_INIT;
+    g_value_init(&val, G_TYPE_STRING);
+    g_value_set_string(&val, value);
     gboolean ret = tcam_prop_set_tcam_property(TCAM_PROP(bin), property, &val);
     g_value_unset(&val);
     gst_object_unref(bin);
