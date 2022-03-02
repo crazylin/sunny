@@ -4,9 +4,12 @@ from rclpy.node import Node
 from shared_interfaces.msg import ModbusCoord
 from sensor_msgs.msg import PointCloud2
 from std_srvs.srv import Trigger
-# from shared_interfaces.srv import SetCode
+from shared_interfaces.srv import CountCodes
+from shared_interfaces.srv import GetCode
+from shared_interfaces.srv import SetCode
+
 # from shared_interfaces.srv import ListCodes
-# from shared_interfaces.srv import SelectCode
+from shared_interfaces.srv import SelectCode
 from .codes import Codes
 from . import ros2_numpy as rnp
 
@@ -82,16 +85,32 @@ class SeamTracking(Node):
         qos = rclpy.qos.qos_profile_sensor_data
         self.pub = self.create_publisher(ModbusCoord, '~/coord', 10)
         self.sub = self.create_subscription(PointCloud2, '~/pnts', self._cb, qos)
+        self.srv_count_codes = self.create_service(CountCodes, '~/count_codes', self._cb_count_codes)
+        self.srv_get_code = self.create_service(GetCode, '~/get_code', self._cb_get_code)
+        self.srv_set_code = self.create_service(SetCode, '~/set_code', self._cb_set_code)
         # self.srv_list_codes = self.create_service(ListCodes, '~/list_codes', self._cb_list_codes)
         # self.srv_set_code = self.create_service(SetCode, '~/set_code', self._cb_set_code)
         # self.srv_save_codes = self.create_service(Trigger, '~/save_codes', self._cb_save_codes)
-        # self.srv_select_code = self.create_service(SelectCode, '~/select_code', self._cb_select_code)
+        self.srv_select_code = self.create_service(SelectCode, '~/select_code', self._cb_select_code)
         self.codes = Codes()
 
         self.get_logger().info('Initialized successfully')
 
     def __del__(self):
         self.get_logger().info('Destroyed successfully')
+
+    def _cb_count_codes(self, request, response):
+        response.num = len(self.codes)
+        return response
+
+    def _cb_get_code(self, request, response):
+        response.code = self.codes[request.index]
+        return response
+    
+    def _cb_set_code(self, request, response):
+        self.codes[request.index] = request.code
+        response.success = True
+        return response
 
     # def _cb_list_codes(self, request, response):
     #     with self.lock:
@@ -115,18 +134,19 @@ class SeamTracking(Node):
     #     response.success = True
     #     response.message = 'Save codes successfully'
 
-    # def _cb_select_code(self, request, response):
-    #     with self.lock:
-    #         if request.index < len(self.codes):
-    #             response.code = self.codes[index]
-    #             response.success = True
-    #             response.message = 'Select code successfully'
-    #         else:
-    #             response.success = False
-    #             response.message = 'Index out of range'
+    def _cb_select_code(self, request, response):
+        if 0 <= request.index < len(self.codes):
+            self.codes.reload(request.index)
+            response.success = True
+            response.message = 'Select code successfully'
+        else:
+            response.success = False
+            response.message = 'Index out of range'
+        return response
 
     def _cb(self, msg):
         ret = ModbusCoord()
+        ret.x = 0.
         ret.valid = False
 
         if msg.height * msg.width == 0:
@@ -135,7 +155,7 @@ class SeamTracking(Node):
 
         data = rnp.numpify(msg)
         try:
-            ret.valid, ret.x, ret.y, ret.z = self.codes(data['y'], data['z'])
+            ret.valid, ret.y, ret.z = self.codes(data['y'], data['z'])
         except Exception as e:
             self.get_logger().warn(str(e))
         finally:

@@ -15,7 +15,7 @@ class Codes(list):
     def __init__(self):
         self.load()
         with open(self.codepath, 'w') as f:
-            pass
+            f.write(self[0])
         from . import seam_tracking_code
         self.module = seam_tracking_code
 

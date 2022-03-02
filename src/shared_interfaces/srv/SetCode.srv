@@ -1,4 +1,4 @@
-uint32 index   # indicate the index of code list
+int64 index    # indicate the index of code list
 string code    # python code
 ---
 bool success   # indicate successful run of triggered service

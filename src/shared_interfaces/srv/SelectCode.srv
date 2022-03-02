@@ -1,5 +1,4 @@
-uint32 index   # indicate the index of code list
+int64 index    # indicate the index of code list
 ---
 bool success   # indicate successful run of triggered service
 string message # informational, e.g. for error messages
-string code    # selected code
