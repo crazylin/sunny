@@ -114,6 +114,7 @@ public:
     const char * pipeline_str =
       "tcambin name=source "
       "! capsfilter name=filter "
+      "! queue max-size-buffers=2 leaky=downstream "
       "! videoconvert "
       "! appsink name=sink emit-signals=true sync=false drop=true max-buffers=4";
     GError * err = NULL;
