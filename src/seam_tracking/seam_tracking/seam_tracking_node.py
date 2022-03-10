@@ -82,6 +82,7 @@ class SeamTracking(Node):
 
     def __init__(self):
         Node.__init__(self, 'seam_tracking_node')
+        self.pnts = [(False, 0., 0.) for i in range(3)]
         qos = rclpy.qos.qos_profile_sensor_data
         self.pub = self.create_publisher(ModbusCoord, '~/coord', 10)
         self.sub = self.create_subscription(PointCloud2, '~/pnts', self._cb, qos)
@@ -99,6 +100,16 @@ class SeamTracking(Node):
     def __del__(self):
         self.get_logger().info('Destroyed successfully')
 
+    def _append_pnts(self, ret, dx = 1., dy = 1.):
+        self.pnts.append(ret)
+        self.pnts.pop(0)
+        for i in range(2):
+            v0, x0, y0 = self.pnts[i]
+            v1, x1, y1 = self.pnts[i + 1]
+            if v0 == False or v1 == False or abs(x1 - x0) > dx or abs(y1 - y0) > dy:
+                return False, 0., 0.
+        return self.pnts[2]
+
     def _cb_count_codes(self, request, response):
         response.num = len(self.codes)
         return response
@@ -106,7 +117,7 @@ class SeamTracking(Node):
     def _cb_get_code(self, request, response):
         response.code = self.codes[request.index]
         return response
-    
+
     def _cb_set_code(self, request, response):
         self.codes[request.index] = request.code
         response.success = True
@@ -155,7 +166,8 @@ class SeamTracking(Node):
 
         data = rnp.numpify(msg)
         try:
-            ret.valid, ret.y, ret.z = self.codes(data['y'], data['z'])
+            pnt = self.codes(data['y'], data['z'])
+            ret.valid, ret.y, ret.z = self._append_pnts(pnt, 0.5, 0.5)
         except Exception as e:
             self.get_logger().warn(str(e))
         finally:

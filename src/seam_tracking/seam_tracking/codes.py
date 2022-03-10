@@ -13,6 +13,7 @@ class Codes(list):
     codepath = os.path.join(dirname, modname + '.py')
 
     def __init__(self):
+        self.index = 0
         self.load()
         with open(self.codepath, 'w') as f:
             f.write(self[0])
@@ -41,4 +42,10 @@ class Codes(list):
     def reload(self, index):
         with self.lock, open(self.codepath, 'w') as f:
             f.write(self[index])
+            self.index = index
         reload(self.module)
+
+    def get(self, index = None):
+        with self.lock:
+            return self[index] if index != None else self[self.index]
+
