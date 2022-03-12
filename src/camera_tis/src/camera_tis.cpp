@@ -23,6 +23,7 @@ extern "C"
 
 #include <exception>
 #include <memory>
+#include <vector>
 
 namespace camera_tis
 {
@@ -30,7 +31,7 @@ namespace camera_tis
 using std_srvs::srv::Trigger;
 using sensor_msgs::msg::Image;
 
-const auto WIDTH = 1440, HEIGHT = 1080, FPS = 60;
+const auto WIDTH = 1920, HEIGHT = 1080, FPS = 60;
 
 /*
   This function will be called in a separate thread when our appsink
@@ -112,20 +113,20 @@ public:
     gst_debug_set_default_threshold(GST_LEVEL_WARNING);
     gst_init(NULL, NULL);
     const char * pipeline_str =
-      "tcambin name=source "
-      "! capsfilter name=filter "
-      "! queue max-size-buffers=2 leaky=downstream "
-      "! videoconvert "
-      "! appsink name=sink emit-signals=true sync=false drop=true max-buffers=4";
+      "tcambin name=source"
+      " ! capsfilter name=filter"
+      " ! videoconvert"
+      " ! appsink name=sink emit-signals=true sync=false";
     GError * err = NULL;
     _pipeline = gst_parse_launch(pipeline_str, &err);
     if (_pipeline == NULL) {
       throw std::runtime_error("TIS pipeline fail");
     }
 
-    _SetProperty("Exposure Auto", "Off");
-    _SetProperty("Gain Auto", "Off");
-    _SetProperty("Exposure", _expo);
+    _SetProperty("Exposure Auto", false);
+    _SetProperty("Gain Auto", false);
+    _SetProperty("Exposure Time (us)", _expo);
+    _SetProperty("Brightness", 0);
 
     _SetCaps("GRAY8", WIDTH, HEIGHT, FPS);
 
@@ -180,11 +181,12 @@ public:
 
   gboolean _SetProperty(const char * property, const char * value)
   {
+    gboolean ret = FALSE;
     GstElement * bin = gst_bin_get_by_name(GST_BIN(_pipeline), "source");
     GValue val = G_VALUE_INIT;
     g_value_init(&val, G_TYPE_STRING);
     g_value_set_string(&val, value);
-    gboolean ret = tcam_prop_set_tcam_property(TCAM_PROP(bin), property, &val);
+    ret = tcam_prop_set_tcam_property(TCAM_PROP(bin), property, &val);
     g_value_unset(&val);
     gst_object_unref(bin);
     return ret;
@@ -192,12 +194,30 @@ public:
 
   gboolean _SetProperty(const char * property, int value)
   {
+    gboolean ret = FALSE;
     GstElement * bin = gst_bin_get_by_name(GST_BIN(_pipeline), "source");
-    GValue val = G_VALUE_INIT;
-    g_value_init(&val, G_TYPE_INT);
-    g_value_set_int(&val, value);
-    gboolean ret = tcam_prop_set_tcam_property(TCAM_PROP(bin), property, &val);
-    g_value_unset(&val);
+    GValue type = {};
+    tcam_prop_get_tcam_property(
+      TCAM_PROP(bin),
+      property,
+      NULL,
+      NULL, NULL, NULL, NULL,
+      &type, NULL, NULL, NULL);
+    const char * t = g_value_get_string(&type);
+    if (strcmp(t, "boolean") == 0) {
+      GValue val = G_VALUE_INIT;
+      g_value_init(&val, G_TYPE_BOOLEAN);
+      g_value_set_boolean(&val, value);
+      ret = tcam_prop_set_tcam_property(TCAM_PROP(bin), property, &val);
+      g_value_unset(&val);
+    } else {
+      GValue val = G_VALUE_INIT;
+      g_value_init(&val, G_TYPE_INT);
+      g_value_set_int(&val, value);
+      ret = tcam_prop_set_tcam_property(TCAM_PROP(bin), property, &val);
+      g_value_unset(&val);
+    }
+    g_value_unset(&type);
     gst_object_unref(bin);
     return ret;
   }
@@ -271,13 +291,13 @@ void CameraTis::_Init()
       std::bind(&CameraTis::_Start, this, std::placeholders::_1, std::placeholders::_2));
 
     _parCallbackHandle = this->add_on_set_parameters_callback(
-      [this] (const std::vector<rclcpp::Parameter> & parameters) {
+      [this](const std::vector<rclcpp::Parameter> & parameters) {
         rcl_interfaces::msg::SetParametersResult result;
         result.successful = true;
         for (const auto & parameter : parameters) {
           if (parameter.get_name() == "exposure_time") {
-            auto ret = this->_impl->_SetProperty("Exposure", int (parameter.as_int()));
-            if (ret != TRUE) { 
+            auto ret = this->_impl->_SetProperty("Exposure Time (us)", int(parameter.as_int()));
+            if (ret != TRUE) {
               result.successful = false;
               result.reason = "Failed to set exposure time";
             }
@@ -343,3 +363,4 @@ void CameraTis::_Stop(
 // This acts as a sort of entry point, allowing the component to be discoverable when its library
 // is being loaded into a running process.
 RCLCPP_COMPONENTS_REGISTER_NODE(camera_tis::CameraTis)
+
