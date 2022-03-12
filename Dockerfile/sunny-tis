@@ -56,5 +56,5 @@ RUN /ros_entrypoint.sh colcon test \
 # Change ROS overlay
 COPY ./entrypoint.sh /entrypoint.sh
 
-RUN cat ./entrypoint.sh > /ros_entrypoint.sh
+RUN cat /entrypoint.sh > /ros_entrypoint.sh
 
