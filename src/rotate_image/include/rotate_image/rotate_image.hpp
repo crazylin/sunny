@@ -19,6 +19,7 @@
 #include <utility>
 
 #include "rclcpp/rclcpp.hpp"
+#include "std_msgs/msg/header.hpp"
 #include "sensor_msgs/msg/image.hpp"
 
 namespace rotate_image
@@ -32,7 +33,12 @@ public:
 
   void Publish(sensor_msgs::msg::Image::UniquePtr & msg)
   {
-    _pub->publish(std::move(msg));
+    _pubImage->publish(std::move(msg));
+  }
+
+  void Publish(const std_msgs::msg::Header & header)
+  {
+    _pubHeader->publish(header);
   }
 
 private:
@@ -40,8 +46,11 @@ private:
   void _UpdateParameters();
 
 private:
-  const char * _pubName = "~/image_rotated";
-  rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr _pub;
+  const char * _pubImageName = "~/image_rotated";
+  rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr _pubImage;
+
+  const char * _pubHeaderName = "~/header";
+  rclcpp::Publisher<std_msgs::msg::Header>::SharedPtr _pubHeader;
 
   class _Impl;
   std::unique_ptr<_Impl> _impl;

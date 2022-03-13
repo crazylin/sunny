@@ -25,6 +25,7 @@
 namespace laser_line_center
 {
 
+using std_msgs::msg::Header;
 using shared_interfaces::msg::LineCenter;
 using sensor_msgs::msg::Image;
 
@@ -144,6 +145,7 @@ private:
 
           auto line = _Execute(img);
           line->header = ptr->header;
+          _node->Publish(ptr->header);
           _node->Publish(line);
         }
       } else {
@@ -178,6 +180,8 @@ LaserLineCenter::LaserLineCenter(const rclcpp::NodeOptions & options)
 {
   _pub = this->create_publisher<LineCenter>(_pubName, rclcpp::SensorDataQoS());
 
+  _pubHeader = this->create_publisher<Header>(_pubHeaderName, 10);
+
   _impl = std::make_unique<_Impl>(this);
 
   _sub = this->create_subscription<Image>(
@@ -197,6 +201,7 @@ LaserLineCenter::~LaserLineCenter()
   try {
     _sub.reset();
     _impl.reset();
+    _pubHeader.reset();
     _pub.reset();
 
     RCLCPP_INFO(this->get_logger(), "Destroyed successfully");

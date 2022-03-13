@@ -24,6 +24,7 @@
 namespace rotate_image
 {
 
+using std_msgs::msg::Header;
 using sensor_msgs::msg::Image;
 
 class RotateImage::_Impl
@@ -77,6 +78,7 @@ private:
             std::swap(ptr->data, _buf);
             std::swap(ptr->width, ptr->height);
             ptr->step = ptr->width;
+            _node->Publish(ptr->header);
             _node->Publish(ptr);
           }
         }
@@ -98,7 +100,9 @@ private:
 RotateImage::RotateImage(const rclcpp::NodeOptions & options)
 : Node("rotate_image_node", options)
 {
-  _pub = this->create_publisher<Image>(_pubName, rclcpp::SensorDataQoS());
+  _pubImage = this->create_publisher<Image>(_pubImageName, rclcpp::SensorDataQoS());
+
+  _pubHeader = this->create_publisher<Header>(_pubHeaderName, 10);
 
   _impl = std::make_unique<_Impl>(this);
 
@@ -118,7 +122,8 @@ RotateImage::~RotateImage()
 {
   _sub.reset();
   _impl.reset();
-  _pub.reset();
+  _pubHeader.reset();
+  _pubImage.reset();
 
   RCLCPP_INFO(this->get_logger(), "Destroyed successfully");
 }

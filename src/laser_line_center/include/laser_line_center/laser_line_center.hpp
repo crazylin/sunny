@@ -19,6 +19,7 @@
 #include <utility>
 
 #include "rclcpp/rclcpp.hpp"
+#include "std_msgs/msg/header.hpp"
 #include "sensor_msgs/msg/image.hpp"
 #include "shared_interfaces/msg/line_center.hpp"
 
@@ -36,9 +37,17 @@ public:
     _pub->publish(std::move(msg));
   }
 
+  void Publish(const std_msgs::msg::Header & header)
+  {
+    _pubHeader->publish(header);
+  }
+
 private:
   const char * _pubName = "~/line";
   rclcpp::Publisher<shared_interfaces::msg::LineCenter>::SharedPtr _pub;
+
+  const char * _pubHeaderName = "~/header";
+  rclcpp::Publisher<std_msgs::msg::Header>::SharedPtr _pubHeader;
 
   class _Impl;
   std::unique_ptr<_Impl> _impl;
