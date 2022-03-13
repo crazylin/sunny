@@ -8,10 +8,10 @@ setup(
     version='0.0.0',
     packages=[package_name, depends_name],
     data_files=[
-        ('share/ament_index/resource_index/packages',
-            ['resource/' + package_name]),
+        ('share/ament_index/resource_index/packages', ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
-        ('lib/python3.8/site-packages/' + package_name, [package_name + '/codes.json']),
+        ('share/' + package_name + '/config', ['config/params.yaml']),
+        ('lib/python3.8/site-packages/' + package_name, [package_name + '/codes.json'])
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -22,7 +22,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'main = seam_tracking.seam_tracking_node:main',
+            'seam_tracking_node = seam_tracking.seam_tracking_node:main',
         ],
     },
 )

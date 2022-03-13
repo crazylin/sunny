@@ -19,6 +19,7 @@
 #include <map>
 #include <memory>
 #include <utility>
+#include <vector>
 
 #include "opencv2/opencv.hpp"
 
