@@ -37,9 +37,9 @@ public:
     _pubImage->publish(std::move(ptr));
   }
 
-  void Publish(std_msgs::msg::Header::UniquePtr & ptr)
+  void Publish(const std_msgs::msg::Header & header)
   {
-    _pubHeader->publish(std::move(ptr));
+    _pubHeader->publish(header);
   }
 
 private:
