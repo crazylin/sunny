@@ -28,10 +28,11 @@ extern "C"
 namespace camera_tis
 {
 
+using std_msgs::msg::Header;
 using std_srvs::srv::Trigger;
 using sensor_msgs::msg::Image;
 
-const auto WIDTH = 1920, HEIGHT = 1080, FPS = 60;
+const auto WIDTH = 1536, HEIGHT = 1024, FPS = 60;
 
 /*
   This function will be called in a separate thread when our appsink
@@ -69,6 +70,11 @@ extern "C" GstFlowReturn callback(GstElement * sink, void * user_data)
       ptr->data.resize(HEIGHT * WIDTH);
       memcpy(ptr->data.data(), data, HEIGHT * WIDTH);
       node->Publish(ptr);
+
+      auto header = std::make_unique<Header>();
+      header->stamp = ptr->header.stamp;
+      header->frame_id = ptr->header.frame_id;
+      node->Publish(header);
 
       gst_buffer_unmap(buffer, &info);
       gst_video_info_free(video_info);
@@ -265,7 +271,8 @@ CameraTis::~CameraTis()
     _srvStart.reset();
     _srvStop.reset();
     _impl.reset();
-    _pub.reset();
+    _pubHeader.reset();
+    _pubImage.reset();
 
     RCLCPP_INFO(this->get_logger(), "Destroyed successfully");
   } catch (const std::exception & e) {
@@ -278,7 +285,9 @@ CameraTis::~CameraTis()
 void CameraTis::_Init()
 {
   try {
-    _pub = this->create_publisher<Image>(_pubName, rclcpp::SensorDataQoS());
+    _pubImage = this->create_publisher<Image>(_pubImageName, rclcpp::SensorDataQoS());
+
+    _pubHeader = this->create_publisher<Header>(_pubHeaderName, 10);
 
     _impl = std::make_unique<_Impl>(this);
 
@@ -296,7 +305,7 @@ void CameraTis::_Init()
         result.successful = true;
         for (const auto & parameter : parameters) {
           if (parameter.get_name() == "exposure_time") {
-            auto ret = this->_impl->_SetProperty("Exposure Time (us)", int(parameter.as_int()));
+            auto ret = this->_impl->_SetProperty("Exposure Time (us)", parameter.as_int());
             if (ret != TRUE) {
               result.successful = false;
               result.reason = "Failed to set exposure time";
@@ -363,4 +372,3 @@ void CameraTis::_Stop(
 // This acts as a sort of entry point, allowing the component to be discoverable when its library
 // is being loaded into a running process.
 RCLCPP_COMPONENTS_REGISTER_NODE(camera_tis::CameraTis)
-

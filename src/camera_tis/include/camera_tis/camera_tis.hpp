@@ -19,6 +19,7 @@
 #include <memory>
 
 #include "rclcpp/rclcpp.hpp"
+#include "std_msgs/msg/header.hpp"
 #include "std_srvs/srv/trigger.hpp"
 #include "sensor_msgs/msg/image.hpp"
 
@@ -33,7 +34,12 @@ public:
 
   void Publish(sensor_msgs::msg::Image::UniquePtr & ptr)
   {
-    _pub->publish(std::move(ptr));
+    _pubImage->publish(std::move(ptr));
+  }
+
+  void Publish(std_msgs::msg::Header::UniquePtr & ptr)
+  {
+    _pubHeader->publish(std::move(ptr));
   }
 
 private:
@@ -46,8 +52,11 @@ private:
     std::shared_ptr<std_srvs::srv::Trigger::Response> response);
 
 private:
-  const char * _pubName = "~/image";
-  rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr _pub;
+  const char * _pubImageName = "~/image";
+  rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr _pubImage;
+
+  const char * _pubHeaderName = "~/header";
+  rclcpp::Publisher<std_msgs::msg::Header>::SharedPtr _pubHeader;
 
   class _Impl;
   std::unique_ptr<_Impl> _impl;
