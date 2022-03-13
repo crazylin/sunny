@@ -83,6 +83,7 @@ def generate_launch_description():
     with open(configFile4, 'r') as file:
         handle = yaml.safe_load(file)
         configParams4 = handle['line_center_reconstruction_node']['ros__parameters']
+        configParams4['workers'] = 2
 
     node4 = ComposableNode(
         package='line_center_reconstruction',

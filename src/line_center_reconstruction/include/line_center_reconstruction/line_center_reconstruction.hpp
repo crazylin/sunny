@@ -35,7 +35,7 @@ public:
 
   void Publish(sensor_msgs::msg::PointCloud2::UniquePtr & ptr)
   {
-    _pubHeader->publish(ptr->header)
+    _pubHeader->publish(ptr->header);
     _pub->publish(std::move(ptr));
   }
 

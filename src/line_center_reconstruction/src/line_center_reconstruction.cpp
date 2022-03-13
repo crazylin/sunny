@@ -40,13 +40,17 @@ public:
     _InitializeParameters();
     _UpdateParameters();
 
-    _thread = std::thread(&LineCenterReconstruction::_Impl::_Worker, this);
+    for (int i = 0; i < _workers; ++i) {
+      _threads.push_back(std::thread(&LineCenterReconstruction::_Impl::_Worker, this));
+    }
   }
 
   ~_Impl()
   {
     _con.notify_all();
-    _thread.join();
+    for (auto & t : _threads) {
+      t.join();
+    }
   }
 
   void PushBack(LineCenter::UniquePtr & ptr)
@@ -64,6 +68,7 @@ private:
     _node->declare_parameter("camera_matrix", temp);
     _node->declare_parameter("distort_coeffs", temp);
     _node->declare_parameter("homography_matrix", temp);
+    _node->declare_parameter("workers", _workers);
   }
 
   void _UpdateParameters()
@@ -72,6 +77,7 @@ private:
     _node->get_parameter("camera_matrix", c);
     _node->get_parameter("distort_coeffs", d);
     _node->get_parameter("homography_matrix", h);
+    _node->get_parameter("workers", _workers);
 
     _coef = cv::Mat(3, 3, CV_64F, c.data()).clone();
     _dist = cv::Mat(1, 5, CV_64F, d.data()).clone();
@@ -80,8 +86,6 @@ private:
 
   void _Worker()
   {
-    cv::Mat dx;
-
     while (rclcpp::ok()) {
       std::unique_lock<std::mutex> lk(_mutex);
       if (_deq.empty() == false) {
@@ -109,29 +113,27 @@ private:
       line.reserve(ptr->center.size());
       temp.reserve(ptr->center.size());
       for (size_t i = 0; i < ptr->center.size(); ++i) {
-        if (ptr->center[i] != -1) {
-          line.emplace_back(ptr->center[i], i);
-        }
-      }
-
-      if (line.empty()) {
-        auto pnts = std::make_unique<PointCloud2>();
-        pnts->header = ptr->header;
-        _node->Publish(pnts);
-        return;
+        line.emplace_back(ptr->center[i], i);
       }
 
       cv::perspectiveTransform(line, temp, _H);
 
-      std::vector<float> xyz;
+      std::vector<float> xyz, zzz;
       xyz.reserve(temp.size() * 3);
-      for (const auto & p : temp) {
-        xyz.push_back(0);
-        xyz.push_back(p.x);
-        xyz.push_back(p.y);
+      zzz.reserve(temp.size() * 3);
+      for (size_t i = 0; i < ptr->center.size(); ++i) {
+        if(ptr->center[i] < 0) {
+          zzz.push_back(0);
+          zzz.push_back(temp[i].x);
+          zzz.push_back(temp[i].y);
+        } else {
+          xyz.push_back(0);
+          xyz.push_back(temp[i].x);
+          xyz.push_back(temp[i].y);
+        }
       }
 
-      auto pnts = _ConstructPointCloud2(temp.size(), xyz.data());
+      auto pnts = _ConstructPointCloud2(xyz.size(), xyz.data());
       pnts->header = ptr->header;
 
       _node->Publish(pnts);
@@ -176,11 +178,12 @@ private:
 
 private:
   LineCenterReconstruction * _node;
+  int _workers = 1;
   cv::Mat _coef, _dist, _H;
   std::mutex _mutex;              ///< Mutex to protect shared storage
   std::condition_variable _con;   ///< Conditional variable rely on mutex
   std::deque<LineCenter::UniquePtr> _deq;
-  std::thread _thread;
+  std::vector<std::thread> _threads;
 };
 
 LineCenterReconstruction::LineCenterReconstruction(const rclcpp::NodeOptions & options)

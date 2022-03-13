@@ -82,11 +82,11 @@ private:
   LineCenter::UniquePtr _Execute(const cv::Mat & img, cv::Mat & _dx)
   {
     auto line = std::make_unique<LineCenter>();
-    line->center.resize(img.rows, -1);
+    line->center.resize(img.rows, -1.);
 
     cv::Sobel(img, _dx, CV_16S, 1, 0, _ksize, _scale[_ksize]);
 
-    for (decltype(img.rows) r = 0; r < img.rows; ++r) {
+    for (decltype(img.rows) r = 1; r < img.rows - 1; ++r) {
       auto pRow = _dx.ptr<short>(r);  // NOLINT
       auto minmax = std::minmax_element(pRow, pRow + img.cols);
 
@@ -100,24 +100,25 @@ private:
       auto maxPos = maxEle - pRow;
       auto width = minPos - maxPos;
 
-      // Filter by threshold
-      if (maxVal < _threshold || minVal > -_threshold) {continue;}
-
-      // Filter by width
-      if (width < _widthMin || width > _widthMax) {continue;}
-
-      // Filter by position
-      if (maxPos <= 0 || minPos >= img.cols - 1) {continue;}
-
       auto a1 = pRow[maxPos - 1] + pRow[maxPos + 1] - pRow[maxPos] * 2;
       auto b1 = pRow[maxPos + 1] - pRow[maxPos - 1];
-      auto s1 = -0.5 * b1 / a1;
+      auto s1 = (a1 < 0 ? -0.5 * b1 / a1 : -0.5 * b1 / 1.);
 
       auto a2 = pRow[minPos - 1] + pRow[minPos + 1] - pRow[minPos] * 2;
       auto b2 = pRow[minPos + 1] - pRow[minPos - 1];
-      auto s2 = -0.5 * b2 / a2;
+      auto s2 = (a2 > 0 ? -0.5 * b2 / a2 : -0.5 * b2 / 1.);
 
       line->center[r] = (maxPos + minPos + s1 + s2) * 0.5;
+
+      auto f1 = (maxVal < _threshold || minVal > -_threshold);
+      auto f2 = (width < _widthMin || width > _widthMax);
+      auto f3 = (maxPos <= 0 || minPos >= img.cols - 1);
+
+      if (f1 || f2 || f3) {
+        line->center[r] = line->center[0];
+      } else {
+        line->center[r] = line->center[r];
+      }
     }
 
     return line;
