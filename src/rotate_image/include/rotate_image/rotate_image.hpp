@@ -42,10 +42,6 @@ public:
   }
 
 private:
-  void _InitializeParameters();
-  void _UpdateParameters();
-
-private:
   const char * _pubImageName = "~/image_rotated";
   rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr _pubImage;
 

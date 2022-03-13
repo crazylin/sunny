@@ -4,3 +4,4 @@ laser_line_center_node:
     threshold: 35   #int
     width_min: 1    #int
     width_max: 30   #int
+    workers: 4      #int

@@ -33,13 +33,20 @@ public:
   explicit _Impl(RotateImage * ptr)
   : _node(ptr)
   {
-    _thread = std::thread(&_Impl::_Worker, this);
+    _node->declare_parameter("workers", _workers);
+    _node->get_parameter("workers", _workers);
+    for (int i = 0; i < _workers; ++i) {
+      _threads.push_back(std::thread(&_Impl::_Worker, this));
+    }
+    RCLCPP_INFO(_node->get_logger(), "Employ %d workers successfully", _workers);
   }
 
   ~_Impl()
   {
     _con.notify_all();
-    _thread.join();
+    for (auto & t : _threads) {
+      t.join();
+    }
   }
 
   void PushBack(Image::UniquePtr ptr)
@@ -53,6 +60,7 @@ public:
 private:
   void _Worker()
   {
+    Image::_data_type _buf;
     while (rclcpp::ok()) {
       std::unique_lock<std::mutex> lk(_mutex);
       if (_deq.empty() == false) {
@@ -65,6 +73,7 @@ private:
         if (ptr->header.frame_id == "-1") {
           auto img = std::make_unique<Image>();
           img->header = ptr->header;
+          _node->Publish(ptr->header)
           _node->Publish(img);
         } else {
           if (ptr->encoding != "mono8") {
@@ -90,11 +99,11 @@ private:
 
 private:
   RotateImage * _node;
-  Image::_data_type _buf;
+  int _workers = 1;
   std::mutex _mutex;              ///< Mutex to protect shared storage
   std::condition_variable _con;   ///< Conditional variable rely on mutex
   std::deque<Image::UniquePtr> _deq;
-  std::thread _thread;
+  std::vector<std::thread> _threads;
 };
 
 RotateImage::RotateImage(const rclcpp::NodeOptions & options)
@@ -126,16 +135,6 @@ RotateImage::~RotateImage()
   _pubImage.reset();
 
   RCLCPP_INFO(this->get_logger(), "Destroyed successfully");
-}
-
-void RotateImage::_InitializeParameters()
-{
-  // this->declare_parameter("");
-}
-
-void RotateImage::_UpdateParameters()
-{
-  // this->get_parameter("", );
 }
 
 }  // namespace rotate_image

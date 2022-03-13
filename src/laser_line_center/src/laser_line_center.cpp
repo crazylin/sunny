@@ -36,13 +36,19 @@ public:
   : _node(ptr)
   {
     _InitializeParameters();
-    _thread = std::thread(&_Impl::_Worker, this);
+    _UpdateParameters();
+    for (int i = 0; i < _workers; ++i) {
+      _threads.push_back(std::thread(&_Impl::_Worker, this));
+    }
+    RCLCPP_INFO(_node->get_logger(), "Employ %d workers successfully", _workers);
   }
 
   ~_Impl()
   {
     _con.notify_all();
-    _thread.join();
+    for (auto & t : _threads) {
+      t.join();
+    }
   }
 
   void PushBack(Image::UniquePtr & ptr)
@@ -60,6 +66,7 @@ private:
     _node->declare_parameter("threshold", _threshold);
     _node->declare_parameter("width_min", _widthMin);
     _node->declare_parameter("width_max", _widthMax);
+    _node->declare_parameter("workers", _workers);
   }
 
   void _UpdateParameters()
@@ -68,9 +75,10 @@ private:
     _node->get_parameter("threshold", _threshold);
     _node->get_parameter("width_min", _widthMin);
     _node->get_parameter("width_max", _widthMax);
+    _node->get_parameter("workers", _workers);
   }
 
-  LineCenter::UniquePtr _Execute(const cv::Mat & img)
+  LineCenter::UniquePtr _Execute(const cv::Mat & img, cv::Mat & _dx)
   {
     auto line = std::make_unique<LineCenter>();
     line->center.resize(img.rows, -1);
@@ -116,6 +124,7 @@ private:
 
   void _Worker()
   {
+    cv::Mat _dx;
     while (rclcpp::ok()) {
       std::unique_lock<std::mutex> lk(_mutex);
       if (_deq.empty() == false) {
@@ -128,6 +137,7 @@ private:
         if (ptr->header.frame_id == "-1") {
           auto line = std::make_unique<LineCenter>();
           line->header = ptr->header;
+          _node->Publish(ptr->header);
           _node->Publish(line);
         } else {
           if (ptr->encoding != "mono8") {
@@ -143,7 +153,7 @@ private:
 
           _UpdateParameters();
 
-          auto line = _Execute(img);
+          auto line = _Execute(img, _dx);
           line->header = ptr->header;
           _node->Publish(ptr->header);
           _node->Publish(line);
@@ -159,7 +169,7 @@ private:
   int _threshold = 35;
   int _widthMin = 1;
   int _widthMax = 30;
-  cv::Mat _dx;
+  int _workers = 1;
   std::map<int, double> _scale = {
     {1, 1.},
     {3, 1. / 4.},
@@ -172,7 +182,7 @@ private:
   std::mutex _mutex;              ///< Mutex to protect shared storage
   std::condition_variable _con;   ///< Conditional variable rely on mutex
   std::deque<Image::UniquePtr> _deq;
-  std::thread _thread;
+  std::vector<std::thread> _threads;
 };
 
 LaserLineCenter::LaserLineCenter(const rclcpp::NodeOptions & options)
