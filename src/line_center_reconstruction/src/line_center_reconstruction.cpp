@@ -25,12 +25,11 @@
 namespace line_center_reconstruction
 {
 
+using std_msgs::msg::Header;
 using shared_interfaces::msg::LineCenter;
 using sensor_msgs::msg::PointCloud2;
 using sensor_msgs::msg::PointField;
 using shared_interfaces::msg::ModbusCoord;
-
-auto COUNT = 0;
 
 class LineCenterReconstruction::_Impl
 {
@@ -189,6 +188,8 @@ LineCenterReconstruction::LineCenterReconstruction(const rclcpp::NodeOptions & o
 {
   _pub = this->create_publisher<PointCloud2>(_pubName, rclcpp::SensorDataQoS());
 
+  _pubHeader = this->create_publisher<Header>(_pubHeaderName, 10);
+
   _impl = std::make_unique<_Impl>(this);
 
   _sub = this->create_subscription<LineCenter>(
@@ -197,7 +198,6 @@ LineCenterReconstruction::LineCenterReconstruction(const rclcpp::NodeOptions & o
     [this](LineCenter::UniquePtr ptr)
     {
       _impl->PushBack(ptr);
-      ++COUNT;
     }
   );
 
@@ -208,9 +208,10 @@ LineCenterReconstruction::~LineCenterReconstruction()
 {
   _sub.reset();
   _impl.reset();
+  _pubHeader.reset();
   _pub.reset();
 
-  RCLCPP_INFO(this->get_logger(), "Destroyed successfully: %d", COUNT);
+  RCLCPP_INFO(this->get_logger(), "Destroyed successfully");
 }
 
 }  // namespace line_center_reconstruction

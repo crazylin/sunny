@@ -19,6 +19,7 @@
 #include <utility>
 
 #include "rclcpp/rclcpp.hpp"
+#include "std_msgs/msg/header.hpp"
 #include "sensor_msgs/msg/point_cloud2.hpp"
 #include "shared_interfaces/msg/line_center.hpp"
 #include "shared_interfaces/msg/modbus_coord.hpp"
@@ -32,17 +33,18 @@ public:
   explicit LineCenterReconstruction(const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
   virtual ~LineCenterReconstruction();
 
-  void Publish(sensor_msgs::msg::PointCloud2::UniquePtr & msg)
+  void Publish(sensor_msgs::msg::PointCloud2::UniquePtr & ptr)
   {
-    _pub->publish(std::move(msg));
+    _pubHeader->publish(ptr->header)
+    _pub->publish(std::move(ptr));
   }
 
 private:
   const char * _pubName = "~/pnts";
   rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr _pub;
 
-  // const char * _pubNameCoord = "~/coord";
-  // rclcpp::Publisher<shared_interfaces::msg::ModbusCoord>::SharedPtr _pubCoord;
+  const char * _pubHeaderName = "~/header";
+  rclcpp::Publisher<std_msgs::msg::Header>::SharedPtr _pubHeader;
 
   class _Impl;
   std::unique_ptr<_Impl> _impl;
