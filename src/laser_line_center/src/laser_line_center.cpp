@@ -137,7 +137,6 @@ private:
         if (ptr->header.frame_id == "-1") {
           auto line = std::make_unique<LineCenter>();
           line->header = ptr->header;
-          _node->Publish(ptr->header);
           _node->Publish(line);
         } else {
           if (ptr->encoding != "mono8") {
@@ -155,7 +154,6 @@ private:
 
           auto line = _Execute(img, _dx);
           line->header = ptr->header;
-          _node->Publish(ptr->header);
           _node->Publish(line);
         }
       } else {

@@ -34,12 +34,8 @@ public:
 
   void Publish(sensor_msgs::msg::Image::UniquePtr & ptr)
   {
+    _pubHeader->publish(ptr->header);
     _pubImage->publish(std::move(ptr));
-  }
-
-  void Publish(const std_msgs::msg::Header & header)
-  {
-    _pubHeader->publish(header);
   }
 
 private:

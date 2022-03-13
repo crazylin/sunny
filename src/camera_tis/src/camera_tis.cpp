@@ -70,7 +70,6 @@ extern "C" GstFlowReturn callback(GstElement * sink, void * user_data)
       ptr->data.resize(HEIGHT * WIDTH);
       memcpy(ptr->data.data(), data, HEIGHT * WIDTH);
 
-      node->Publish(ptr->header);
       node->Publish(ptr);
 
       gst_buffer_unmap(buffer, &info);

@@ -31,14 +31,10 @@ public:
   explicit RotateImage(const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
   virtual ~RotateImage();
 
-  void Publish(sensor_msgs::msg::Image::UniquePtr & msg)
+  void Publish(sensor_msgs::msg::Image::UniquePtr & ptr)
   {
-    _pubImage->publish(std::move(msg));
-  }
-
-  void Publish(const std_msgs::msg::Header & header)
-  {
-    _pubHeader->publish(header);
+    _pubHeader->publish(ptr->header);
+    _pubImage->publish(std::move(ptr));
   }
 
 private:

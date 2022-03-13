@@ -32,14 +32,10 @@ public:
   explicit LaserLineCenter(const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
   virtual ~LaserLineCenter();
 
-  void Publish(shared_interfaces::msg::LineCenter::UniquePtr & msg)
+  void Publish(shared_interfaces::msg::LineCenter::UniquePtr & ptr)
   {
-    _pub->publish(std::move(msg));
-  }
-
-  void Publish(const std_msgs::msg::Header & header)
-  {
-    _pubHeader->publish(header);
+    _pubHeader->publish(ptr->header);
+    _pub->publish(std::move(ptr));
   }
 
 private:

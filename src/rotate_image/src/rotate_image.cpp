@@ -73,7 +73,6 @@ private:
         if (ptr->header.frame_id == "-1") {
           auto img = std::make_unique<Image>();
           img->header = ptr->header;
-          _node->Publish(ptr->header)
           _node->Publish(img);
         } else {
           if (ptr->encoding != "mono8") {
@@ -87,7 +86,6 @@ private:
             std::swap(ptr->data, _buf);
             std::swap(ptr->width, ptr->height);
             ptr->step = ptr->width;
-            _node->Publish(ptr->header);
             _node->Publish(ptr);
           }
         }
