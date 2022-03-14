@@ -142,7 +142,7 @@ private:
         if (ptr->header.frame_id == "-1") {
           auto line = std::make_unique<LineCenter>();
           line->header = ptr->header;
-          _node->Publish(line);
+          _Publish(line);
         } else {
           if (ptr->encoding != "mono8") {
             RCLCPP_WARN(_node->get_logger(), "Can not handle color image");
@@ -159,10 +159,26 @@ private:
 
           auto line = _Execute(img, _dx);
           line->header = ptr->header;
-          _node->Publish(line);
+          _Publish(line);
         }
       } else {
         _con.wait(lk);
+      }
+    }
+  }
+
+  void _Publish(LineCenter::UniquePtr & ptr)
+  {
+    if (_workers == 1) {
+      _node->Publish(ptr);
+    } else {
+      std::lock_guard<std::mutex> guard(_sync);
+      auto id = std::stoi(ptr->header.frame_id);
+      _buf[id] = std::move(ptr);
+      if (_buf.size() > _workers * 2) {
+        auto pos = _buf.begin();
+        _node->Publish(pos->second);
+        _buf.erase(pos);
       }
     }
   }
@@ -182,7 +198,8 @@ private:
   };
 
   LaserLineCenter * _node;
-  std::mutex _mutex;              ///< Mutex to protect shared storage
+  std::map<int, LineCenter::UniquePtr> _buf;
+  std::mutex _mutex, _sync;       ///< Mutex to protect shared storage
   std::condition_variable _con;   ///< Conditional variable rely on mutex
   std::deque<Image::UniquePtr> _deq;
   std::vector<std::thread> _threads;

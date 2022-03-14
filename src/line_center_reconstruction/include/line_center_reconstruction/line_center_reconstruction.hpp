@@ -35,8 +35,14 @@ public:
 
   void Publish(sensor_msgs::msg::PointCloud2::UniquePtr & ptr)
   {
+    static int idA = -1;
+    auto idB = std::stoi(ptr->header.frame_id);
+    if (idB != idA + 1) {
+      RCLCPP_ERROR(this->get_logger(), "Skipped frame: from %d to %d", idA, idB);
+    }
     _pubHeader->publish(ptr->header);
     _pub->publish(std::move(ptr));
+    idA = idB;
   }
 
 private:

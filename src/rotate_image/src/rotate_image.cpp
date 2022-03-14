@@ -16,6 +16,7 @@
 
 #include <deque>
 #include <exception>
+#include <map>
 #include <memory>
 #include <utility>
 #include <vector>
@@ -74,7 +75,7 @@ private:
         if (ptr->header.frame_id == "-1") {
           auto img = std::make_unique<Image>();
           img->header = ptr->header;
-          _node->Publish(img);
+          _Publish(img);
         } else {
           if (ptr->encoding != "mono8") {
             RCLCPP_WARN(_node->get_logger(), "Can not handle color image");
@@ -87,7 +88,7 @@ private:
             std::swap(ptr->data, _buf);
             std::swap(ptr->width, ptr->height);
             ptr->step = ptr->width;
-            _node->Publish(ptr);
+            _Publish(ptr);
           }
         }
       } else {
@@ -96,10 +97,27 @@ private:
     }
   }
 
+  void _Publish(Image::UniquePtr & ptr)
+  {
+    if (_workers == 1) {
+      _node->Publish(ptr);
+    } else {
+      std::lock_guard<std::mutex> guard(_sync);
+      auto id = std::stoi(ptr->header.frame_id);
+      _buf[id] = std::move(ptr);
+      if (_buf.size() > _workers * 2) {
+        auto pos = _buf.begin();
+        _node->Publish(pos->second);
+        _buf.erase(pos);
+      }
+    }
+  }
+
 private:
   RotateImage * _node;
   int _workers = 1;
-  std::mutex _mutex;              ///< Mutex to protect shared storage
+  std::map<int, Image::UniquePtr> _buf;
+  std::mutex _mutex, _sync;       ///< Mutex to protect shared storage
   std::condition_variable _con;   ///< Conditional variable rely on mutex
   std::deque<Image::UniquePtr> _deq;
   std::vector<std::thread> _threads;

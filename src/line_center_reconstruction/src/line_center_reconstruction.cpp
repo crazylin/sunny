@@ -178,15 +178,19 @@ private:
     return pnts;
   }
 
-  void _Publish(sensor_msgs::msg::PointCloud2::UniquePtr & ptr)
+  void _Publish(PointCloud2::UniquePtr & ptr)
   {
-    std::lock_guard<std::mutex> guard(_sync);
-    auto id = std::stoi(ptr->header.frame_id);
-    _buf[id] = std::move(ptr);
-    if (_buf.size() > 10) {
-      auto pos = _buf.begin();
-      _node->Publish(pos->second);
-      _buf.erase(pos);
+    if (_workers == 1) {
+      _node->Publish(ptr);
+    } else {
+      std::lock_guard<std::mutex> guard(_sync);
+      auto id = std::stoi(ptr->header.frame_id);
+      _buf[id] = std::move(ptr);
+      if (_buf.size() > _workers * 2) {
+        auto pos = _buf.begin();
+        _node->Publish(pos->second);
+        _buf.erase(pos);
+      }
     }
   }
 
@@ -194,7 +198,7 @@ private:
   LineCenterReconstruction * _node;
   int _workers = 1;
   cv::Mat _coef, _dist, _H;
-  std::map<int, sensor_msgs::msg::PointCloud2::UniquePtr> _buf;
+  std::map<int, PointCloud2::UniquePtr> _buf;
   std::mutex _mutex, _sync;       ///< Mutex to protect shared storage
   std::condition_variable _con;   ///< Conditional variable rely on mutex
   std::deque<LineCenter::UniquePtr> _deq;
