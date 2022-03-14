@@ -19,3 +19,23 @@
 | ROS2 msg file name   | AbcDef.msg        | ParameterEvent.msg |
 | ROS2 launch file name      | main.launch.py       |  |
 | Var in srv or msg | abc_def | new_parameters |
+
+## Coding style
+
+```cpp
+if (true) {
+  // Todo
+} else {
+  // Todo
+}
+
+if (
+  a ||
+  b ||
+  c)
+{
+  // Todo
+} else {
+  // Todo
+}
+```

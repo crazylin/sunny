@@ -110,11 +110,14 @@ private:
 
       line->center[r] = (maxPos + minPos + s1 + s2) * 0.5;
 
-      auto f1 = (maxVal < _threshold || minVal > -_threshold);
-      auto f2 = (width < _widthMin || width > _widthMax);
-      auto f3 = (maxPos <= 0 || minPos >= img.cols - 1);
-
-      if (f1 || f2 || f3) {
+      if (
+        maxVal < _threshold ||
+        minVal > -_threshold ||
+        width < _widthMin ||
+        width > _widthMax ||
+        maxPos <= 0 ||
+        minPos >= img.cols - 1)
+      {
         line->center[r] = line->center[0];
       } else {
         line->center[r] = line->center[r];

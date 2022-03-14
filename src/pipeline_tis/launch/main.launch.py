@@ -38,7 +38,6 @@ def generate_launch_description():
         parameters=[configParams1],
         extra_arguments=[{'use_intra_process_comms': True}])
 
-
     configFile2 = os.path.join(
         get_package_share_directory('rotate_image'),
         'config',
@@ -55,7 +54,6 @@ def generate_launch_description():
         remappings=[('~/image', '/camera_tis_node/image')],
         parameters=[configParams2],
         extra_arguments=[{'use_intra_process_comms': True}])
-
 
     configFile3 = os.path.join(
         get_package_share_directory('laser_line_center'),
@@ -74,7 +72,6 @@ def generate_launch_description():
         parameters=[configParams3],
         extra_arguments=[{'use_intra_process_comms': True}])
 
-
     configFile4 = os.path.join(
         get_package_share_directory('line_center_reconstruction'),
         'config',
@@ -92,7 +89,6 @@ def generate_launch_description():
         parameters=[configParams4],
         extra_arguments=[{'use_intra_process_comms': True}])
 
-
     container = ComposableNodeContainer(
         name='pipeline_container',
         namespace='',
@@ -100,7 +96,6 @@ def generate_launch_description():
         executable='component_container_mt',
         composable_node_descriptions=[node1, node2, node3, node4],
         output='screen')
-
 
     configFile5 = os.path.join(
         get_package_share_directory('modbus'),
@@ -117,7 +112,6 @@ def generate_launch_description():
         remappings=[('~/coord', '/seam_tracking_node/coord')],
         parameters=[configParams5])
 
-
     configFile6 = os.path.join(
         get_package_share_directory('gpio_raspberry'),
         'config',
@@ -131,7 +125,6 @@ def generate_launch_description():
         package='gpio_raspberry',
         executable='gpio_raspberry_node',
         parameters=[configParams6])
-
 
     configFile7 = os.path.join(
         get_package_share_directory('seam_tracking'),
@@ -147,6 +140,5 @@ def generate_launch_description():
         executable='seam_tracking_node',
         remappings=[('~/pnts', '/line_center_reconstruction_node/pnts')],
         parameters=[configParams7])
-
 
     return launch.LaunchDescription([container, node5, node6, node7])

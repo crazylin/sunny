@@ -16,6 +16,7 @@
 
 #include <deque>
 #include <exception>
+#include <map>
 #include <memory>
 #include <utility>
 #include <vector>
@@ -43,6 +44,7 @@ public:
     for (int i = 0; i < _workers; ++i) {
       _threads.push_back(std::thread(&LineCenterReconstruction::_Impl::_Worker, this));
     }
+    RCLCPP_INFO(_node->get_logger(), "Employ %d workers successfully", _workers);
   }
 
   ~_Impl()
@@ -107,7 +109,7 @@ private:
     if (ptr->header.frame_id == "-1") {
       auto pnts = std::make_unique<PointCloud2>();
       pnts->header = ptr->header;
-      _node->Publish(pnts);
+      _Publish(pnts);
     } else {
       std::vector<cv::Point2f> line, temp;
       line.reserve(ptr->center.size());
@@ -122,7 +124,7 @@ private:
       xyz.reserve(temp.size() * 3);
       zzz.reserve(temp.size() * 3);
       for (size_t i = 0; i < ptr->center.size(); ++i) {
-        if(ptr->center[i] < 0) {
+        if (ptr->center[i] < 0) {
           zzz.push_back(0);
           zzz.push_back(temp[i].x);
           zzz.push_back(temp[i].y);
@@ -133,10 +135,10 @@ private:
         }
       }
 
-      auto pnts = _ConstructPointCloud2(xyz.size(), xyz.data());
+      auto pnts = _ConstructPointCloud2(xyz.size() / 3, xyz.data());
       pnts->header = ptr->header;
 
-      _node->Publish(pnts);
+      _Publish(pnts);
     }
   }
 
@@ -176,11 +178,24 @@ private:
     return pnts;
   }
 
+  void _Publish(sensor_msgs::msg::PointCloud2::UniquePtr & ptr)
+  {
+    std::lock_guard<std::mutex> guard(_sync);
+    auto id = std::stoi(ptr->header.frame_id);
+    _buf[id] = std::move(ptr);
+    if (_buf.size() > 10) {
+      auto pos = _buf.begin();
+      _node->Publish(pos->second);
+      _buf.erase(pos);
+    }
+  }
+
 private:
   LineCenterReconstruction * _node;
   int _workers = 1;
   cv::Mat _coef, _dist, _H;
-  std::mutex _mutex;              ///< Mutex to protect shared storage
+  std::map<int, sensor_msgs::msg::PointCloud2::UniquePtr> _buf;
+  std::mutex _mutex, _sync;       ///< Mutex to protect shared storage
   std::condition_variable _con;   ///< Conditional variable rely on mutex
   std::deque<LineCenter::UniquePtr> _deq;
   std::vector<std::thread> _threads;
