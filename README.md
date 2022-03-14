@@ -1,5 +1,23 @@
 # sunny
 
+## System requirements
+
+- Raspberry Pi 4 Model B (4GB or 8GB)
+- Micro-SD card (16GB)
+- MobaXterm (SSH)
+- VMware (Player or Workstation)
+- [Raspberry Pi Imager](https://www.raspberrypi.com/software/)
+- [Ubuntu Server 20.04.4 LTS ARM64](https://ubuntu.com/download/raspberry-pi/thank-you?version=20.04.4&architecture=server-arm64+raspi)
+- docker, docker-compose
+
+## Prepare system
+
+1. Install ubuntu to a microSD card.
+1. SSH into ubuntu. (user: ubuntu, password: ubuntu)
+1. [Install Docker Engine on Ubuntu.](https://docs.docker.com/engine/install/ubuntu/)
+1. [Install docker-compose.](https://docs.docker.com/compose/install/)
+1. Use docker pull image: zhuoqiw/sunny-tis:latest
+
 ## Name convention
 
 | Context      | Syntax | Example |
@@ -23,6 +41,27 @@
 ## Coding style
 
 ```cpp
+// derived.hpp
+namespace derived_space
+{
+
+class Derived : public Base
+{
+}
+
+}  // namespace derived_space
+
+// derived.cpp
+namespace derived_space
+{
+
+Derived::Derived()
+: Base()
+{
+}
+
+}  // namespace derived_space
+
 if (true) {
   // Todo
 } else {
