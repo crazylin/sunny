@@ -18,6 +18,12 @@
 1. [Install docker-compose.](https://docs.docker.com/compose/install/)
 1. Use docker pull image: zhuoqiw/sunny-tis:latest
 
+## System optimization
+
+- Turn off apt-daily service (/etc/apt/apt.conf.d/20auto-upgrades)
+- [Remove snap](https://linuxhint.com/turn-off-snap-ubuntu/)
+- [Remove cloud-init](https://blog.rylander.io/2020/12/23/how-to-remove-cloud-init-from-ubuntu-server-20-04/) sudo touch /etc/cloud/cloud-init.disabled
+
 ## Name convention
 
 | Context      | Syntax | Example |
