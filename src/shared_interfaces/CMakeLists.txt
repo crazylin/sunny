@@ -26,10 +26,11 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   msg/RollPitchYaw.msg
   msg/ModbusCoord.msg
   srv/SetCode.srv
-  srv/ListCodes.srv
+  srv/SetCodes.srv
+  srv/GetCode.srv
+  srv/GetCodes.srv
   srv/SelectCode.srv
   srv/CountCodes.srv
-  srv/GetCode.srv
   DEPENDENCIES std_msgs
 )
 

@@ -1,2 +1,4 @@
 ---
-int64 num
+int64 num       # number of codes
+bool success    # indicate successful run of triggered service
+string message  # informational, e.g. for error messages

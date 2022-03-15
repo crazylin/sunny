@@ -1,51 +1,69 @@
 import json
 import os
-
+import importlib
 from threading import Lock
-from importlib import import_module, reload
 
 
 class Codes(list):
-    lock = Lock()
-    dirname = os.path.dirname(__file__)
-    modname = 'seam_tracking_code'
-    jsonpath = os.path.join(dirname, 'codes.json')
-    codepath = os.path.join(dirname, modname + '.py')
+    _lock = Lock()
+    _dirname = os.path.dirname(__file__)
+    _modname = 'seam_tracking_code'
+    _jsonpath = os.path.join(_dirname, 'codes.json')
+    _codepath = os.path.join(_dirname, _modname + '.py')
+    with open(_codepath, 'w') as f:
+        pass
+    from . import seam_tracking_code as stc
 
     def __init__(self):
-        self.index = 0
+        self._id = 0
+        self.append('def fn(x, y):\n    return False, 0., 0.')
         self.load()
-        with open(self.codepath, 'w') as f:
-            f.write(self[0])
-        from . import seam_tracking_code
-        self.module = seam_tracking_code
+        self.reload()
 
     def __del__(self):
         try:
-            os.remove(self.codepath)
+            os.remove(self._codepath)
         except FileNotFoundError:
             pass
 
     def __call__(self, *args, **kwargs):
-        with self.lock:
-            fn = self.module.fn
-        return fn(*args, **kwargs)
+        with self._lock:
+            return self.stc.fn(*args, **kwargs)
 
     def load(self):
-        with self.lock, open(self.jsonpath, 'r') as f:
-            self[:] = json.load(f)
+        with self._lock, open(self._jsonpath, 'r') as f:
+            self[1:] = json.load(f)
+
+    def loads(self, s):
+        with self._lock:
+            self[1:] = json.loads(s)
 
     def dump(self):
-        with self.lock, open(self.jsonpath, 'w') as f:
-            json.dump(self, f)
+        with self._lock, open(self._jsonpath, 'w') as f:
+            json.dump(self[1:], f)
 
-    def reload(self, index):
-        with self.lock, open(self.codepath, 'w') as f:
-            f.write(self[index])
-            self.index = index
-        reload(self.module)
+    def dumps(self):
+        with self._lock:
+            return json.dumps(self[1:])
 
-    def get(self, index = None):
-        with self.lock:
-            return self[index] if index != None else self[self.index]
+    def reload(self, *, id = None):
+        with self._lock:
+            with open(self._codepath, 'w') as f:
+                id = self._id if id == None else id
+                f.write(self[id])
+            importlib.reload(self.stc)
+            self._id = id
 
+    def get_code(self, *, id = None):
+        with self._lock:
+            id = self._id if id == None else id
+            return self[id]
+
+    def set_code(self, code, *, id = None):
+        with self._lock:
+            id = self._id if id == None else id
+            self[id] = code
+
+    def get_id(self):
+        with self._lock:
+            return self._id

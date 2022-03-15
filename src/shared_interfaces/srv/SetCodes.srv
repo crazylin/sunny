@@ -1,4 +1,4 @@
-int64 index     # indicate the index of code list
+string codes    # python codes
 ---
 bool success    # indicate successful run of triggered service
 string message  # informational, e.g. for error messages

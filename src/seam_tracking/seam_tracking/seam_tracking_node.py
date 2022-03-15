@@ -1,15 +1,18 @@
 import rclpy
 
 from rclpy.node import Node
-from shared_interfaces.msg import ModbusCoord
+
 from sensor_msgs.msg import PointCloud2
 from std_srvs.srv import Trigger
-from shared_interfaces.srv import CountCodes
+
+from shared_interfaces.msg import ModbusCoord
 from shared_interfaces.srv import GetCode
 from shared_interfaces.srv import SetCode
-
-# from shared_interfaces.srv import ListCodes
+from shared_interfaces.srv import GetCodes
+from shared_interfaces.srv import SetCodes
+from shared_interfaces.srv import CountCodes
 from shared_interfaces.srv import SelectCode
+
 from .codes import Codes
 import ros2_numpy as rnp
 
@@ -83,17 +86,19 @@ class SeamTracking(Node):
     def __init__(self):
         Node.__init__(self, 'seam_tracking_node')
         self.pnts = [(False, 0., 0.) for i in range(3)]
+        self.codes = Codes()
+
         qos = rclpy.qos.qos_profile_sensor_data
         self.pub = self.create_publisher(ModbusCoord, '~/coord', 10)
         self.sub = self.create_subscription(PointCloud2, '~/pnts', self._cb, qos)
-        self.srv_count_codes = self.create_service(CountCodes, '~/count_codes', self._cb_count_codes)
+
         self.srv_get_code = self.create_service(GetCode, '~/get_code', self._cb_get_code)
         self.srv_set_code = self.create_service(SetCode, '~/set_code', self._cb_set_code)
-        # self.srv_list_codes = self.create_service(ListCodes, '~/list_codes', self._cb_list_codes)
-        # self.srv_set_code = self.create_service(SetCode, '~/set_code', self._cb_set_code)
-        # self.srv_save_codes = self.create_service(Trigger, '~/save_codes', self._cb_save_codes)
+        self.srv_get_codes = self.create_service(GetCodes, '~/get_codes', self._cb_get_codes)
+        self.srv_set_codes = self.create_service(SetCodes, '~/set_codes', self._cb_set_codes)
+
+        self.srv_count_codes = self.create_service(CountCodes, '~/count_codes', self._cb_count_codes)
         self.srv_select_code = self.create_service(SelectCode, '~/select_code', self._cb_select_code)
-        self.codes = Codes()
 
         self.get_logger().info('Initialized successfully')
 
@@ -110,55 +115,72 @@ class SeamTracking(Node):
                 return False, 0., 0.
         return self.pnts[2]
 
-    def _cb_count_codes(self, request, response):
-        response.num = len(self.codes)
-        return response
-
     def _cb_get_code(self, request, response):
-        response.code = self.codes[request.index]
+        try:
+            id = None if request.index < 0 else request.index
+            response.code = self.codes.get_code(id = id)
+        except Exception as e:
+            response.success = False
+            response.message = str(e)
+        else:
+            response.success = True
         return response
 
     def _cb_set_code(self, request, response):
-        self.codes[request.index] = request.code
-        response.success = True
+        try:
+            id = None if request.index < 0 else request.index
+            self.codes.set_code(request.code, id = request.index)
+        except Exception as e:
+            response.success = False
+            response.message = str(e)
+        else:
+            response.success = True
         return response
 
-    # def _cb_list_codes(self, request, response):
-    #     with self.lock:
-    #         response.codes = self.codes
-    #     response.success = True
-    #     response.message = 'List codes successfully'
+    def _cb_get_codes(self, request, response):
+        try:
+            response.codes = self.codes.dumps()
+        except Exception as e:
+            response.success = False
+            response.message = str(e)
+        else:
+            response.success = True
+        return response
 
-    # def _cb_set_code(self, request, response):
-    #     with self.lock:
-    #         if request.index < len(self.codes):
-    #             self.codes[request.index] = request.code
-    #             response.success = True
-    #             response.message = 'Set code successfully'
-    #         else:
-    #             response.success = False
-    #             response.message = 'Index out of range'
+    def _cb_set_codes(self, request, response):
+        try:
+            self.codes.loads(request.codes)
+        except Exception as e:
+            response.success = False
+            response.message = str(e)
+        else:
+            response.success = True
+        return response
 
-    # def _cb_save_codes(self, request, response):
-    #     with self.lock, open('codes.json', 'w') as f:
-    #         json.dump(self.codes, f)
-    #     response.success = True
-    #     response.message = 'Save codes successfully'
+    def _cb_count_codes(self, request, response):
+        try:
+            response.num = len(self.codes)
+        except Exception as e:
+            response.success = False
+            response.message = str(e)
+        else:
+            response.success = True
+        return response
 
     def _cb_select_code(self, request, response):
-        if 0 <= request.index < len(self.codes):
-            self.codes.reload(request.index)
-            response.success = True
-            response.message = 'Select code successfully'
-        else:
+        try:
+            self.codes.reload(id = request.index)
+        except Exception as e:
             response.success = False
-            response.message = 'Index out of range'
+            response.message = str(e)
+        else:
+            response.success = True
         return response
 
     def _cb(self, msg):
         ret = ModbusCoord()
-        ret.x = 0.
         ret.valid = False
+        ret.x = 0.
 
         if msg.height * msg.width == 0:
             self.pub.publish(ret)
@@ -172,16 +194,6 @@ class SeamTracking(Node):
             self.get_logger().warn(str(e))
         finally:
             self.pub.publish(ret)
-        # y, z = Calculate(data['y'], data['z'], 110, 10)
-        # cy, cz = Exe(data['y'], data['z'], 2, 5, 50)
-        # y, z = Pick(cy, cz, 0)
-        # i = Convolve(data['y'] * 100., data['z'] * 100.)
-        # if y:
-        #     ret.valid, ret.x, ret.y, ret.z = True, 0., float(y), float(z)
-        #     self.pub.publish(ret)
-        # else:
-        #     self.pub.publish(ret)
-
 
 def main(args=None):
     rclpy.init(args=args)

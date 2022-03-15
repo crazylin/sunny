@@ -1,3 +1,5 @@
-int64 index
+int64 index     # indicate the index of code list
 ---
-string code
+string code     # python code
+bool success    # indicate successful run of triggered service
+string message  # informational, e.g. for error messages
