@@ -11,7 +11,7 @@ from shared_interfaces.srv import SetCode
 # from shared_interfaces.srv import ListCodes
 from shared_interfaces.srv import SelectCode
 from .codes import Codes
-from . import ros2_numpy as rnp
+import ros2_numpy as rnp
 
 # def Calculate(x, y, num, delta):
 #     index = y.index(max(y))

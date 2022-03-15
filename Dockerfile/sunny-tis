@@ -18,7 +18,7 @@ RUN echo "/opt/OpenCV/lib" > /etc/ld.so.conf.d/OpenCV.conf \
   && ldconfig
 
 # Copy source codes
-COPY ./src /ws/src
+COPY ./src ./ros_entrypoint.sh /ws
 
 # Use /ws as working directory
 WORKDIR /ws
@@ -29,6 +29,7 @@ RUN /ros_entrypoint.sh colcon build \
     -DCMAKE_BUILD_TYPE=Release \
   --packages-select \
     shared_interfaces \
+    ros2_numpy \
     camera_tis \
     rotate_image \
     branch_image \
@@ -40,21 +41,18 @@ RUN /ros_entrypoint.sh colcon build \
     pipeline_tis
 
 # colcon test
-RUN /ros_entrypoint.sh colcon test \
-  --packages-select \
-    shared_interfaces \
-    camera_tis \
-    rotate_image \
-    branch_image \
-    laser_line_center \
-    line_center_reconstruction \
-    modbus \
-    seam_tracking \
-    gpio_raspberry \
-    pipeline_tis
+# RUN /ros_entrypoint.sh colcon test \
+#   --packages-select \
+#     shared_interfaces \
+#     camera_tis \
+#     rotate_image \
+#     branch_image \
+#     laser_line_center \
+#     line_center_reconstruction \
+#     modbus \
+#     seam_tracking \
+#     gpio_raspberry \
+#     pipeline_tis
 
-# Change ROS overlay
-COPY ./entrypoint.sh /entrypoint.sh
-
-RUN cat /entrypoint.sh > /ros_entrypoint.sh
+RUN chmod +x /ws/ros_entrypoint.sh
 

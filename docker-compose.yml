@@ -2,6 +2,7 @@ version: "3.9"  # optional since v1.27.0
 services:
   ros:
     image: zhuoqiw/sunny-tis:latest
+    entrypoint: /ws/ros_entrypoint.sh
     command: ros2 launch pipeline_tis main.launch.py
     container_name: ros
     network_mode: "host"
