@@ -100,7 +100,7 @@ class SeamTracking(Node):
     def __del__(self):
         self.get_logger().info('Destroyed successfully')
 
-    def _append_pnts(self, ret, dx = 1., dy = 1.):
+    def _append_pnts(self, ret, *, dx = 1., dy = 1.):
         self.pnts.append(ret)
         self.pnts.pop(0)
         for i in range(2):
@@ -167,7 +167,7 @@ class SeamTracking(Node):
         data = rnp.numpify(msg)
         try:
             pnt = self.codes(data['y'], data['z'])
-            ret.valid, ret.y, ret.z = self._append_pnts(pnt, 0.5, 0.5)
+            ret.valid, ret.y, ret.z = self._append_pnts(pnt, dx = 0.5, dy = 0.5)
         except Exception as e:
             self.get_logger().warn(str(e))
         finally:
