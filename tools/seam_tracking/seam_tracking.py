@@ -1,5 +1,4 @@
-﻿from dataclasses import dataclass
-import numpy as np
+﻿import numpy as np
 import ros2_numpy as rnp
 from threading import Lock
 from numpy.polynomial.polynomial import polyfit
@@ -70,37 +69,34 @@ def Exe(line, dx, dy, count = 1):
 
 def msg2dict(msg):
     if msg.height * msg.width == 0:
-        return msg.header, {'x':[], 'y':[], 'z':[]}
+        return msg.header, [[], []]
     else:
         d = rnp.numpify(msg)
-        return msg.header, {'x':d['x'].tolist(), 'y':d['y'].tolist(), 'z':d['z'].tolist()}
+        return msg.header, [d['y'].tolist(), d['z'].tolist()]
 
 class LineData():
     """For line data."""
 
     def __init__(self):
         self._lock = Lock()
-        self._info = 'frames:\nfps:'
         self._data = [[], []]
         self._sec = 0
         self._nanosec = 0
         self._id = 0
-    
+        self._fps = 0
+
     def write(self, header, data):
         with self._lock:
+            self._data = data
             id = int(header.frame_id)
-            fps = (id - self._id) / (header.stamp.sec - self._sec + (header.stamp.nanosec - self._nanosec) * 1e-9)
+            self._fps = (id - self._id) / (header.stamp.sec - self._sec + (header.stamp.nanosec - self._nanosec) * 1e-9)
             self._sec = header.stamp.sec
             self._nanosec = header.stamp.nanosec
-            self._info = f'frames: {header.frame_id}\nfps: {fps:.2f}'
-            self._data = data
             self._id = id
-            # self._pnts = pnts
-            # self._pick = pick
-    
+
     def read(self):
         with self._lock:
-            return self._info, self._data
+            return self._data, self._id, self._fps
 
 class PickData():
     """For pick data."""
@@ -112,7 +108,7 @@ class PickData():
     def write(self, data):
         with self._lock:
             self._data = data
-    
+
     def read(self):
         with self._lock:
             return self._data

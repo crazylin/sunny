@@ -13,24 +13,21 @@ class CustomFigure(Figure):
         ax.set_xlim(-10, 80)
         ax.set_ylim(-10, 210)
 
-        self.__line, = ax.plot([], [], 'b.', label='Laser')
-        # self.__pnts, = ax.plot([], [], 'yo', label='Candidates')
-        self.__pick, = ax.plot([], [], 'rs', label='Picked')
-        self.__info = ax.text(0, 190, 'frames:\nfps:')
-        self.__xxyy = ax.text(40, 190, 'x:\ny:')
+        self._line, = ax.plot([], [], 'b.', label='Laser')
+        self._pick, = ax.plot([], [], 'rs', label='Picked')
+        self._info = ax.text(0, 190, 'frames:\nfps:')
+        self._xxyy = ax.text(40, 190, 'x:\ny:')
         ax.legend()
 
     def update_line(self, line_data):
-        info, line = line_data.read()
-        self.__info.set_text(info)
-        self.__line.set_data(line[0], line[1])
-        # self.__pnts.set_data(pnts[0], pnts[1])
-        # self.__pick.set_data(pick[0], pick[1])
-    
+        data, id, fps = line_data.read()
+        self._info.set_text(f'frames: {id:8}\nfps: {fps:15.2f}')
+        self._line.set_data(data[0], data[1])
+
     def update_pick(self, pick_data):
         pick = pick_data.read()
         if len(pick[0]) != 0:
-            self.__xxyy.set_text(f"\nx: {pick[0][0]:.2f}\ny: {pick[1][0]:.2f}")
-        self.__pick.set_data(pick[0], pick[1])
+            self._xxyy.set_text(f"x: {pick[0][0]:.2f}\ny: {pick[1][0]:.2f}")
+        self._pick.set_data(pick[0], pick[1])
 
     

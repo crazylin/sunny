@@ -1,20 +1,15 @@
-import tkinter as tk
 import rclpy
+import tkinter as tk
 import seam_tracking as st
-
 from custom_figure import CustomFigure
 from tkinter import ttk
-from ros_thread import RosThread
+from tkinter import messagebox
+from ros_thread import RosNode
 
 from matplotlib.backends.backend_tkagg import (
     FigureCanvasTkAgg, NavigationToolbar2Tk)
 
-from rclpy.qos import qos_profile_sensor_data
-from sensor_msgs.msg import PointCloud2
-from shared_interfaces.msg import ModbusCoord
-from shared_interfaces.srv import GetCode
-from std_srvs.srv import Trigger
-import ros2_numpy as rnp
+from threading import Thread
 
 
 class App(tk.Tk):
@@ -25,11 +20,12 @@ class App(tk.Tk):
 
         self.line_data = st.LineData()
         self.pick_data = st.PickData()
+        self.code = ''
         self.title('Seam Tracking')
         self.option_add('*tearOff', False)
 
         self.__initMenu()
-        
+
         frameL = self.__initPlot()
         frameL.grid(row=0, column=0, sticky=tk.NSEW)
 
@@ -39,9 +35,16 @@ class App(tk.Tk):
         self.rowconfigure(0, weight=1)
         self.columnconfigure(0, weight=3)
         self.columnconfigure(1, weight=1)
-        
+
         self.protocol("WM_DELETE_WINDOW", self.__exit)
-    
+
+        self.ros = RosNode()
+        self.ros.sub_line(self._callbackLine)
+        self.ros.sub_pick(self._callbackPick)
+
+        self._thread = Thread(target=self.ros.spin)
+        self._thread.start()
+
     def __exit(self):
         while rclpy.ok():
             rclpy.try_shutdown()
@@ -75,7 +78,7 @@ class App(tk.Tk):
 
         label = ttk.Label(frame, text='Configuration:')
         texts = tk.Text(frame, wrap = 'none')
-        btnAdd = ttk.Button(frame, text='Add', width=10)
+        btnAdd = ttk.Button(frame, text='Add', width=10, command=self._btnGetCode)
         btnRemove = ttk.Button(frame, text='Remove', width=10)
         btnUpload = ttk.Button(frame, text='Upload', width=10)
 
@@ -91,8 +94,9 @@ class App(tk.Tk):
         frame.columnconfigure(1, weight=1)
         frame.columnconfigure(2, weight=1)
 
+        self.bind('<<UpdateCode>>', lambda e: texts.replace(1.0, "end", self.code))
         return frame
-    
+
     def __initMenu(self):
         menubar = tk.Menu(self)
         self['menu'] = menubar
@@ -109,54 +113,39 @@ class App(tk.Tk):
         menubar.add_cascade(menu=menu_edit, label='Edit')
         menubar.add_cascade(menu=menu_help, label='Help')
 
-def callbackLine(msg, line_data, root):
-    header, data = st.msg2dict(msg)
-    # print(cy, cz)
-    # if py != None:
-    #     pick = st.xyz2np(0, py, pz)
-    #     seam_data.write(info, data, pick = pick)
-    # else:
-    line_data.write(header, [data['y'], data['z']])
-    root.event_generate('<<RosSubLine>>', when='tail')
+    def _callbackLine(self, msg):
+        header, data = st.msg2dict(msg)
+        self.line_data.write(header, data)
+        self.event_generate('<<RosSubLine>>', when='tail')
 
-def callbackPick(msg, pick_data, root):
-    if msg.valid:
-        pick_data.write([[msg.y], [msg.z]])
-    else:
-        pick_data.write([[], []])
-    root.event_generate('<<RosSubPick>>', when='tail')
+    def _callbackPick(self, msg):
+        if msg.valid:
+            self.pick_data.write([[msg.y], [msg.z]])
+        else:
+            self.pick_data.write([[], []])
+        self.event_generate('<<RosSubPick>>', when='tail')
+
+    def _btnGetCode(self, *args):
+        self.future = self.ros.get_code()
+        if self.future != None:
+            self.future.add_done_callback(self._btnGetCodeDone)
+        else:
+            messagebox.showinfo(message='Service is not ready!')
+
+    def _btnGetCodeDone(self, future):
+        try:
+            res = future.result()
+            if res.success:
+                self.code = res.code
+            else:
+                self.code = res.message
+        except Exception as e:
+            self.code = str(e)
+        self.event_generate('<<UpdateCode>>', when='tail')
 
 if __name__ == '__main__':
-    
+    rclpy.init()
+
     app = App()
 
-
-    ros = RosThread('seam_tracking_gui')
-
-    qos = qos_profile_sensor_data
-    qos.depth = 1
-    ros.create_subscription('line',
-                            PointCloud2,
-                            '/line_center_reconstruction_node/pnts',
-                            lambda msg: callbackLine(msg, app.line_data, app),
-                            qos)
-    ros.create_subscription('pick',
-                            ModbusCoord,
-                            '/seam_tracking_node/coord',
-                            lambda msg: callbackPick(msg, app.pick_data, app),
-                            10)
-    # ros.create_client('get',
-    #                   GetCode,
-    #                   '/seam_tracking_node/get_code')
-    # ros.create_client('set',
-    #                   )
-    # ros.create_client('gpio_high',
-    #                   Trigger,
-    #                   '/gpio')
-    
-    # ros.create_client('gpio_low',
-    #                   Trigger,
-    #                   'gpio_low')
-    ros.start()          
     app.mainloop()
-    ros.join()

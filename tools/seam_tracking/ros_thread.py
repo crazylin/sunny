@@ -1,49 +1,110 @@
-﻿from threading import Thread
-import rclpy
+﻿import rclpy
+from threading import Thread
 from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
+from rclpy.qos import qos_profile_sensor_data
+from sensor_msgs.msg import PointCloud2
+from shared_interfaces.msg import ModbusCoord
+from shared_interfaces.srv import GetCode
+from shared_interfaces.srv import SetCode
+from shared_interfaces.srv import GetCodes
+from shared_interfaces.srv import SetCodes
+from shared_interfaces.srv import CountCodes
+from shared_interfaces.srv import SelectCode
 
 
-class RosThread(Thread):
-    """Ros subscription run in thread."""
+class RosNode(Node):
+    """Ros node."""
 
-    def __init__(self, node_name, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self):
+        super().__init__('seam_tracking_gui')
         self._sub = {}
         self._cli = {}
-        
-        if rclpy.ok() == False:
-            rclpy.init()
+        self._create_client('get_code', GetCode, '/seam_tracking_node/get_code')
+        self._create_client('set_code', SetCode, '/seam_tracking_node/set_code')
+        self._create_client('get_codes', GetCodes, '/seam_tracking_node/get_codes')
+        self._create_client('set_codes', SetCodes, '/seam_tracking_node/set_codes')
 
-        self._node = rclpy.create_node(node_name=node_name)
-
-    def run(self):
+    def spin(self):
         try:
-            rclpy.spin(self._node)
+            rclpy.spin(self)
         except KeyboardInterrupt:
             pass
         except ExternalShutdownException:
             pass
         finally:
-            self._node.destroy_node()
+            self.destroy_node()
             rclpy.try_shutdown()
-
         print('End ros thread cleanly')
 
-    def create_subscription(self, sub_name, *args, **kwargs):
+    def sub_line(self, cb):
+        qos = qos_profile_sensor_data
+        qos.depth = 1
+        self._create_subscription(
+            'line',
+            PointCloud2,
+            '/line_center_reconstruction_node/pnts',
+            cb,
+            qos)
+
+    def sub_pick(self, cb):
+        self._create_subscription(
+            'pick',
+            ModbusCoord,
+            '/seam_tracking_node/coord',
+            cb,
+            10)
+
+    def get_code(self, *, id = -1):
+        cli = self._cli['get_code']
+        if cli.service_is_ready():
+            request = GetCode.Request()
+            request.index = id
+            return cli.call_async(request)
+        else:
+            return None
+
+    def set_code(self, code, *, id = -1):
+        cli = self._cli['set_code']
+        if cli.service_is_ready():
+            request = SetCode.Request()
+            request.index = id
+            request.code = code
+            return cli.call_async(request)
+        else:
+            return None
+
+    def get_codes(self):
+        cli = self._cli['get_codes']
+        if cli.service_is_ready():
+            request = GetCodes.Request()
+            return cli.call_async(request)
+        else:
+            return None
+
+    def set_codes(self, codes):
+        cli = self._cli['set_codes']
+        if cli.service_is_ready():
+            request = SetCodes.Request()
+            request.codes = codes
+            return cli.call_async(request)
+        else:
+            return None
+
+    def _create_subscription(self, sub_name, *args, **kwargs):
         if sub_name in self._sub:
-            self._node.destroy_subscription(self._sub[sub_name])
-        self._sub[sub_name] = self._node.create_subscription(*args, **kwargs)
+            self.destroy_subscription(self._sub[sub_name])
+        self._sub[sub_name] = self.create_subscription(*args, **kwargs)
 
-    def create_client(self, cli_name, *args, **kwargs):
+    def _create_client(self, cli_name, *args, **kwargs):
         if cli_name in self._cli:
-            self._node.destroy_client(self._cli[cli_name])
-        self._cli[cli_name] = self._node.create_client(*args, **kwargs)
+            self.destroy_client(self._cli[cli_name])
+        self._cli[cli_name] = self.create_client(*args, **kwargs)
 
-    def remove_subscription(self, sub_name):
+    def _remove_subscription(self, sub_name):
         if sub_name in self._sub:
             del self._sub[sub_name]
 
-    def remove_client(self, cli_name):
+    def _remove_client(self, cli_name):
         if cli_name in self._cli:
             del self._cli[cli_name]
