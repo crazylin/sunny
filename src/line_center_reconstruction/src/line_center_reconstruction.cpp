@@ -30,7 +30,6 @@ using std_msgs::msg::Header;
 using shared_interfaces::msg::LineCenter;
 using sensor_msgs::msg::PointCloud2;
 using sensor_msgs::msg::PointField;
-using shared_interfaces::msg::ModbusCoord;
 
 class LineCenterReconstruction::_Impl
 {
