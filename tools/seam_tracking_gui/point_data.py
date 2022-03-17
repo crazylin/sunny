@@ -3,8 +3,8 @@ from std_msgs.msg import Header
 from sensor_msgs.msg import PointCloud2
 import ros2_numpy as rnp
 
-class LineData():
-    """For line data."""
+class PointData():
+    """For point(u, v) data."""
 
     def __init__(self):
         self._lock = Lock()

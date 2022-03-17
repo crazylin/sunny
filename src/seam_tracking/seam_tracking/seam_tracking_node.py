@@ -183,8 +183,10 @@ class SeamTracking(Node):
             u = data['y'].tolist()
             v = data['z'].tolist()
         else:
-            u = []
-            v = []
+            m = PointCloud2()
+            m.header = msg.header
+            self.pub.publish(m)
+            return
 
         pnt = (None, None)
         try:

@@ -4,7 +4,6 @@ from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
 from rclpy.qos import qos_profile_sensor_data
 from sensor_msgs.msg import PointCloud2
-from shared_interfaces.msg import ModbusCoord
 from shared_interfaces.srv import GetCode
 from shared_interfaces.srv import SetCode
 from shared_interfaces.srv import GetCodes
@@ -49,12 +48,14 @@ class RosNode(Node):
             qos)
 
     def sub_pick(self, cb):
+        qos = qos_profile_sensor_data
+        qos.depth = 1
         self._create_subscription(
             'pick',
-            ModbusCoord,
-            '/seam_tracking_node/coord',
+            PointCloud2,
+            '/seam_tracking_node/seam',
             cb,
-            10)
+            qos)
 
     def get_code(self, *, id = -1):
         cli = self._cli['get_code']

@@ -1,7 +1,6 @@
 import rclpy
 import tkinter as tk
-from line_data import LineData
-from pick_data import PickData
+from point_data import PointData
 from custom_figure import CustomFigure
 from tkinter import ttk
 from tkinter import messagebox
@@ -19,8 +18,8 @@ class App(tk.Tk):
     def __init__(self):
         super().__init__()
 
-        self.line_data = LineData()
-        self.pick_data = PickData()
+        self.line_data = PointData()
+        self.pick_data = PointData()
         self.code = ''
         self.title('Seam Tracking')
         self.option_add('*tearOff', False)
@@ -118,7 +117,7 @@ class App(tk.Tk):
         self.event_generate('<<RosSubLine>>', when='tail')
 
     def _callbackPick(self, msg):
-        self.pick_data.from_msg(msg)
+        self.pick_data.from_msg(msg, u = 'y', v = 'z')
         self.event_generate('<<RosSubPick>>', when='tail')
 
     def _btnGetCode(self, *args):
