@@ -24,7 +24,6 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   msg/LineCenter.msg
   msg/Float64Array.msg
   msg/RollPitchYaw.msg
-  msg/ModbusCoord.msg
   srv/SetCode.srv
   srv/SetCodes.srv
   srv/GetCode.srv

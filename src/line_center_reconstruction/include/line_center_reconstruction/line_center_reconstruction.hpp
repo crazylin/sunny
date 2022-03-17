@@ -22,7 +22,6 @@
 #include "std_msgs/msg/header.hpp"
 #include "sensor_msgs/msg/point_cloud2.hpp"
 #include "shared_interfaces/msg/line_center.hpp"
-#include "shared_interfaces/msg/modbus_coord.hpp"
 
 namespace line_center_reconstruction
 {

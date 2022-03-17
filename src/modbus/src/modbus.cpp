@@ -34,7 +34,7 @@ namespace modbus
 
 using namespace std::chrono_literals;
 using std_srvs::srv::Trigger;
-using shared_interfaces::msg::ModbusCoord;
+using sensor_msgs::msg::PointCloud2;
 
 bool EndsWith(const std::string & value, const std::string & ending)
 {
@@ -257,15 +257,23 @@ void Modbus::_Init()
 
   _impl = std::make_unique<_Impl>(this);
 
-  _sub = this->create_subscription<ModbusCoord>(
-    _subName, 10, std::bind(&Modbus::_Sub, this, std::placeholders::_1));
+  _sub = this->create_subscription<PointCloud2>(
+    _subName,
+    rclcpp::SensorDataQoS(),
+    std::bind(&Modbus::_Sub, this, std::placeholders::_1));
 
   RCLCPP_INFO(this->get_logger(), "Initialized successfully");
 }
 
-void Modbus::_Sub(ModbusCoord::UniquePtr ptr)
+void Modbus::_Sub(PointCloud2::UniquePtr ptr)
 {
-  _impl->Update(ptr->valid, ptr->x, ptr->y, ptr->z);
+  // _impl->Update(ptr->valid, ptr->x, ptr->y, ptr->z);
+  if (ptr->height == 0 || ptr->width == 0) {
+    _impl->Update(false, 0., 0., 0.)
+  } else {
+    float * p = reinterpret_cast<float *>(ptr->data.data());
+    _impl->Update(true, p[0], p[1], p[2]);
+  }
 }
 
 void Modbus::_InitializeParameters()

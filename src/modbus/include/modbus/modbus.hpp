@@ -21,7 +21,7 @@
 
 #include "rclcpp/rclcpp.hpp"
 #include "std_srvs/srv/trigger.hpp"
-#include "shared_interfaces/msg/modbus_coord.hpp"
+#include "sensor_msgs/msg/point_cloud2.hpp"
 
 namespace modbus
 {
@@ -36,14 +36,14 @@ private:
   void _Init();
   void _InitializeParameters();
   void _UpdateParameters();
-  void _Sub(shared_interfaces::msg::ModbusCoord::UniquePtr ptr);
+  void _Sub(sensor_msgs::msg::PointCloud2::UniquePtr ptr);
 
 public:
   class _Impl;
   std::unique_ptr<_Impl> _impl;
 
-  const char * _subName = "~/coord";
-  rclcpp::Subscription<shared_interfaces::msg::ModbusCoord>::SharedPtr _sub;
+  const char * _subName = "~/seam";
+  rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr _sub;
 
   std::map<std::string, rclcpp::Client<std_srvs::srv::Trigger>::SharedPtr> _map;
 

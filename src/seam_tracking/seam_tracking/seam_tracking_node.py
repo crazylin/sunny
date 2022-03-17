@@ -3,9 +3,6 @@ import rclpy
 from rclpy.node import Node
 
 from sensor_msgs.msg import PointCloud2
-from std_srvs.srv import Trigger
-
-from shared_interfaces.msg import ModbusCoord
 from shared_interfaces.srv import GetCode
 from shared_interfaces.srv import SetCode
 from shared_interfaces.srv import GetCodes
@@ -15,6 +12,7 @@ from shared_interfaces.srv import SelectCode
 
 from .codes import Codes
 import ros2_numpy as rnp
+import numpy as np
 
 # def Calculate(x, y, num, delta):
 #     index = y.index(max(y))
@@ -85,11 +83,11 @@ class SeamTracking(Node):
 
     def __init__(self):
         Node.__init__(self, 'seam_tracking_node')
-        self.pnts = [(False, 0., 0.) for i in range(3)]
+        self.pnts = [(None, None) for i in range(3)]
         self.codes = Codes()
 
         qos = rclpy.qos.qos_profile_sensor_data
-        self.pub = self.create_publisher(ModbusCoord, '~/coord', 10)
+        self.pub = self.create_publisher(PointCloud2, '~/seam', qos)
         self.sub = self.create_subscription(PointCloud2, '~/pnts', self._cb, qos)
 
         self.srv_get_code = self.create_service(GetCode, '~/get_code', self._cb_get_code)
@@ -109,11 +107,13 @@ class SeamTracking(Node):
         self.pnts.append(ret)
         self.pnts.pop(0)
         for i in range(2):
-            v0, x0, y0 = self.pnts[i]
-            v1, x1, y1 = self.pnts[i + 1]
-            if v0 == False or v1 == False or abs(x1 - x0) > dx or abs(y1 - y0) > dy:
-                return False, 0., 0.
-        return self.pnts[2]
+            u0, v0 = self.pnts[i]
+            u1, v1 = self.pnts[i + 1]
+            if u0 == None or u1 == None or v0 == None or v1 == None:
+                return None, None
+            if abs(u1 - u0) > dx or abs(v1 - v0) > dy:
+                return None, None
+        return self.pnts[-1]
 
     def _cb_get_code(self, request, response):
         try:
@@ -177,23 +177,46 @@ class SeamTracking(Node):
             response.success = True
         return response
 
-    def _cb(self, msg):
-        ret = ModbusCoord()
-        ret.valid = False
-        ret.x = 0.
+    def _cb(self, msg: PointCloud2):
+        if msg.data:
+            data = rnp.numpify(msg)
+            u = data['y'].tolist()
+            v = data['z'].tolist()
+        else:
+            u = []
+            v = []
 
-        if msg.height * msg.width == 0:
-            self.pub.publish(ret)
-            return
-
-        data = rnp.numpify(msg)
+        pnt = (None, None)
         try:
-            pnt = self.codes(data['y'], data['z'])
-            ret.valid, ret.y, ret.z = self._append_pnts(pnt, dx = 0.5, dy = 0.5)
+            pnt = self.codes(u, v)
         except Exception as e:
             self.get_logger().warn(str(e))
-        finally:
-            self.pub.publish(ret)
+        except:
+            self.get_logger().error('Unknown except in processing line')
+
+        p = self._append_pnts(pnt)
+        if p[0] == None or p[1] == None:
+            m = PointCloud2()
+        else:
+            d = np.array([(0, p[0], p[1])], dtype=[('x', np.float32), ('y', np.float32), ('z', np.float32)])
+            m = rnp.msgify(PointCloud2, d)
+        m.header = msg.header
+        self.pub.publish(m)
+
+
+        # if msg.data:
+        #     data = rnp.numpify(msg)
+        #     try:
+        #         pnt = self.codes(data['y'], data['z'])
+                
+        #     except Exception as e:
+        #         self.get_logger().warn(str(e))
+        #     finally:
+        #         self.pub.publish(ret)
+        # else:
+        #     ret = PointCloud2()
+        #     ret.header = msg.header
+        #     self.pub.publish(ret)
 
 def main(args=None):
     rclpy.init(args=args)

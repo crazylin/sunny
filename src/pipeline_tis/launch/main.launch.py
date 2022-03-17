@@ -98,47 +98,47 @@ def generate_launch_description():
         output='screen')
 
     configFile5 = os.path.join(
-        get_package_share_directory('modbus'),
+        get_package_share_directory('seam_tracking'),
         'config',
         'params.yaml')
 
     with open(configFile5, 'r') as file:
         handle = yaml.safe_load(file)
-        configParams5 = handle['modbus_node']['ros__parameters']
+        configParams5 = handle['seam_tracking_node']['ros__parameters']
 
     node5 = Node(
-        package='modbus',
-        executable='modbus_node',
-        remappings=[('~/coord', '/seam_tracking_node/coord')],
+        package='seam_tracking',
+        executable='seam_tracking_node',
+        remappings=[('~/pnts', '/line_center_reconstruction_node/pnts')],
         parameters=[configParams5])
 
     configFile6 = os.path.join(
-        get_package_share_directory('gpio_raspberry'),
+        get_package_share_directory('modbus'),
         'config',
         'params.yaml')
 
     with open(configFile6, 'r') as file:
         handle = yaml.safe_load(file)
-        configParams6 = handle['gpio_raspberry_node']['ros__parameters']
+        configParams6 = handle['modbus_node']['ros__parameters']
 
     node6 = Node(
-        package='gpio_raspberry',
-        executable='gpio_raspberry_node',
+        package='modbus',
+        executable='modbus_node',
+        remappings=[('~/seam', '/seam_tracking_node/seam')],
         parameters=[configParams6])
 
     configFile7 = os.path.join(
-        get_package_share_directory('seam_tracking'),
+        get_package_share_directory('gpio_raspberry'),
         'config',
         'params.yaml')
 
     with open(configFile7, 'r') as file:
         handle = yaml.safe_load(file)
-        configParams7 = handle['seam_tracking_node']['ros__parameters']
+        configParams7 = handle['gpio_raspberry_node']['ros__parameters']
 
     node7 = Node(
-        package='seam_tracking',
-        executable='seam_tracking_node',
-        remappings=[('~/pnts', '/line_center_reconstruction_node/pnts')],
+        package='gpio_raspberry',
+        executable='gpio_raspberry_node',
         parameters=[configParams7])
 
     return launch.LaunchDescription([container, node5, node6, node7])
