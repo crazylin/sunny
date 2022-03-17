@@ -4,6 +4,7 @@ from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
 from rclpy.qos import qos_profile_sensor_data
 from sensor_msgs.msg import PointCloud2
+from std_srvs.srv import Trigger
 from shared_interfaces.srv import GetCode
 from shared_interfaces.srv import SetCode
 from shared_interfaces.srv import GetCodes
@@ -19,6 +20,10 @@ class RosNode(Node):
         super().__init__('seam_tracking_gui')
         self._sub = {}
         self._cli = {}
+        self._create_client('laser_on', Trigger, '/gpio_raspberry_node/high')
+        self._create_client('laser_off', Trigger, '/gpio_raspberry_node/low')
+        self._create_client('camera_on', Trigger, '/camera_tis_node/start')
+        self._create_client('camera_off', Trigger, '/camera_tis_node/stop')
         self._create_client('get_code', GetCode, '/seam_tracking_node/get_code')
         self._create_client('set_code', SetCode, '/seam_tracking_node/set_code')
         self._create_client('get_codes', GetCodes, '/seam_tracking_node/get_codes')
@@ -56,6 +61,38 @@ class RosNode(Node):
             '/seam_tracking_node/seam',
             cb,
             qos)
+
+    def laser_on(self):
+        cli = self._cli['laser_on']
+        if cli.service_is_ready():
+            request = Trigger.Request()
+            return cli.call_async(request)
+        else:
+            return None
+
+    def laser_off(self):
+        cli = self._cli['laser_off']
+        if cli.service_is_ready():
+            request = Trigger.Request()
+            return cli.call_async(request)
+        else:
+            return None
+
+    def camera_on(self):
+        cli = self._cli['camera_on']
+        if cli.service_is_ready():
+            request = Trigger.Request()
+            return cli.call_async(request)
+        else:
+            return None
+
+    def camera_off(self):
+        cli = self._cli['camera_off']
+        if cli.service_is_ready():
+            request = Trigger.Request()
+            return cli.call_async(request)
+        else:
+            return None
 
     def get_code(self, *, id = -1):
         cli = self._cli['get_code']

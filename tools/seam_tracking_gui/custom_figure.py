@@ -35,5 +35,3 @@ class CustomFigure(Figure):
             self._xxyy.set_text(f"y: {u[0]:>8.2f}\nz: {v[0]:>8.2f}")
         else:
             self._xxyy.set_text(f"y:\nz:")
-
-    
