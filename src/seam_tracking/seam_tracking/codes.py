@@ -19,7 +19,7 @@ class Codes(list):
 
     def __init__(self):
         self._id = 0
-        self.append('def fn(x: list, y: list) -> Tuple[float, float]:\n    return None, None')
+        self.append('def fn(x: list, y: list):\n    return None, None')
         self.load()
         self.reload()
 
