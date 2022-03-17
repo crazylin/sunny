@@ -1,10 +1,11 @@
 import rclpy
 import tkinter as tk
-import seam_tracking as st
+from line_data import LineData
+from pick_data import PickData
 from custom_figure import CustomFigure
 from tkinter import ttk
 from tkinter import messagebox
-from ros_thread import RosNode
+from ros_node import RosNode
 
 from matplotlib.backends.backend_tkagg import (
     FigureCanvasTkAgg, NavigationToolbar2Tk)
@@ -18,8 +19,8 @@ class App(tk.Tk):
     def __init__(self):
         super().__init__()
 
-        self.line_data = st.LineData()
-        self.pick_data = st.PickData()
+        self.line_data = LineData()
+        self.pick_data = PickData()
         self.code = ''
         self.title('Seam Tracking')
         self.option_add('*tearOff', False)
@@ -46,8 +47,7 @@ class App(tk.Tk):
         self._thread.start()
 
     def __exit(self):
-        while rclpy.ok():
-            rclpy.try_shutdown()
+        self.ros.destroy_node()
         self.destroy()
 
     def __initPlot(self):
@@ -114,18 +114,50 @@ class App(tk.Tk):
         menubar.add_cascade(menu=menu_help, label='Help')
 
     def _callbackLine(self, msg):
-        header, data = st.msg2dict(msg)
-        self.line_data.write(header, data)
+        self.line_data.from_msg(msg, u = 'y', v = 'z')
         self.event_generate('<<RosSubLine>>', when='tail')
 
     def _callbackPick(self, msg):
-        if msg.valid:
-            self.pick_data.write([[msg.y], [msg.z]])
-        else:
-            self.pick_data.write([[], []])
+        self.pick_data.from_msg(msg)
         self.event_generate('<<RosSubPick>>', when='tail')
 
     def _btnGetCode(self, *args):
+        self.future = self.ros.get_code()
+        if self.future != None:
+            self.future.add_done_callback(self._btnGetCodeDone)
+        else:
+            messagebox.showinfo(message='Service is not ready!')
+
+    def _btnGetCodeDone(self, future):
+        try:
+            res = future.result()
+            if res.success:
+                self.code = res.code
+            else:
+                self.code = res.message
+        except Exception as e:
+            self.code = str(e)
+        self.event_generate('<<UpdateCode>>', when='tail')
+
+    def _btnSetCode(self, *args):
+        self.future = self.ros.get_code()
+        if self.future != None:
+            self.future.add_done_callback(self._btnGetCodeDone)
+        else:
+            messagebox.showinfo(message='Service is not ready!')
+
+    def _btnSetCodeDone(self, future):
+        try:
+            res = future.result()
+            if res.success:
+                self.code = res.code
+            else:
+                self.code = res.message
+        except Exception as e:
+            self.code = str(e)
+        self.event_generate('<<UpdateCode>>', when='tail')
+
+    def _btnGetCodes(self, *args):
         self.future = self.ros.get_code()
         if self.future != None:
             self.future.add_done_callback(self._btnGetCodeDone)
@@ -149,3 +181,5 @@ if __name__ == '__main__':
     app = App()
 
     app.mainloop()
+
+    rclpy.shutdown()

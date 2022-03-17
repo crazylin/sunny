@@ -26,16 +26,17 @@ class RosNode(Node):
         self._create_client('set_codes', SetCodes, '/seam_tracking_node/set_codes')
 
     def spin(self):
-        try:
-            rclpy.spin(self)
-        except KeyboardInterrupt:
-            pass
-        except ExternalShutdownException:
-            pass
-        finally:
-            self.destroy_node()
-            rclpy.try_shutdown()
-        print('End ros thread cleanly')
+        rclpy.spin(self)
+        # try:
+        #     rclpy.spin(self)
+        # except KeyboardInterrupt:
+        #     print('key')
+        # except ExternalShutdownException:
+        #     print('external')
+        # else:
+        #     print('clean')
+        # finally:
+        #     rclpy.shutdown()
 
     def sub_line(self, cb):
         qos = qos_profile_sensor_data
