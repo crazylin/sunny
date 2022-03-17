@@ -85,6 +85,7 @@ class SeamTracking(Node):
         Node.__init__(self, 'seam_tracking_node')
         self.pnts = [(None, None) for i in range(3)]
         self.codes = Codes()
+        self.error = ''
 
         qos = rclpy.qos.qos_profile_sensor_data
         self.pub = self.create_publisher(PointCloud2, '~/seam', qos)
@@ -192,9 +193,9 @@ class SeamTracking(Node):
         try:
             pnt = self.codes(u, v)
         except Exception as e:
-            self.get_logger().warn(str(e))
-        except:
-            self.get_logger().error('Unknown except in processing line')
+            if self.error != str(e):
+                self.get_logger().warn(str(e))
+                self.error = str(e)
 
         p = self._append_pnts(pnt)
         if p[0] == None or p[1] == None:
