@@ -15,6 +15,7 @@ class CustomFigure(Figure):
         ax.set_ylim(-10, 210)
 
         self._line, = ax.plot([], [], 'b.', label='Laser')
+        self._mark, = ax.plot([], [], 'go', label='Marked')
         self._pick, = ax.plot([], [], 'rs', label='Picked')
         self._info = ax.text(0, 190, 'frames:\nfps:')
         self._xxyy = ax.text(40, 190, 'y:\nz:')
@@ -29,9 +30,12 @@ class CustomFigure(Figure):
             self._info.set_text(f'frames: {id:>9}\nfps: {fps:>16.2f}')
 
     def update_pick(self, pick: PointData):
-        u, v, *t = pick.get()
-        self._pick.set_data(u, v)
+        u, v, id, fps = pick.get()
         if u and v:
+            self._pick.set_data(u[:1], v[:1])
+            self._mark.set_data(u[1:], v[1:])
             self._xxyy.set_text(f"y: {u[0]:>8.2f}\nz: {v[0]:>8.2f}")
         else:
+            self._pick.set_data([], [])
+            self._mark.set_data([], [])
             self._xxyy.set_text(f"y:\nz:")

@@ -1,4 +1,4 @@
-from email import message
+import json
 import rclpy
 import tkinter as tk
 from point_data import PointData
@@ -22,7 +22,8 @@ class App(tk.Tk):
 
         self.line_data = PointData()
         self.pick_data = PointData()
-        self.code = ''
+        self.codes = ['def fn(x: list, y: list):\n    return None, None']
+        self.index = 0
         self.title('Seam Tracking')
         self.option_add('*tearOff', False)
 
@@ -44,7 +45,7 @@ class App(tk.Tk):
         self.ros.sub_line(self._ros_cb_line)
         self.ros.sub_pick(self._ros_cb_pick)
 
-        self._thread = Thread(target=self.ros.spin)
+        self._thread = Thread(target=rclpy.spin, args=[self.ros])
         self._thread.start()
 
     def __exit(self):
@@ -77,32 +78,45 @@ class App(tk.Tk):
     def _init_list(self):
         frame = ttk.Frame(self, padding=(10,0,10,0))
 
-        label = ttk.Label(frame, text='Configuration:')
+        self.label = ttk.Label(frame, text='Task:', width=10)
+        self.btn_previous = ttk.Button(frame, text='Previous', width=10, command=self._cb_btn_previous)
+        self.btn_next = ttk.Button(frame, text='Next', width=10, command=self._cb_btn_next)
+        self.btn_refresh = ttk.Button(frame, text='Refresh', width=10, command=self._cb_btn_refresh)
+
         self.texts = tk.Text(frame, wrap = 'none')
-        btn_pull = ttk.Button(frame, text='Pull', width=10, command=self._cb_btn_get_code)
-        btn_push = ttk.Button(frame, text='Push', width=10, command=self._cb_btn_set_code)
-        btnAdd = ttk.Button(frame, text='Add', width=10)
-        btnRemove = ttk.Button(frame, text='Remove', width=10)
-        btn_backup = ttk.Button(frame, text='Backup...', width=10, command=self._cb_btn_get_codes)
-        btn_upload = ttk.Button(frame, text='Upload...', width=10, command=self._cb_btn_set_codes)
+
         self.btn_laser = ttk.Button(frame, text='Laser on', width=10, command=self._cb_btn_laser)
         self.btn_camera = ttk.Button(frame, text='Camera on', width=10, command=self._cb_btn_camera)
 
+        self.btn_add = ttk.Button(frame, text='Add', width=10, command=self._cb_btn_add)
+        self.btn_del = ttk.Button(frame, text='Delete', width=10, command=self._cb_btn_del)
+
+        self.btn_push = ttk.Button(frame, text='Push', width=10, command=self._cb_btn_push)
+        self.btn_commit = ttk.Button(frame, text='Commit', width=10, command=self._cb_btn_commit)
+
+        self.btn_backup = ttk.Button(frame, text='Backup...', width=10, command=self._cb_btn_backup)
+        self.btn_upload = ttk.Button(frame, text='Upload...', width=10, command=self._cb_btn_upload)
+
         frame.grid(row=0, column=0, sticky=tk.NSEW)
-        label.grid(row=0, column=0, columnspan=4, sticky=tk.W)
+
+        self.label.grid(row=0, column=0, columnspan=1, sticky=tk.EW)
+        self.btn_previous.grid(row=0, column=1, columnspan=1, sticky=tk.EW)
+        self.btn_next.grid(row=0, column=2, columnspan=1, sticky=tk.EW)
+        self.btn_refresh.grid(row=0, column=3, columnspan=1, sticky=tk.EW)
+
         self.texts.grid(row=1, column=0, columnspan=4, sticky=tk.NSEW)
 
         self.btn_laser.grid(row=2, column=0, sticky=tk.EW)
         self.btn_camera.grid(row=3, column=0, sticky=tk.EW)
 
-        btn_pull.grid(row=2, column=1, sticky=tk.EW)
-        btn_push.grid(row=3, column=1, sticky=tk.EW)
+        self.btn_add.grid(row=2, column=1, sticky=tk.EW)
+        self.btn_del.grid(row=3, column=1, sticky=tk.EW)
 
-        btnAdd.grid(row=2, column=2, sticky=tk.EW)
-        btnRemove.grid(row=3, column=2, sticky=tk.EW)
+        self.btn_push.grid(row=3, column=2, sticky=tk.EW)
+        self.btn_commit.grid(row=2, column=2, sticky=tk.EW)
 
-        btn_backup.grid(row=2, column=3, sticky=tk.EW)
-        btn_upload.grid(row=3, column=3, sticky=tk.EW)
+        self.btn_backup.grid(row=2, column=3, sticky=tk.EW)
+        self.btn_upload.grid(row=3, column=3, sticky=tk.EW)
 
         frame.rowconfigure(1, weight=1)
         frame.columnconfigure(0, weight=1)
@@ -110,7 +124,8 @@ class App(tk.Tk):
         frame.columnconfigure(2, weight=1)
         frame.columnconfigure(3, weight=1)
 
-        self.bind('<<UpdateCode>>', lambda e: self.texts.replace(1.0, "end", self.code))
+        self.bind('<<UpdateCode>>', lambda e: self.texts.replace(1.0, "end", self.codes[self.index]))
+        self._change_index(self.index)
         return frame
 
     def _init_menu(self):
@@ -137,21 +152,21 @@ class App(tk.Tk):
         self.pick_data.from_msg(msg, u='y', v='z')
         self.event_generate('<<RosSubPick>>', when='tail')
 
-    def _cb_btn_laser(self):
+    def _cb_btn_laser(self, *args):
         if self.btn_laser['text'] == 'Laser on':
             future = self.ros.laser_on()
-            if future != None:
+            if future is not None:
                 self.btn_laser.state(['pressed'])
                 future.add_done_callback(self._cb_btn_laser_on_done)
             else:
-                messagebox.showinfo(message='Service is not ready!')
+                messagebox.showinfo('Info', message='Service is not ready!')
         else:
             future = self.ros.laser_off()
-            if future != None:
+            if future is not None:
                 self.btn_laser.state(['!pressed'])
                 future.add_done_callback(self._cb_btn_laser_off_done)
             else:
-                messagebox.showinfo(message='Service is not ready!')
+                messagebox.showinfo('Info', message='Service is not ready!')
     
     def _cb_btn_laser_on_done(self, future):
         try:
@@ -159,10 +174,10 @@ class App(tk.Tk):
             if res.success:
                 self.btn_laser['text'] = 'Laser off'
             else:
-                messagebox.showwarning(message=res.message)
+                messagebox.showwarning('Warning', message=res.message)
                 self.btn_laser.state(['!pressed'])
         except Exception as e:
-            messagebox.showerror(message=str(e))
+            messagebox.showerror('Error', message=str(e))
             self.btn_laser.state(['!pressed'])
 
     def _cb_btn_laser_off_done(self, future):
@@ -171,27 +186,27 @@ class App(tk.Tk):
             if res.success:
                 self.btn_laser['text'] = 'Laser on'
             else:
-                messagebox.showwarning(message=res.message)
+                messagebox.showwarning('Warning', message=res.message)
                 self.btn_laser.state(['pressed'])
         except Exception as e:
-            messagebox.showerror(message=str(e))
+            messagebox.showerror('Error', message=str(e))
             self.btn_laser.state(['pressed'])
 
-    def _cb_btn_camera(self):
+    def _cb_btn_camera(self, *args):
         if self.btn_camera['text'] == 'Camera on':
             future = self.ros.camera_on()
-            if future != None:
+            if future is not None:
                 self.btn_camera.state(['pressed'])
                 future.add_done_callback(self._cb_btn_camera_on_done)
             else:
-                messagebox.showinfo(message='Service is not ready!')
+                messagebox.showinfo('Info', message='Service is not ready!')
         else:
             future = self.ros.camera_off()
-            if future != None:
+            if future is not None:
                 self.btn_camera.state(['!pressed'])
                 future.add_done_callback(self._cb_btn_camera_off_done)
             else:
-                messagebox.showinfo(message='Service is not ready!')
+                messagebox.showinfo('Info', message='Service is not ready!')
     
     def _cb_btn_camera_on_done(self, future):
         try:
@@ -199,10 +214,10 @@ class App(tk.Tk):
             if res.success:
                 self.btn_camera['text'] = 'Camera off'
             else:
-                messagebox.showwarning(message=res.message)
+                messagebox.showwarning('Warning', message=res.message)
                 self.btn_camera.state(['!pressed'])
         except Exception as e:
-            messagebox.showerror(message=str(e))
+            messagebox.showerror('Error', message=str(e))
             self.btn_camera.state(['!pressed'])
 
     def _cb_btn_camera_off_done(self, future):
@@ -211,91 +226,163 @@ class App(tk.Tk):
             if res.success:
                 self.btn_camera['text'] = 'Camera on'
             else:
-                messagebox.showwarning(message=res.message)
+                messagebox.showwarning('Warning', message=res.message)
                 self.btn_camera.state(['pressed'])
         except Exception as e:
-            messagebox.showerror(message=str(e))
+            messagebox.showerror('Error', message=str(e))
             self.btn_camera.state(['pressed'])
 
-    def _cb_btn_get_code(self, *args):
-        future = self.ros.get_code()
-        if future != None:
-            future.add_done_callback(self._cb_btn_get_code_done)
-        else:
-            messagebox.showinfo(message='Service is not ready!')
+    # def _cb_btn_get_code(self, *args):
+    #     future = self.ros.get_code()
+    #     if future is not None:
+    #         future.add_done_callback(self._cb_btn_get_code_done)
+    #     else:
+    #         messagebox.showinfo('Info', message='Service is not ready!')
 
-    def _cb_btn_get_code_done(self, future):
-        try:
-            res = future.result()
-            if res.success:
-                self.code = res.code
-                self.event_generate('<<UpdateCode>>', when='tail')
-            else:
-                messagebox.showwarning(message=res.message)
-        except Exception as e:
-            messagebox.showerror(message=str(e))
+    # def _cb_btn_get_code_done(self, future):
+    #     try:
+    #         res = future.result()
+    #         if res.success:
+    #             self.code = res.code
+    #             self.event_generate('<<UpdateCode>>', when='tail')
+    #         else:
+    #             messagebox.showwarning('Warning', message=res.message)
+    #     except Exception as e:
+    #         messagebox.showerror('Error', message=str(e))
 
-    def _cb_btn_set_code(self, *args):
-        self.code = self.texts.get('1.0', 'end')
-        future = self.ros.set_code(self.code)
-        if future != None:
-            future.add_done_callback(self._cb_btn_set_code_done)
-        else:
-            messagebox.showinfo(message='Service is not ready!')
+    # def _cb_btn_set_code(self, *args):
+    #     self.code = self.texts.get('1.0', 'end')
+    #     future = self.ros.set_code(self.code)
+    #     if future is not None:
+    #         future.add_done_callback(self._cb_btn_set_code_done)
+    #     else:
+    #         messagebox.showinfo('Info', message='Service is not ready!')
 
-    def _cb_btn_set_code_done(self, future):
-        try:
-            res = future.result()
-            if res.success:
-                messagebox.showinfo(message='Done!')
-            else:
-                messagebox.showwarning(message=res.message)
-        except Exception as e:
-            messagebox.showerror(message=str(e))
+    # def _cb_btn_set_code_done(self, future):
+    #     try:
+    #         res = future.result()
+    #         if res.success:
+    #             messagebox.showinfo('Info', message='Done!')
+    #         else:
+    #             messagebox.showwarning('Warning', message=res.message)
+    #     except Exception as e:
+    #         messagebox.showerror('Error', message=str(e))
 
-    def _cb_btn_get_codes(self, *args):
+    def _cb_btn_backup(self, *args):
+        filename = filedialog.asksaveasfilename(
+            title='Backup codes',
+            initialfile='codes.json',
+            defaultextension='json',
+            filetypes=[('JSON JavaScript Object Notation', '.json')])
+        if filename:
+            with open(filename, 'w') as fp:
+                json.dump(self.codes[1:], fp)
+
+    def _cb_btn_upload(self, *args):
+        filename = filedialog.askopenfilename(
+            title='Upload codes',
+            initialfile='codes.json',
+            defaultextension='json',
+            filetypes=[('JSON JavaScript Object Notation', '.json')])
+        if filename:
+            with open(filename, 'r') as fp:
+                self.codes[1:] = json.load(fp)
+            self._update_codes()
+
+    def _cb_btn_refresh(self, *args):
         future = self.ros.get_codes()
-        if future != None:
-            future.add_done_callback(self._cb_btn_get_codes_done)
+        if future is not None:
+            future.add_done_callback(self._cb_btn_refresh_done)
         else:
-            messagebox.showinfo(message='Service is not ready!')
+            messagebox.showinfo('Info', message='Service is not ready!')
 
-    def _cb_btn_get_codes_done(self, future):
+    def _cb_btn_refresh_done(self, future):
         try:
             res = future.result()
             if res.success:
-                filename = filedialog.asksaveasfilename(initialfile='codes.json', defaultextension='json')
-                if filename:
-                    with open(filename, 'w') as fp:
-                        fp.write(res.codes)
+                self.codes[1:] = json.loads(res.codes)
+                self._update_codes()
             else:
-                messagebox.showwarning(message=res.message)
+                messagebox.showwarning('Warning', message=res.message)
         except Exception as e:
-            messagebox.showerror(message=str(e))
+            messagebox.showerror('Error', message=str(e))
 
-    def _cb_btn_set_codes(self, *args):
-        filename = filedialog.askopenfilename(defaultextension='json')
-        if not filename:
+    def _cb_btn_previous(self, *args):
+        if self._code_modified():
+            answer = messagebox.askyesno('Question', message='Code modified, leave anyway?')
+            if answer:
+                self._change_index(self.index - 1)
+        else:
+            self._change_index(self.index - 1)
+
+    def _cb_btn_next(self, *args):
+        if self.index !=0 and self._code_modified():
+            answer = messagebox.askyesno('Question', message='Code modified, leave anyway?')
+            if answer:
+                self._change_index(self.index + 1)
+        else:
+            self._change_index(self.index + 1)
+
+    def _cb_btn_add(self, *args):
+        self.codes.append('def fn(x: list, y: list):\n    return None, None')
+        self._change_index(len(self.codes) - 1)
+
+    def _cb_btn_del(self, *args):
+        del self.codes[self.index]
+        self._update_codes()
+
+    def _cb_btn_push(self, *args):
+        s = json.dumps(self.codes[1:])
+        future = self.ros.set_codes(s)
+        if future is not None:
+            future.add_done_callback(self._cb_btn_push_done)
+        else:
+            messagebox.showinfo('Info', message='Service is not ready!')
+
+    def _cb_btn_push_done(self, future):
+        try:
+            res = future.result()
+            if res.success:
+                messagebox.showinfo('Info', message='Done!')
+            else:
+                messagebox.showwarning('Warning', message=res.message)
+        except Exception as e:
+            messagebox.showerror('Error', message=str(e))
+
+    def _cb_btn_commit(self, *args):
+        if self._code_modified():
+            self.codes[self.index] = self.texts.get('1.0', 'end').rstrip()
+            messagebox.showinfo('Info', message='Done!')
+        else:
+            messagebox.showinfo('Info', message='Nothing modified!')
+
+    def _update_codes(self):
+        if self.index > len(self.codes) - 1:
+            self.index = len(self.codes) - 1
+        self._change_index(self.index)
+
+    def _change_index(self, index):
+        if index < 0 or index > len(self.codes) - 1:
             return
-
-        with open(filename, 'r') as fp:
-            codes = fp.read()
-
-        future = self.ros.set_codes(codes)
-        if future != None:
-            future.add_done_callback(self._cb_btn_set_codes_done)
+        self.index = index
+        self.label['text'] = f'Task: {index:>2}'
+        if index == 0:
+            self.btn_previous.state(['disabled'])
+            self.btn_del.state(['disabled'])
         else:
-            messagebox.showinfo(message='Service is not ready!')
+            self.btn_previous.state(['!disabled'])
+            self.btn_del.state(['!disabled'])
+        if index == len(self.codes) - 1:
+            self.btn_next.state(['disabled'])
+        else:
+            self.btn_next.state(['!disabled'])
+        self.event_generate('<<UpdateCode>>', when='tail')
 
-    def _cb_btn_set_codes_done(self, future):
-        try:
-            res = future.result()
-            if res.success:
-                messagebox.showinfo(message='Done!')
-            else:
-                messagebox.showwarning(message=res.message)
-        except Exception as e:
-            messagebox.showerror(message=str(e))
+    def _code_modified(self):
+        if self.codes[self.index].rstrip() == self.texts.get('1.0', 'end').rstrip():
+            return False
+        else:
+            return True
 
 if __name__ == '__main__':
     rclpy.init()

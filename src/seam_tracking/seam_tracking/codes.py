@@ -4,8 +4,6 @@ import importlib
 from threading import Lock
 from typing import Tuple
 
-def fn(x: list, y:list) -> Tuple[float, float]:
-    return 0, 0
 
 class Codes(list):
     _lock = Lock()
@@ -19,7 +17,7 @@ class Codes(list):
 
     def __init__(self):
         self._id = 0
-        self.append('def fn(x: list, y: list):\n    return None, None')
+        self.append('def fn(x: list, y: list):\n    return [], []')
         self.load()
         self.reload()
 

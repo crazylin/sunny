@@ -10,4 +10,10 @@ services:
     devices:
       - "/dev/video0:/dev/video0"
       - "/dev/gpiochip0:/dev/gpiochip0"
+    volumes:
+      - seam_tracking:/ws/install/seam_tracking/lib/python3.8/site-packages/seam_tracking
+      - ros2_log:/root/.ros/log
 
+volumes:
+  ros2_log:
+  seam_tracking:

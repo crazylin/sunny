@@ -1,6 +1,4 @@
-﻿import rclpy
-from threading import Thread
-from rclpy.executors import ExternalShutdownException
+﻿from point_data import PointData
 from rclpy.node import Node
 from rclpy.qos import qos_profile_sensor_data
 from sensor_msgs.msg import PointCloud2
@@ -28,19 +26,6 @@ class RosNode(Node):
         self._create_client('set_code', SetCode, '/seam_tracking_node/set_code')
         self._create_client('get_codes', GetCodes, '/seam_tracking_node/get_codes')
         self._create_client('set_codes', SetCodes, '/seam_tracking_node/set_codes')
-
-    def spin(self):
-        rclpy.spin(self)
-        # try:
-        #     rclpy.spin(self)
-        # except KeyboardInterrupt:
-        #     print('key')
-        # except ExternalShutdownException:
-        #     print('external')
-        # else:
-        #     print('clean')
-        # finally:
-        #     rclpy.shutdown()
 
     def sub_line(self, cb):
         qos = qos_profile_sensor_data
