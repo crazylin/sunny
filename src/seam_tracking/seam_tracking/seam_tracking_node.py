@@ -152,7 +152,7 @@ class SeamTracking(Node):
         try:
             self.codes.loads(request.codes)
             self.codes.dump()
-            self.reload()
+            self.codes.reload()
         except Exception as e:
             response.success = False
             response.message = str(e)
