@@ -20,11 +20,11 @@ class App(tk.Tk):
     def __init__(self):
         super().__init__()
 
-        self.line_data = PointData()
-        self.pick_data = PointData()
-        self.codes = ['def fn(x: list, y: list):\n    return None, None']
+        self.pnts_data = PointData()
+        self.seam_data = PointData()
+        self.codes = ['def fn(x: list, y: list):\n    return [], []']
         self.index = 0
-        self.title('Seam Tracking')
+        self.title('Seam Tracking GUI')
         self.option_add('*tearOff', False)
 
         self._init_menu()
@@ -42,8 +42,8 @@ class App(tk.Tk):
         self.protocol("WM_DELETE_WINDOW", self.__exit)
 
         self.ros = RosNode()
-        self.ros.sub_line(self._ros_cb_line)
-        self.ros.sub_pick(self._ros_cb_pick)
+        self.ros.sub_pnts(self._ros_cb_pnts)
+        self.ros.sub_seam(self._ros_cb_seam)
 
         self._thread = Thread(target=rclpy.spin, args=[self.ros])
         self._thread.start()
@@ -69,9 +69,9 @@ class App(tk.Tk):
         frame.rowconfigure(0, weight=1)
         frame.columnconfigure(0, weight=1)
 
-        self.bind('<<RosSubLine>>', lambda e: fig.update_line(self.line_data))
+        self.bind('<<RosSubLine>>', lambda e: fig.update_pnts(self.pnts_data))
         self.bind('<<RosSubLine>>', lambda e: canvas.draw_idle(), add='+')
-        self.bind('<<RosSubPick>>', lambda e: fig.update_pick(self.pick_data))
+        self.bind('<<RosSubPick>>', lambda e: fig.update_seam(self.seam_data))
         self.bind('<<RosSubPick>>', lambda e: canvas.draw_idle(), add='+')
         return frame
 
@@ -144,12 +144,12 @@ class App(tk.Tk):
         menubar.add_cascade(menu=menu_edit, label='Edit')
         menubar.add_cascade(menu=menu_help, label='Help')
 
-    def _ros_cb_line(self, msg):
-        self.line_data.from_msg(msg, u='y', v='z')
+    def _ros_cb_pnts(self, msg):
+        self.pnts_data.from_msg(msg)
         self.event_generate('<<RosSubLine>>', when='tail')
 
-    def _ros_cb_pick(self, msg):
-        self.pick_data.from_msg(msg, u='y', v='z')
+    def _ros_cb_seam(self, msg):
+        self.seam_data.from_msg(msg)
         self.event_generate('<<RosSubPick>>', when='tail')
 
     def _cb_btn_laser(self, *args):
@@ -324,7 +324,7 @@ class App(tk.Tk):
             self._change_index(self.index + 1)
 
     def _cb_btn_add(self, *args):
-        self.codes.append('def fn(x: list, y: list):\n    return None, None')
+        self.codes.append('def fn(x: list, y: list):\n    return [], []')
         self._change_index(len(self.codes) - 1)
 
     def _cb_btn_del(self, *args):

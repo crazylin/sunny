@@ -51,6 +51,7 @@ class Codes(list):
         with self._lock:
             with open(self._codepath, 'w') as f:
                 id = self._id if id == None else id
+                id = id if id < len(self) else len(self) - 1
                 f.write(self[id])
             importlib.reload(self.stc)
             self._id = id

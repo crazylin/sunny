@@ -8,34 +8,32 @@ class CustomFigure(Figure):
         super().__init__()
 
         ax = super().add_subplot()
-        ax.set_xlabel("Y axis (mm)")
-        ax.set_ylabel("Z axis (mm)")
+        ax.set_xlabel("X axis (mm)")
+        ax.set_ylabel("Y axis (mm)")
         ax.set_title('Graph')
         ax.set_xlim(-10, 80)
         ax.set_ylim(-10, 210)
 
-        self._line, = ax.plot([], [], 'b.', label='Laser')
-        self._mark, = ax.plot([], [], 'go', label='Marked')
+        self._pnts, = ax.plot([], [], 'b.', label='Laser')
+        self._seam, = ax.plot([], [], 'go', label='Seam')
         self._pick, = ax.plot([], [], 'rs', label='Picked')
-        self._info = ax.text(0, 190, 'frames:\nfps:')
-        self._xxyy = ax.text(40, 190, 'y:\nz:')
+        self._info = ax.text(10, 190, 'frames:\nfps:')
+        self._xxyy = ax.text(40, 190, 'X:\nY:')
         ax.legend()
 
-    def update_line(self, line: PointData):
-        u, v, id, fps = line.get()
-        self._line.set_data(u, v)
-        if fps == None:
+    def update_pnts(self, pnts: PointData):
+        u, v, id, fps = pnts.get()
+        self._pnts.set_data(u, v)
+        if fps is None:
             self._info.set_text(f'frames: {id:>9}\nfps:')
         else:
             self._info.set_text(f'frames: {id:>9}\nfps: {fps:>16.2f}')
 
-    def update_pick(self, pick: PointData):
-        u, v, id, fps = pick.get()
+    def update_seam(self, seam: PointData):
+        u, v, id, fps = seam.get()
+        self._pick.set_data(u[:1], v[:1])
+        self._seam.set_data(u[1:], v[1:])
         if u and v:
-            self._pick.set_data(u[:1], v[:1])
-            self._mark.set_data(u[1:], v[1:])
-            self._xxyy.set_text(f"y: {u[0]:>8.2f}\nz: {v[0]:>8.2f}")
+            self._xxyy.set_text(f"X: {u[0]:>8.2f}\nY: {v[0]:>8.2f}")
         else:
-            self._pick.set_data([], [])
-            self._mark.set_data([], [])
-            self._xxyy.set_text(f"y:\nz:")
+            self._xxyy.set_text(f"X:\nY:")

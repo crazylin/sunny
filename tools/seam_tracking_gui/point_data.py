@@ -13,12 +13,12 @@ class PointData():
         self._f = None
         self._h = Header()
 
-    def from_msg(self, msg: PointCloud2, *, u: str, v: str):
+    def from_msg(self, msg: PointCloud2):
         with self._lock:
             if msg.data:
                 d = rnp.numpify(msg)
-                self._u = d[u].tolist()
-                self._v = d[v].tolist()
+                self._u = d['u'].tolist()
+                self._v = d['v'].tolist()
             else:
                 self._u = []
                 self._v = []

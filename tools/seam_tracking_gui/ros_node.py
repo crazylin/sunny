@@ -27,21 +27,21 @@ class RosNode(Node):
         self._create_client('get_codes', GetCodes, '/seam_tracking_node/get_codes')
         self._create_client('set_codes', SetCodes, '/seam_tracking_node/set_codes')
 
-    def sub_line(self, cb):
+    def sub_pnts(self, cb):
         qos = qos_profile_sensor_data
         qos.depth = 1
         self._create_subscription(
-            'line',
+            'pnts',
             PointCloud2,
             '/line_center_reconstruction_node/pnts',
             cb,
             qos)
 
-    def sub_pick(self, cb):
+    def sub_seam(self, cb):
         qos = qos_profile_sensor_data
         qos.depth = 1
         self._create_subscription(
-            'pick',
+            'seam',
             PointCloud2,
             '/seam_tracking_node/seam',
             cb,

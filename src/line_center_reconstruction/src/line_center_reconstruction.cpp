@@ -106,75 +106,58 @@ private:
   void _Execute(LineCenter::UniquePtr & ptr)
   {
     if (ptr->header.frame_id == "-1") {
-      auto pnts = std::make_unique<PointCloud2>();
-      pnts->header = ptr->header;
-      _Publish(pnts);
+      auto msg = std::make_unique<PointCloud2>();
+      msg->header = ptr->header;
+      _Publish(msg);
     } else {
-      std::vector<cv::Point2f> line, temp;
+      std::vector<cv::Point2f> line, pnts;
       line.reserve(ptr->center.size());
-      temp.reserve(ptr->center.size());
+      pnts.reserve(ptr->center.size());
       for (size_t i = 0; i < ptr->center.size(); ++i) {
-        line.emplace_back(ptr->center[i], i);
-      }
-
-      cv::perspectiveTransform(line, temp, _H);
-
-      std::vector<float> xyz, zzz;
-      xyz.reserve(temp.size() * 3);
-      zzz.reserve(temp.size() * 3);
-      for (size_t i = 0; i < ptr->center.size(); ++i) {
-        if (ptr->center[i] < 0) {
-          zzz.push_back(0);
-          zzz.push_back(temp[i].x);
-          zzz.push_back(temp[i].y);
-        } else {
-          xyz.push_back(0);
-          xyz.push_back(temp[i].x);
-          xyz.push_back(temp[i].y);
+        if (ptr->center[i] > 0) {
+          line.emplace_back(ptr->center[i], i);
         }
       }
 
-      auto pnts = _ConstructPointCloud2(xyz.size() / 3, xyz.data());
-      pnts->header = ptr->header;
+      cv::perspectiveTransform(line, pnts, _H);
+      auto msg = _ConstructPointCloud2(pnts);
+      msg->header = ptr->header;
 
-      _Publish(pnts);
+      _Publish(msg);
     }
   }
 
-  PointCloud2::UniquePtr _ConstructPointCloud2(size_t num, const void * src)
+  PointCloud2::UniquePtr _ConstructPointCloud2(const std::vector<cv::Point2f>& pnts)
   {
-    auto pnts = std::make_unique<PointCloud2>();
+    auto num = pnts.size();
+    auto ptr = std::make_unique<PointCloud2>();
 
-    pnts->height = 1;
-    pnts->width = num;
+    ptr->height = 1;
+    ptr->width = num;
 
-    pnts->fields.resize(3);
-    pnts->fields[0].name = "x";
-    pnts->fields[0].offset = 0;
-    pnts->fields[0].datatype = 7;
-    pnts->fields[0].count = 1;
+    ptr->fields.resize(2);
 
-    pnts->fields[1].name = "y";
-    pnts->fields[1].offset = 4;
-    pnts->fields[1].datatype = 7;
-    pnts->fields[1].count = 1;
+    ptr->fields[0].name = "u";
+    ptr->fields[0].offset = 0;
+    ptr->fields[0].datatype = 7;
+    ptr->fields[0].count = 1;
 
-    pnts->fields[2].name = "z";
-    pnts->fields[2].offset = 8;
-    pnts->fields[2].datatype = 7;
-    pnts->fields[2].count = 1;
+    ptr->fields[1].name = "v";
+    ptr->fields[1].offset = 4;
+    ptr->fields[1].datatype = 7;
+    ptr->fields[1].count = 1;
 
-    pnts->is_bigendian = false;
-    pnts->point_step = 4 * 3;
-    pnts->row_step = 12 * num;
+    ptr->is_bigendian = false;
+    ptr->point_step = 4 * 2;
+    ptr->row_step = 8 * num;
 
-    pnts->data.resize(12 * num);
+    ptr->data.resize(8 * num);
 
-    pnts->is_dense = true;
+    ptr->is_dense = true;
 
-    memcpy(pnts->data.data(), src, 12 * num);
+    memcpy(ptr->data.data(), pnts.data(), 8 * num);
 
-    return pnts;
+    return ptr;
   }
 
   void _Publish(PointCloud2::UniquePtr & ptr)

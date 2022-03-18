@@ -98,7 +98,7 @@ public:
     modbus_free(ctx);
   }
 
-  void Update(bool valid, float /*x = 0*/, float y = 0, float z = 0)
+  void Update(bool valid, float /*x = 0.*/, float y = 0., float z = 0.)
   {
     std::lock_guard<std::mutex> lock(_mutex);
 
@@ -272,7 +272,7 @@ void Modbus::_Sub(PointCloud2::UniquePtr ptr)
     _impl->Update(false, 0., 0., 0.);
   } else {
     float * p = reinterpret_cast<float *>(ptr->data.data());
-    _impl->Update(true, p[0], p[1], p[2]);
+    _impl->Update(true, 0., p[0], p[1]);
   }
 }
 

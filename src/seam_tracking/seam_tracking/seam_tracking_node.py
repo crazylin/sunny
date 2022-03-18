@@ -83,7 +83,7 @@ class SeamTracking(Node):
 
     def __init__(self):
         Node.__init__(self, 'seam_tracking_node')
-        self.pnts = [(None, None) for i in range(3)]
+        # self.pnts = [(None, None) for i in range(3)]
         self.codes = Codes()
         self.error = ''
 
@@ -104,17 +104,17 @@ class SeamTracking(Node):
     def __del__(self):
         self.get_logger().info('Destroyed successfully')
 
-    def _append_pnts(self, ret, *, dx = 1., dy = 1.):
-        self.pnts.append(ret)
-        self.pnts.pop(0)
-        for i in range(2):
-            u0, v0 = self.pnts[i]
-            u1, v1 = self.pnts[i + 1]
-            if u0 == None or u1 == None or v0 == None or v1 == None:
-                return None, None
-            if abs(u1 - u0) > dx or abs(v1 - v0) > dy:
-                return None, None
-        return self.pnts[-1]
+    # def _append_pnts(self, ret, *, dx = 1., dy = 1.):
+    #     self.pnts.append(ret)
+    #     self.pnts.pop(0)
+    #     for i in range(2):
+    #         u0, v0 = self.pnts[i]
+    #         u1, v1 = self.pnts[i + 1]
+    #         if u0 == None or u1 == None or v0 == None or v1 == None:
+    #             return None, None
+    #         if abs(u1 - u0) > dx or abs(v1 - v0) > dy:
+    #             return None, None
+    #     return self.pnts[-1]
 
     def _cb_get_code(self, request, response):
         try:
@@ -151,6 +151,8 @@ class SeamTracking(Node):
     def _cb_set_codes(self, request, response):
         try:
             self.codes.loads(request.codes)
+            self.codes.dump()
+            self.reload()
         except Exception as e:
             response.success = False
             response.message = str(e)
@@ -179,47 +181,28 @@ class SeamTracking(Node):
         return response
 
     def _cb(self, msg: PointCloud2):
-        if msg.data:
-            data = rnp.numpify(msg)
-            u = data['y'].tolist()
-            v = data['z'].tolist()
-        else:
-            m = PointCloud2()
-            m.header = msg.header
-            self.pub.publish(m)
-            return
+        ret = PointCloud2()
+        ret.header = msg.header
 
-        pnt = (None, None)
-        try:
-            pnt = self.codes(u, v)
+        if msg.data:
+            d = rnp.numpify(msg)
+            u = d['u'].tolist()
+            v = d['v'].tolist()
+        else:
+            return self.pub.publish(ret)
+
+        try:    
+            u, v = self.codes(u, v)
+            d = np.array(list(zip(u, v)), dtype=[('u', np.float32), ('v', np.float32)])
+            if d.size > 0:
+                ret = rnp.msgify(PointCloud2, d)
+                ret.header = msg.header
+            return self.pub.publish(ret)
         except Exception as e:
             if self.error != str(e):
                 self.get_logger().warn(str(e))
                 self.error = str(e)
-
-        p = self._append_pnts(pnt)
-        if p[0] == None or p[1] == None:
-            m = PointCloud2()
-        else:
-            d = np.array([(0, p[0], p[1])], dtype=[('x', np.float32), ('y', np.float32), ('z', np.float32)])
-            m = rnp.msgify(PointCloud2, d)
-        m.header = msg.header
-        self.pub.publish(m)
-
-
-        # if msg.data:
-        #     data = rnp.numpify(msg)
-        #     try:
-        #         pnt = self.codes(data['y'], data['z'])
-                
-        #     except Exception as e:
-        #         self.get_logger().warn(str(e))
-        #     finally:
-        #         self.pub.publish(ret)
-        # else:
-        #     ret = PointCloud2()
-        #     ret.header = msg.header
-        #     self.pub.publish(ret)
+            return self.pub.publish(ret)
 
 def main(args=None):
     rclpy.init(args=args)
