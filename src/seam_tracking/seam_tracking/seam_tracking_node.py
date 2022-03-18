@@ -188,21 +188,17 @@ class SeamTracking(Node):
             d = rnp.numpify(msg)
             u = d['u'].tolist()
             v = d['v'].tolist()
-        else:
-            return self.pub.publish(ret)
-
-        try:    
-            u, v = self.codes(u, v)
-            d = np.array(list(zip(u, v)), dtype=[('u', np.float32), ('v', np.float32)])
-            if d.size > 0:
-                ret = rnp.msgify(PointCloud2, d)
-                ret.header = msg.header
-            return self.pub.publish(ret)
-        except Exception as e:
-            if self.error != str(e):
-                self.get_logger().warn(str(e))
-                self.error = str(e)
-            return self.pub.publish(ret)
+            try:
+                u, v = self.codes(u, v)
+                d = np.array(list(zip(u, v)), dtype=[('u', np.float32), ('v', np.float32)])
+                if d.size > 0:
+                    ret = rnp.msgify(PointCloud2, d)
+                    ret.header = msg.header
+            except Exception as e:
+                if self.error != str(e):
+                    self.get_logger().warn(str(e))
+                    self.error = str(e)
+        self.pub.publish(ret)
 
 def main(args=None):
     rclpy.init(args=args)
