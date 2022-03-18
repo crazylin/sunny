@@ -119,11 +119,16 @@ private:
         }
       }
 
-      cv::perspectiveTransform(line, pnts, _H);
-      auto msg = _ConstructPointCloud2(pnts);
-      msg->header = ptr->header;
-
-      _Publish(msg);
+      if (line.empty()) {
+        auto msg = std::make_unique<PointCloud2>();
+        msg->header = ptr->header;
+        _Publish(msg);
+      } else {
+        cv::perspectiveTransform(line, pnts, _H);
+        auto msg = _ConstructPointCloud2(pnts);
+        msg->header = ptr->header;
+        _Publish(msg);
+      }
     }
   }
 
