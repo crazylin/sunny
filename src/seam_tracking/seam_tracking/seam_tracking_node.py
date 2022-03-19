@@ -84,7 +84,8 @@ class SeamTracking(Node):
     def __init__(self):
         Node.__init__(self, 'seam_tracking_node')
         # self.pnts = [(None, None) for i in range(3)]
-        param = self.get_parameter_or('task')
+        self.declare_parameter('task')
+        param = self.get_parameter('task')
         self.codes = Codes(id=param.get_parameter_value().integer_value)
         self.error = ''
 
