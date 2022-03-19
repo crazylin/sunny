@@ -4,12 +4,12 @@ from sensor_msgs.msg import PointCloud2
 import ros2_numpy as rnp
 
 class PointData():
-    """For point(u, v) data."""
+    """For point(x, y) data."""
 
     def __init__(self):
         self._lock = Lock()
-        self._u = []
-        self._v = []
+        self._x = []
+        self._y = []
         self._f = None
         self._h = Header()
 
@@ -17,17 +17,17 @@ class PointData():
         with self._lock:
             if msg.data:
                 d = rnp.numpify(msg)
-                self._u = d['u'].tolist()
-                self._v = d['v'].tolist()
+                self._x = d['x'].tolist()
+                self._y = d['y'].tolist()
             else:
-                self._u = []
-                self._v = []
+                self._x = []
+                self._y = []
             self._f = self._cal_fps(msg.header)
             self._h = msg.header
 
     def get(self):
         with self._lock:
-            return self._u, self._v, self._h.frame_id, self._f
+            return self._x, self._y, self._h.frame_id, self._f
 
     def _cal_fps(self, h: Header):
         try:
