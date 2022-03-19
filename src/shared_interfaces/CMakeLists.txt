@@ -21,14 +21,12 @@ find_package(rosidl_default_generators REQUIRED)
 find_package(std_msgs REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
-  msg/LineCenter.msg
   msg/Float64Array.msg
   msg/RollPitchYaw.msg
   srv/SetCode.srv
   srv/SetCodes.srv
   srv/GetCode.srv
   srv/GetCodes.srv
-  srv/SelectCode.srv
   srv/CountCodes.srv
   DEPENDENCIES std_msgs
 )

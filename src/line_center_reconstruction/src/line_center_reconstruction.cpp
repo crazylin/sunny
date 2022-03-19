@@ -27,7 +27,6 @@ namespace line_center_reconstruction
 {
 
 using std_msgs::msg::Header;
-using shared_interfaces::msg::LineCenter;
 using sensor_msgs::msg::PointCloud2;
 using sensor_msgs::msg::PointField;
 
@@ -54,7 +53,7 @@ public:
     }
   }
 
-  void PushBack(LineCenter::UniquePtr & ptr)
+  void PushBack(PointCloud2::UniquePtr & ptr)
   {
     std::unique_lock<std::mutex> lk(_mutex);
     _deq.emplace_back(std::move(ptr));
@@ -103,64 +102,82 @@ private:
     }
   }
 
-  void _Execute(LineCenter::UniquePtr & ptr)
+  void _Execute(PointCloud2::UniquePtr & ptr)
   {
-    if (ptr->header.frame_id == "-1") {
+    if (ptr->header.frame_id == "-1" || ptr->width == 0) {
       auto msg = std::make_unique<PointCloud2>();
       msg->header = ptr->header;
       _Publish(msg);
     } else {
-      std::vector<cv::Point2f> line, pnts;
-      line.reserve(ptr->center.size());
-      pnts.reserve(ptr->center.size());
-      for (size_t i = 0; i < ptr->center.size(); ++i) {
-        if (ptr->center[i] > 0) {
-          line.emplace_back(ptr->center[i], i);
-        }
-      }
-
-      if (line.empty()) {
-        auto msg = std::make_unique<PointCloud2>();
-        msg->header = ptr->header;
-        _Publish(msg);
-      } else {
-        cv::perspectiveTransform(line, pnts, _H);
-        auto msg = _ConstructPointCloud2(pnts);
-        msg->header = ptr->header;
-        _Publish(msg);
-      }
+      auto src = _FromPointCloud2(ptr);
+      std::vector<cv::Point2f> dst;
+      dst.reserve(ptr->width);
+      cv::perspectiveTransform(src, dst, _H);
+      auto msg = _ToPointCloud2(dst, src);
+      msg->header = ptr->header;
+      _Publish(msg);
     }
   }
 
-  PointCloud2::UniquePtr _ConstructPointCloud2(const std::vector<cv::Point2f>& pnts)
+  std::vector<cv::Point2f> _FromPointCloud2(const PointCloud2::UniquePtr & ptr)
   {
-    auto num = pnts.size();
+    auto num = ptr->width;
+    std::vector<cv::Point2f> pnts;
+    pnts.reserve(num);
+    auto p = reinterpret_cast<float *>(ptr->data.data());
+    for (size_t i = 0; i < num; ++i) {
+      pnts.emplace_back(p[i * 2], p[i * 2 + 1]);
+    }
+    return pnts;
+  }
+
+  PointCloud2::UniquePtr _ToPointCloud2(
+    const std::vector<cv::Point2f> & dst,
+    const std::vector<cv::Point2f> & src)
+  {
+    auto num = dst.size();
     auto ptr = std::make_unique<PointCloud2>();
 
     ptr->height = 1;
     ptr->width = num;
 
-    ptr->fields.resize(2);
+    ptr->fields.resize(4);
 
-    ptr->fields[0].name = "u";
+    ptr->fields[0].name = "x";
     ptr->fields[0].offset = 0;
     ptr->fields[0].datatype = 7;
     ptr->fields[0].count = 1;
 
-    ptr->fields[1].name = "v";
+    ptr->fields[1].name = "y";
     ptr->fields[1].offset = 4;
     ptr->fields[1].datatype = 7;
     ptr->fields[1].count = 1;
 
-    ptr->is_bigendian = false;
-    ptr->point_step = 4 * 2;
-    ptr->row_step = 8 * num;
+    ptr->fields[2].name = "u";
+    ptr->fields[2].offset = 8;
+    ptr->fields[2].datatype = 7;
+    ptr->fields[2].count = 1;
 
-    ptr->data.resize(8 * num);
+    ptr->fields[3].name = "v";
+    ptr->fields[3].offset = 12;
+    ptr->fields[3].datatype = 7;
+    ptr->fields[3].count = 1;
+
+    ptr->is_bigendian = false;
+    ptr->point_step = 4 * 4;
+    ptr->row_step = 16 * num;
+
+    ptr->data.resize(16 * num);
 
     ptr->is_dense = true;
 
-    memcpy(ptr->data.data(), pnts.data(), 8 * num);
+    auto p = reinterpret_cast<float *>(ptr->data.data());
+    for (size_t i = 0; i < num; ++i) {
+      p[i * 4 + 0] = dst[i].x;
+      p[i * 4 + 1] = dst[i].y;
+      p[i * 4 + 2] = src[i].x;
+      p[i * 4 + 3] = src[i].y;
+    }
 
     return ptr;
   }
@@ -188,7 +205,7 @@ private:
   std::map<int, PointCloud2::UniquePtr> _buf;
   std::mutex _mutex, _sync;       ///< Mutex to protect shared storage
   std::condition_variable _con;   ///< Conditional variable rely on mutex
-  std::deque<LineCenter::UniquePtr> _deq;
+  std::deque<PointCloud2::UniquePtr> _deq;
   std::vector<std::thread> _threads;
 };
 
@@ -201,10 +218,10 @@ LineCenterReconstruction::LineCenterReconstruction(const rclcpp::NodeOptions & o
 
   _impl = std::make_unique<_Impl>(this);
 
-  _sub = this->create_subscription<LineCenter>(
+  _sub = this->create_subscription<PointCloud2>(
     _subName,
     rclcpp::SensorDataQoS(),
-    [this](LineCenter::UniquePtr ptr)
+    [this](PointCloud2::UniquePtr ptr)
     {
       _impl->PushBack(ptr);
     }

@@ -115,10 +115,10 @@ public:
     gst_debug_set_default_threshold(GST_LEVEL_WARNING);
     gst_init(NULL, NULL);
     const char * pipeline_str =
-      "tcambin name=source"
-      " ! capsfilter name=filter"
-      " ! videoconvert"
-      " ! appsink name=sink emit-signals=true sync=false";
+      "tcambin name=source ! "
+      "capsfilter name=filter ! "
+      "videoconvert ! "
+      "appsink name=sink emit-signals=true sync=false";
     GError * err = NULL;
     _pipeline = gst_parse_launch(pipeline_str, &err);
     if (_pipeline == NULL) {

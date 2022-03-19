@@ -20,7 +20,6 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
 find_package(sensor_msgs REQUIRED)
-find_package(shared_interfaces REQUIRED)
 find_package(OpenCV REQUIRED)
 
 add_library(line_center_reconstruction SHARED src/line_center_reconstruction.cpp)
@@ -35,7 +34,6 @@ ament_target_dependencies(line_center_reconstruction
   rclcpp
   rclcpp_components
   sensor_msgs
-  shared_interfaces
 )
 
 target_link_libraries(line_center_reconstruction ${OpenCV_LIBS})

@@ -8,7 +8,6 @@ from shared_interfaces.srv import SetCode
 from shared_interfaces.srv import GetCodes
 from shared_interfaces.srv import SetCodes
 from shared_interfaces.srv import CountCodes
-from shared_interfaces.srv import SelectCode
 
 from .codes import Codes
 import ros2_numpy as rnp
@@ -85,8 +84,17 @@ class SeamTracking(Node):
         Node.__init__(self, 'seam_tracking_node')
         # self.pnts = [(None, None) for i in range(3)]
         self.declare_parameter('task')
-        param = self.get_parameter('task')
-        self.codes = Codes(id=param.get_parameter_value().integer_value)
+        task = self.get_parameter('task')
+        self.codes = Codes(id=task.get_parameter_value().integer_value)
+
+        self.declare_parameter('delta_x')
+        delta_x = self.get_parameter('delta_x')
+        self.delta_x = delta_x.get_parameter_value().double_value
+
+        self.declare_parameter('delta_y')
+        delta_y = self.get_parameter('delta_y')
+        self.delta_y = delta_y.get_parameter_value().double_value
+
         self.error = ''
 
         qos = rclpy.qos.qos_profile_sensor_data
@@ -99,7 +107,6 @@ class SeamTracking(Node):
         self.srv_set_codes = self.create_service(SetCodes, '~/set_codes', self._cb_set_codes)
 
         self.srv_count_codes = self.create_service(CountCodes, '~/count_codes', self._cb_count_codes)
-        self.srv_select_code = self.create_service(SelectCode, '~/select_code', self._cb_select_code)
 
         self.add_on_set_parameters_callback(self._cb_parameters)
         self.get_logger().info('Initialized successfully')
@@ -129,6 +136,10 @@ class SeamTracking(Node):
                 except Exception as e:
                     result.successful = False
                     result.reason = str(e)
+            if p.name == 'delta_x':
+                self.delta_x = p.get_parameter_value().double_value
+            if p.name == 'delta_y':
+                self.delta_y = p.get_parameter_value().double_value
         return result
 
     def _cb_get_code(self, request, response):
@@ -185,27 +196,21 @@ class SeamTracking(Node):
             response.success = True
         return response
 
-    def _cb_select_code(self, request, response):
-        try:
-            self.codes.reload(id = request.index)
-        except Exception as e:
-            response.success = False
-            response.message = str(e)
-        else:
-            response.success = True
-        return response
-
     def _cb(self, msg: PointCloud2):
         ret = PointCloud2()
         ret.header = msg.header
 
         if msg.data:
             d = rnp.numpify(msg)
+            x = d['x'].tolist()
+            y = d['y'].tolist()
             u = d['u'].tolist()
             v = d['v'].tolist()
             try:
-                u, v = self.codes(u, v)
-                d = np.array(list(zip(u, v)), dtype=[('u', np.float32), ('v', np.float32)])
+                x, y = self.codes(x, y, u, v)
+                x = [v + self.delta_x for v in x]
+                y = [v + self.delta_y for v in y]
+                d = np.array(list(zip(x, y)), dtype=[('x', np.float32), ('y', np.float32)])
                 if d.size > 0:
                     ret = rnp.msgify(PointCloud2, d)
                     ret.header = msg.header

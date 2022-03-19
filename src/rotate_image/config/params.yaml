@@ -1,3 +1,3 @@
 rotate_image_node:
   ros__parameters:
-    workers: 1      #int
+    workers: 1                  #int

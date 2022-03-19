@@ -21,7 +21,7 @@
 #include "rclcpp/rclcpp.hpp"
 #include "std_msgs/msg/header.hpp"
 #include "sensor_msgs/msg/image.hpp"
-#include "shared_interfaces/msg/line_center.hpp"
+#include "sensor_msgs/msg/point_cloud2.hpp"
 
 namespace laser_line_center
 {
@@ -32,7 +32,7 @@ public:
   explicit LaserLineCenter(const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
   virtual ~LaserLineCenter();
 
-  void Publish(shared_interfaces::msg::LineCenter::UniquePtr & ptr)
+  void Publish(sensor_msgs::msg::PointCloud2::UniquePtr & ptr)
   {
     static int idA = -1;
     auto idB = std::stoi(ptr->header.frame_id);
@@ -46,7 +46,7 @@ public:
 
 private:
   const char * _pubName = "~/line";
-  rclcpp::Publisher<shared_interfaces::msg::LineCenter>::SharedPtr _pub;
+  rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr _pub;
 
   const char * _pubHeaderName = "~/header";
   rclcpp::Publisher<std_msgs::msg::Header>::SharedPtr _pubHeader;
