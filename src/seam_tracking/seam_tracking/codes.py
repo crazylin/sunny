@@ -15,11 +15,11 @@ class Codes(list):
         pass
     from . import seam_tracking_code as stc
 
-    def __init__(self):
+    def __init__(self, *, id = 0):
         self._id = 0
         self.append('def fn(x: list, y: list):\n    return [], []')
         self.load()
-        self.reload()
+        self.reload(id=id)
 
     def __del__(self):
         try:
@@ -45,25 +45,25 @@ class Codes(list):
 
     def dumps(self):
         with self._lock:
-            return json.dumps(self[1:])
+            return json.dumps(self[1:]), self._id
 
     def reload(self, *, id = None):
         with self._lock:
+            if id is None:
+                id = self._id if self._id < len(self) else len(self) - 1
             with open(self._codepath, 'w') as f:
-                id = self._id if id == None else id
-                id = id if id < len(self) else len(self) - 1
                 f.write(self[id])
             importlib.reload(self.stc)
             self._id = id
 
     def get_code(self, *, id = None):
         with self._lock:
-            id = self._id if id == None else id
+            id = self._id if id is None else id
             return self[id]
 
     def set_code(self, code, *, id = None):
         with self._lock:
-            id = self._id if id == None else id
+            id = self._id if id is None else id
             self[id] = code
 
     def get_id(self):

@@ -1,7 +1,7 @@
 import rclpy
 
 from rclpy.node import Node
-
+from rcl_interfaces.msg import SetParametersResult
 from sensor_msgs.msg import PointCloud2
 from shared_interfaces.srv import GetCode
 from shared_interfaces.srv import SetCode
@@ -84,7 +84,8 @@ class SeamTracking(Node):
     def __init__(self):
         Node.__init__(self, 'seam_tracking_node')
         # self.pnts = [(None, None) for i in range(3)]
-        self.codes = Codes()
+        param = self.get_parameter_or('task')
+        self.codes = Codes(id=param.get_parameter_value().integer_value)
         self.error = ''
 
         qos = rclpy.qos.qos_profile_sensor_data
@@ -99,6 +100,7 @@ class SeamTracking(Node):
         self.srv_count_codes = self.create_service(CountCodes, '~/count_codes', self._cb_count_codes)
         self.srv_select_code = self.create_service(SelectCode, '~/select_code', self._cb_select_code)
 
+        self.add_on_set_parameters_callback(self._cb_parameters)
         self.get_logger().info('Initialized successfully')
 
     def __del__(self):
@@ -115,6 +117,18 @@ class SeamTracking(Node):
     #         if abs(u1 - u0) > dx or abs(v1 - v0) > dy:
     #             return None, None
     #     return self.pnts[-1]
+
+    def _cb_parameters(self, params):
+        result = SetParametersResult()
+        result.successful = True
+        for p in params:
+            if p.name == 'task':
+                try:
+                    self.codes.reload(id=p.get_parameter_value().integer_value)
+                except Exception as e:
+                    result.successful = False
+                    result.reason = str(e)
+        return result
 
     def _cb_get_code(self, request, response):
         try:
@@ -140,7 +154,7 @@ class SeamTracking(Node):
 
     def _cb_get_codes(self, request, response):
         try:
-            response.codes = self.codes.dumps()
+            response.codes, response.index = self.codes.dumps()
         except Exception as e:
             response.success = False
             response.message = str(e)

@@ -1,3 +1,3 @@
 seam_tracking_node:
   ros__parameters:
-    test: 300          #int
+    task: 2    #int

@@ -301,7 +301,7 @@ class App(tk.Tk):
             res = future.result()
             if res.success:
                 self.codes[1:] = json.loads(res.codes)
-                self._update_codes()
+                self._change_index(res.index)
             else:
                 messagebox.showwarning('Warning', message=res.message)
         except Exception as e:
