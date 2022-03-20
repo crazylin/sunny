@@ -1,4 +1,5 @@
 import json
+from tkinter import simpledialog
 import rclpy
 import tkinter as tk
 from point_data import PointData
@@ -12,7 +13,7 @@ from matplotlib.backends.backend_tkagg import (
     FigureCanvasTkAgg, NavigationToolbar2Tk)
 
 from threading import Thread
-
+import custom_dialog
 
 class App(tk.Tk):
     """Toplevel window."""
@@ -78,7 +79,7 @@ class App(tk.Tk):
     def _init_list(self):
         frame = ttk.Frame(self, padding=(10,0,10,0))
 
-        self.label = ttk.Label(frame, text='Task:', width=10)
+        self.btn_task = ttk.Button(frame, text='Task:', width=10, command=self._cb_btn_task)
         self.btn_previous = ttk.Button(frame, text='Previous', width=10, command=self._cb_btn_previous)
         self.btn_next = ttk.Button(frame, text='Next', width=10, command=self._cb_btn_next)
         self.btn_refresh = ttk.Button(frame, text='Refresh', width=10, command=self._cb_btn_refresh)
@@ -99,7 +100,7 @@ class App(tk.Tk):
 
         frame.grid(row=0, column=0, sticky=tk.NSEW)
 
-        self.label.grid(row=0, column=0, columnspan=1, sticky=tk.EW)
+        self.btn_task.grid(row=0, column=0, columnspan=1, sticky=tk.EW)
         self.btn_previous.grid(row=0, column=1, columnspan=1, sticky=tk.EW)
         self.btn_next.grid(row=0, column=2, columnspan=1, sticky=tk.EW)
         self.btn_refresh.grid(row=0, column=3, columnspan=1, sticky=tk.EW)
@@ -138,6 +139,8 @@ class App(tk.Tk):
         menu_file.add_command(label='Close')
 
         menu_edit = tk.Menu(menubar)
+        menu_edit.add_command(label='Exposure time...', command=self._cb_menu_exposure)
+        menu_edit.add_command(label='Offset...', command=self._cb_menu_offset)
         menu_help = tk.Menu(menubar)
 
         menubar.add_cascade(menu=menu_file, label='File')
@@ -151,6 +154,46 @@ class App(tk.Tk):
     def _ros_cb_seam(self, msg):
         self.seam_data.from_msg(msg)
         self.event_generate('<<RosSubPick>>', when='tail')
+
+    def _cb_menu_exposure(self, *args):
+        exposure = simpledialog.askinteger('Exposure time', 'Input exposure time:')
+        if exposure is None:
+            return
+        future = self.ros.set_exposure(exposure)
+        if future is not None:
+            future.add_done_callback(self._cb_menu_exposure_done)
+        else:
+            messagebox.showinfo('Info', message='Service is not ready!')
+
+    def _cb_menu_exposure_done(self, future):
+        try:
+            res, *r = future.result().results
+            if res.successful:
+                messagebox.showinfo('Info', message='Done!')
+            else:
+                messagebox.showwarning('Warning', message=res.reason)
+        except Exception as e:
+            messagebox.showerror('Error', message=str(e))
+
+    def _cb_menu_offset(self, *args):
+        dx, dy = custom_dialog.mydialog(self)
+        if dx is None or dy is None:
+            return
+        future = self.ros.set_delta(dx, dy)
+        if future is not None:
+            future.add_done_callback(self._cb_menu_offset_done)
+        else:
+            messagebox.showinfo('Info', message='Service is not ready!')
+
+    def _cb_menu_offset_done(self, future):
+        try:
+            res = future.result().result
+            if res.successful:
+                messagebox.showinfo('Info', message='Done!')
+            else:
+                messagebox.showwarning('Warning', message=res.reason)
+        except Exception as e:
+            messagebox.showerror('Error', message=str(e))
 
     def _cb_btn_laser(self, *args):
         if self.btn_laser['text'] == 'Laser on':
@@ -323,6 +366,26 @@ class App(tk.Tk):
         else:
             self._change_index(self.index + 1)
 
+    def _cb_btn_task(self, *args):
+        task = simpledialog.askinteger('Task', 'Input task ID:')
+        if task is None:
+            return
+        future = self.ros.set_task(task)
+        if future is not None:
+            future.add_done_callback(self._cb_btn_task_done)
+        else:
+            messagebox.showinfo('Info', message='Service is not ready!')
+
+    def _cb_btn_task_done(self, future):
+        try:
+            res, *r = future.result().results
+            if res.successful:
+                self.btn_refresh.invoke()
+            else:
+                messagebox.showwarning('Warning', message=res.reason)
+        except Exception as e:
+            messagebox.showerror('Error', message=str(e))
+
     def _cb_btn_add(self, *args):
         self.codes.append('def fn(x: list, y: list):\n    return [], []')
         self._change_index(len(self.codes) - 1)
@@ -330,6 +393,24 @@ class App(tk.Tk):
     def _cb_btn_del(self, *args):
         del self.codes[self.index]
         self._update_codes()
+    #     future = self.ros.set_task(4)
+    #     if future is not None:
+    #         future.add_done_callback(self._cb_btn_del_done)
+    #     else:
+    #         messagebox.showinfo('Info', message='Service is not ready!')
+
+    # def _cb_btn_del_done(self, future):
+    #     try:
+    #         res = future.result()
+    #         # if res.success:
+    #         #     self.codes[1:] = json.loads(res.codes)
+    #         #     self._change_index(res.index)
+    #         # else:
+    #         #     messagebox.showwarning('Warning', message=res.message)
+    #     except Exception as e:
+    #         messagebox.showerror('Error', message=str(e))
+    #     else:
+    #         self._change_index(4)
 
     def _cb_btn_push(self, *args):
         s = json.dumps(self.codes[1:])
@@ -365,7 +446,7 @@ class App(tk.Tk):
         if index < 0 or index > len(self.codes) - 1:
             return
         self.index = index
-        self.label['text'] = f'Task: {index:>2}'
+        self.btn_task['text'] = f'Task: {index:>2}'
         if index == 0:
             self.btn_previous.state(['disabled'])
             self.btn_del.state(['disabled'])

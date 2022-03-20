@@ -9,7 +9,9 @@ from shared_interfaces.srv import GetCodes
 from shared_interfaces.srv import SetCodes
 from shared_interfaces.srv import CountCodes
 from shared_interfaces.srv import SelectCode
-
+from rcl_interfaces.srv import SetParametersAtomically
+from rcl_interfaces.srv import SetParameters
+from rcl_interfaces.msg import Parameter, ParameterType, ParameterValue
 
 class RosNode(Node):
     """Ros node."""
@@ -26,6 +28,10 @@ class RosNode(Node):
         self._create_client('set_code', SetCode, '/seam_tracking_node/set_code')
         self._create_client('get_codes', GetCodes, '/seam_tracking_node/get_codes')
         self._create_client('set_codes', SetCodes, '/seam_tracking_node/set_codes')
+
+        self._create_client('set_exposure', SetParameters, '/camera_tis_node/set_parameters')
+        self._create_client('set_task', SetParameters, '/seam_tracking_node/set_parameters')
+        self._create_client('set_delta', SetParametersAtomically, '/seam_tracking_node/set_parameters_atomically')
 
     def sub_pnts(self, cb):
         qos = qos_profile_sensor_data
@@ -111,6 +117,37 @@ class RosNode(Node):
         if cli.service_is_ready():
             request = SetCodes.Request()
             request.codes = codes
+            return cli.call_async(request)
+        else:
+            return None
+
+    def set_exposure(self, exposure):
+        cli = self._cli['set_exposure']
+        if cli.service_is_ready():
+            value = ParameterValue(type=ParameterType.PARAMETER_INTEGER, integer_value=exposure)
+            request = SetParameters.Request()
+            request.parameters = [Parameter(name='exposure_time', value=value)]
+            return cli.call_async(request)
+        else:
+            return None
+
+    def set_task(self, task):
+        cli = self._cli['set_task']
+        if cli.service_is_ready():
+            value = ParameterValue(type=ParameterType.PARAMETER_INTEGER, integer_value=task)
+            request = SetParameters.Request()
+            request.parameters = [Parameter(name='task', value=value)]
+            return cli.call_async(request)
+        else:
+            return None
+
+    def set_delta(self, delta_x, delta_y):
+        cli = self._cli['set_delta']
+        if cli.service_is_ready():
+            value_x = ParameterValue(type=ParameterType.PARAMETER_DOUBLE, double_value=delta_x)
+            value_y = ParameterValue(type=ParameterType.PARAMETER_DOUBLE, double_value=delta_y)
+            request = SetParametersAtomically.Request()
+            request.parameters = [Parameter(name='delta_x', value=value_x), Parameter(name='delta_y', value=value_y)]
             return cli.call_async(request)
         else:
             return None
