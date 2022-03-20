@@ -23,7 +23,7 @@ class App(tk.Tk):
 
         self.pnts_data = PointData()
         self.seam_data = PointData()
-        self.codes = ['def fn(x: list, y: list):\n    return [], []']
+        self.codes = ['def fn(x, y, *args):\n    return [], []']
         self.index = 0
         self.title('Seam Tracking GUI')
         self.option_add('*tearOff', False)
@@ -275,42 +275,6 @@ class App(tk.Tk):
             messagebox.showerror('Error', message=str(e))
             self.btn_camera.state(['pressed'])
 
-    # def _cb_btn_get_code(self, *args):
-    #     future = self.ros.get_code()
-    #     if future is not None:
-    #         future.add_done_callback(self._cb_btn_get_code_done)
-    #     else:
-    #         messagebox.showinfo('Info', message='Service is not ready!')
-
-    # def _cb_btn_get_code_done(self, future):
-    #     try:
-    #         res = future.result()
-    #         if res.success:
-    #             self.code = res.code
-    #             self.event_generate('<<UpdateCode>>', when='tail')
-    #         else:
-    #             messagebox.showwarning('Warning', message=res.message)
-    #     except Exception as e:
-    #         messagebox.showerror('Error', message=str(e))
-
-    # def _cb_btn_set_code(self, *args):
-    #     self.code = self.texts.get('1.0', 'end')
-    #     future = self.ros.set_code(self.code)
-    #     if future is not None:
-    #         future.add_done_callback(self._cb_btn_set_code_done)
-    #     else:
-    #         messagebox.showinfo('Info', message='Service is not ready!')
-
-    # def _cb_btn_set_code_done(self, future):
-    #     try:
-    #         res = future.result()
-    #         if res.success:
-    #             messagebox.showinfo('Info', message='Done!')
-    #         else:
-    #             messagebox.showwarning('Warning', message=res.message)
-    #     except Exception as e:
-    #         messagebox.showerror('Error', message=str(e))
-
     def _cb_btn_backup(self, *args):
         filename = filedialog.asksaveasfilename(
             title='Backup codes',
@@ -387,30 +351,12 @@ class App(tk.Tk):
             messagebox.showerror('Error', message=str(e))
 
     def _cb_btn_add(self, *args):
-        self.codes.append('def fn(x: list, y: list):\n    return [], []')
+        self.codes.append('def fn(x, y, *args):\n    return [], []')
         self._change_index(len(self.codes) - 1)
 
     def _cb_btn_del(self, *args):
         del self.codes[self.index]
         self._update_codes()
-    #     future = self.ros.set_task(4)
-    #     if future is not None:
-    #         future.add_done_callback(self._cb_btn_del_done)
-    #     else:
-    #         messagebox.showinfo('Info', message='Service is not ready!')
-
-    # def _cb_btn_del_done(self, future):
-    #     try:
-    #         res = future.result()
-    #         # if res.success:
-    #         #     self.codes[1:] = json.loads(res.codes)
-    #         #     self._change_index(res.index)
-    #         # else:
-    #         #     messagebox.showwarning('Warning', message=res.message)
-    #     except Exception as e:
-    #         messagebox.showerror('Error', message=str(e))
-    #     else:
-    #         self._change_index(4)
 
     def _cb_btn_push(self, *args):
         s = json.dumps(self.codes[1:])
