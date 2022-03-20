@@ -2,6 +2,7 @@ import json
 from tkinter import simpledialog
 import rclpy
 import tkinter as tk
+from tkinter.scrolledtext import ScrolledText
 from point_data import PointData
 from custom_figure import CustomFigure
 from tkinter import ttk
@@ -18,15 +19,17 @@ import custom_dialog
 class App(tk.Tk):
     """Toplevel window."""
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.title('Seam Tracking GUI')
+        self.option_add('*tearOff', False)
+        self.protocol("WM_DELETE_WINDOW", self.__exit)
 
         self.pnts_data = PointData()
         self.seam_data = PointData()
         self.codes = ['def fn(x, y, *args):\n    return [], []']
         self.index = 0
-        self.title('Seam Tracking GUI')
-        self.option_add('*tearOff', False)
 
         self._init_menu()
 
@@ -36,11 +39,15 @@ class App(tk.Tk):
         frameR = self._init_list()
         frameR.grid(row=0, column=1, sticky=tk.NSEW)
 
-        self.rowconfigure(0, weight=1)
+        status = ScrolledText(self, height=5, wrap='none',state=tk.DISABLED)
+        status.grid(row=1, column=0, columnspan=2, sticky=tk.EW)
+        # t = tk.Text()
+        # t.config()
+
+        self.rowconfigure(0, weight=4)
+        self.rowconfigure(1, weight=1)
         self.columnconfigure(0, weight=3)
         self.columnconfigure(1, weight=1)
-
-        self.protocol("WM_DELETE_WINDOW", self.__exit)
 
         self.ros = RosNode()
         self.ros.sub_pnts(self._ros_cb_pnts)
@@ -84,7 +91,7 @@ class App(tk.Tk):
         self.btn_next = ttk.Button(frame, text='Next', width=10, command=self._cb_btn_next)
         self.btn_refresh = ttk.Button(frame, text='Refresh', width=10, command=self._cb_btn_refresh)
 
-        self.texts = tk.Text(frame, wrap = 'none')
+        self.texts = ScrolledText(frame, wrap = 'none')
 
         self.btn_laser = ttk.Button(frame, text='Laser on', width=10, command=self._cb_btn_laser)
         self.btn_camera = ttk.Button(frame, text='Camera on', width=10, command=self._cb_btn_camera)

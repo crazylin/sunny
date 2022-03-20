@@ -2,7 +2,6 @@ import json
 import os
 import importlib
 from threading import Lock
-from typing import Tuple
 
 
 class Codes(list):
@@ -36,8 +35,7 @@ class Codes(list):
             self[1:] = json.load(f)
 
     def loads(self, s):
-        with self._lock:
-            self[1:] = json.loads(s)
+        self[:] = json.loads(s)
 
     def dump(self):
         with self._lock, open(self._jsonpath, 'w') as f:
@@ -65,6 +63,14 @@ class Codes(list):
         with self._lock:
             id = self._id if id is None else id
             self[id] = code
+
+    def get_codes(self):
+        with self._lock:
+            return json.dumps(self), self._id
+
+    # def set_codes(self, s):
+    #     with self._lock:
+    #         self._loads(s)
 
     def get_id(self):
         with self._lock:
