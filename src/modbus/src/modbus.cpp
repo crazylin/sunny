@@ -272,7 +272,11 @@ void Modbus::_Sub(PointCloud2::UniquePtr ptr)
     _impl->Update(false, 0., 0., 0.);
   } else {
     float * p = reinterpret_cast<float *>(ptr->data.data());
-    _impl->Update(true, 0., p[0], p[1]);
+    if (p[2] == 2.) {
+      _impl->Update(true, 0., p[0], p[1]);
+    } else {
+      _impl->Update(false, 0., 0., 0.);
+    }
   }
 }
 
