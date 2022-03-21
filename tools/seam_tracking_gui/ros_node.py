@@ -31,15 +31,15 @@ class RosNode(Node):
         self._create_client('set_task', SetParameters, '/seam_tracking_node/set_parameters')
         self._create_client('set_delta', SetParametersAtomically, '/seam_tracking_node/set_parameters_atomically')
 
-    def sub_pnts(self, cb):
-        qos = qos_profile_sensor_data
-        qos.depth = 1
-        self._create_subscription(
-            'pnts',
-            PointCloud2,
-            '/line_center_reconstruction_node/pnts',
-            cb,
-            qos)
+    # def sub_pnts(self, cb):
+    #     qos = qos_profile_sensor_data
+    #     qos.depth = 1
+    #     self._create_subscription(
+    #         'pnts',
+    #         PointCloud2,
+    #         '/line_center_reconstruction_node/pnts',
+    #         cb,
+    #         qos)
 
     def sub_seam(self, cb):
         qos = qos_profile_sensor_data

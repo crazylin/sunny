@@ -27,7 +27,6 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   srv/SetCodes.srv
   srv/GetCode.srv
   srv/GetCodes.srv
-  srv/CountCodes.srv
   DEPENDENCIES std_msgs
 )
 

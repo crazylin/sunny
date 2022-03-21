@@ -10,6 +10,7 @@ class PointData():
         self._lock = Lock()
         self._x = []
         self._y = []
+        self._z = []
         self._f = None
         self._h = Header()
 
@@ -19,15 +20,17 @@ class PointData():
                 d = rnp.numpify(msg)
                 self._x = d['x'].tolist()
                 self._y = d['y'].tolist()
+                self._z = d['z'].tolist()
             else:
                 self._x = []
                 self._y = []
+                self._z = []
             self._f = self._cal_fps(msg.header)
             self._h = msg.header
 
     def get(self):
         with self._lock:
-            return self._x, self._y, self._h.frame_id, self._f
+            return self._x, self._y, self._z, self._h.frame_id, self._f
 
     def _cal_fps(self, h: Header):
         try:

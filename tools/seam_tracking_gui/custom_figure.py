@@ -21,19 +21,37 @@ class CustomFigure(Figure):
         self._xxyy = ax.text(40, 190, 'X:\nY:')
         ax.legend()
 
-    def update_pnts(self, pnts: PointData):
-        u, v, id, fps = pnts.get()
-        self._pnts.set_data(u, v)
+    # def update_pnts(self, pnts: PointData):
+    #     u, v, id, fps = pnts.get()
+    #     self._pnts.set_data(u, v)
+    #     if fps is None:
+    #         self._info.set_text(f'frames: {id:>9}\nfps:')
+    #     else:
+    #         self._info.set_text(f'frames: {id:>9}\nfps: {fps:>16.2f}')
+
+    def update_seam(self, seam: PointData):
+        x, y, z, id, fps = seam.get()
+        pnts_u, pnts_v = [], []
+        seam_u, seam_v = [], []
+        pick_u, pick_v = [], []
+        for a, b, c in zip(x, y, z):
+            if z == 0.:
+                pnts_u.append(a)
+                pnts_v.append(b)
+            elif z == 1.:
+                seam_u.append(a)
+                seam_v.append(b)
+            elif z == 2.:
+                pick_u.append(a)
+                pick_v.append(b)
+        self._pnts.set_data(pnts_u, pnts_v)
+        self._seam.set_data(seam_u, seam_v)
+        self._pick.set_data(pick_u, pick_v)
         if fps is None:
             self._info.set_text(f'frames: {id:>9}\nfps:')
         else:
             self._info.set_text(f'frames: {id:>9}\nfps: {fps:>16.2f}')
-
-    def update_seam(self, seam: PointData):
-        u, v, id, fps = seam.get()
-        self._pick.set_data(u[:1], v[:1])
-        self._seam.set_data(u[1:], v[1:])
-        if u and v:
-            self._xxyy.set_text(f"X: {u[0]:>8.2f}\nY: {v[0]:>8.2f}")
+        if len(pick_u):
+            self._xxyy.set_text(f"X: {pick_u[0]:>8.2f}\nY: {pick_v[0]:>8.2f}")
         else:
             self._xxyy.set_text(f"X:\nY:")
