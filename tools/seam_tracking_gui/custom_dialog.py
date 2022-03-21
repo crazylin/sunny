@@ -2,9 +2,11 @@
 from tkinter.simpledialog import Dialog
 
 class MyDialog(Dialog):
-    def __init__(self, parent, title):
-        self.delta_x = None
-        self.delta_y = None
+    def __init__(self, parent, title, *, initialvalue=('', '')):
+        self._x = None
+        self._y = None
+        self.delta_x = initialvalue[0]
+        self.delta_y = initialvalue[1]
         super().__init__(parent, title)
 
     def body(self, frame):
@@ -13,6 +15,7 @@ class MyDialog(Dialog):
         self.delta_x_label = tk.Label(u, width=10, text="Offset x:")
         self.delta_x_label.pack(side=tk.LEFT)
         self.delta_x_box = tk.Entry(u, width=15)
+        self.delta_x_box.insert(tk.END, self.delta_x)
         self.delta_x_box.pack(side=tk.LEFT)
         self.delta_x_label_mm = tk.Label(u, width=5, text="mm")
         self.delta_x_label_mm.pack(side=tk.LEFT)
@@ -22,6 +25,7 @@ class MyDialog(Dialog):
         self.delta_y_label = tk.Label(d, width=10, text="Offset y:")
         self.delta_y_label.pack(side=tk.LEFT)
         self.delta_y_box = tk.Entry(d, width=15)
+        self.delta_y_box.insert(tk.END, self.delta_y)
         self.delta_y_box.pack(side=tk.LEFT)
         self.delta_y_label_mm = tk.Label(d, width=5, text="mm")
         self.delta_y_label_mm.pack(side=tk.LEFT)
@@ -32,8 +36,8 @@ class MyDialog(Dialog):
     def ok_pressed(self):
         # print("ok")
         try:
-            self.delta_x = float(self.delta_x_box.get())
-            self.delta_y = float(self.delta_y_box.get())
+            self._x = float(self.delta_x_box.get())
+            self._y = float(self.delta_y_box.get())
         except Exception as e:
             pass
         else:
@@ -50,6 +54,6 @@ class MyDialog(Dialog):
         self.bind("<Return>", lambda event: self.ok_pressed())
         self.bind("<Escape>", lambda event: self.cancel_pressed())
 
-def mydialog(app):
-    dialog = MyDialog(title="Offset", parent=app)
-    return dialog.delta_x, dialog.delta_y
+def mydialog(app, *, initialvalue=('', '')):
+    dialog = MyDialog(title="Offset", parent=app, initialvalue=initialvalue)
+    return dialog._x, dialog._y

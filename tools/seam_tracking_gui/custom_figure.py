@@ -7,6 +7,9 @@ class CustomFigure(Figure):
     def __init__(self):
         super().__init__()
 
+        bx = [-9, 16, 55, 76, -9]
+        by = [200, -4, -4, 200, 200]
+
         ax = super().add_subplot()
         ax.set_xlabel("X axis (mm)")
         ax.set_ylabel("Y axis (mm)")
@@ -17,6 +20,7 @@ class CustomFigure(Figure):
         self._pnts, = ax.plot([], [], 'b.', label='Laser')
         self._seam, = ax.plot([], [], 'go', label='Seam')
         self._pick, = ax.plot([], [], 'rs', label='Picked')
+        ax.plot(bx, by, linewidth=3)
         self._info = ax.text(10, 190, 'frames:\nfps:')
         self._xxyy = ax.text(40, 190, 'X:\nY:')
         ax.legend()
@@ -35,13 +39,13 @@ class CustomFigure(Figure):
         seam_u, seam_v = [], []
         pick_u, pick_v = [], []
         for a, b, c in zip(x, y, z):
-            if z == 0.:
+            if c == 0.:
                 pnts_u.append(a)
                 pnts_v.append(b)
-            elif z == 1.:
+            elif c == 1.:
                 seam_u.append(a)
                 seam_v.append(b)
-            elif z == 2.:
+            elif c == 2.:
                 pick_u.append(a)
                 pick_v.append(b)
         self._pnts.set_data(pnts_u, pnts_v)

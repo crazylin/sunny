@@ -1,5 +1,4 @@
-﻿from point_data import PointData
-from rclpy.node import Node
+﻿from rclpy.node import Node
 from rclpy.qos import qos_profile_sensor_data
 from sensor_msgs.msg import PointCloud2
 from std_srvs.srv import Trigger
@@ -7,15 +6,21 @@ from shared_interfaces.srv import GetCode
 from shared_interfaces.srv import SetCode
 from shared_interfaces.srv import GetCodes
 from shared_interfaces.srv import SetCodes
-from rcl_interfaces.srv import SetParametersAtomically
-from rcl_interfaces.srv import SetParameters
+from rcl_interfaces.srv import GetParameters, SetParameters
 from rcl_interfaces.msg import Parameter, ParameterType, ParameterValue
+
+import time
 
 class RosNode(Node):
     """Ros node."""
 
     def __init__(self):
         super().__init__('seam_tracking_gui')
+        self._param_exposure = None
+        self._param_task = None
+        self._param_delta_x = None
+        self._param_delta_y = None
+
         self._sub = {}
         self._cli = {}
         self._create_client('laser_on', Trigger, '/gpio_raspberry_node/high')
@@ -27,9 +32,14 @@ class RosNode(Node):
         self._create_client('get_codes', GetCodes, '/seam_tracking_node/get_codes')
         self._create_client('set_codes', SetCodes, '/seam_tracking_node/set_codes')
 
+        self._create_client('get_exposure', GetParameters, '/camera_tis_node/get_parameters')
         self._create_client('set_exposure', SetParameters, '/camera_tis_node/set_parameters')
+
+        self._create_client('get_task', GetParameters, '/seam_tracking_node/get_parameters')
         self._create_client('set_task', SetParameters, '/seam_tracking_node/set_parameters')
-        self._create_client('set_delta', SetParametersAtomically, '/seam_tracking_node/set_parameters_atomically')
+
+        self._create_client('get_delta', GetParameters, '/seam_tracking_node/get_parameters')
+        self._create_client('set_delta', SetParameters, '/seam_tracking_node/set_parameters')
 
     # def sub_pnts(self, cb):
     #     qos = qos_profile_sensor_data
@@ -119,6 +129,23 @@ class RosNode(Node):
         else:
             return None
 
+    def _get_exposure_done(self, future):
+        try:
+            res = future.result()
+            self._param_exposure = res.values[0].integer_value
+        except Exception as e:
+            self.get_logger().error(str(e))
+
+    def get_exposure(self):
+        cli = self._cli['get_exposure']
+        if cli.service_is_ready():
+            request = GetParameters.Request()
+            request.names = ['exposure_time']
+            f = cli.call_async(request)
+            f.add_done_callback(self._get_exposure_done)
+        else:
+            self.get_logger().info('Service is not ready!')
+
     def set_exposure(self, exposure):
         cli = self._cli['set_exposure']
         if cli.service_is_ready():
@@ -128,6 +155,23 @@ class RosNode(Node):
             return cli.call_async(request)
         else:
             return None
+
+    def _get_task_done(self, future):
+        try:
+            res = future.result()
+            self._param_task = res.values[0].integer_value
+        except Exception as e:
+            self.get_logger().error(str(e))
+
+    def get_task(self):
+        cli = self._cli['get_task']
+        if cli.service_is_ready():
+            request = GetParameters.Request()
+            request.names = ['task']
+            f = cli.call_async(request)
+            f.add_done_callback(self._get_task_done)
+        else:
+            self.get_logger().info('Service is not ready!')
 
     def set_task(self, task):
         cli = self._cli['set_task']
@@ -139,12 +183,29 @@ class RosNode(Node):
         else:
             return None
 
+    def _get_delta_done(self, future):
+        try:
+            res = future.result()
+            self._param_delta_x, self._param_delta_y = res.values[0].double_value, res.values[1].double_value
+        except Exception as e:
+            self.get_logger().error(str(e))
+
+    def get_delta(self):
+        cli = self._cli['get_delta']
+        if cli.service_is_ready():
+            request = GetParameters.Request()
+            request.names = ['delta_x', 'delta_y']
+            f = cli.call_async(request)
+            f.add_done_callback(self._get_delta_done)
+        else:
+            self.get_logger().info('Service is not ready!')
+
     def set_delta(self, delta_x, delta_y):
         cli = self._cli['set_delta']
         if cli.service_is_ready():
             value_x = ParameterValue(type=ParameterType.PARAMETER_DOUBLE, double_value=delta_x)
             value_y = ParameterValue(type=ParameterType.PARAMETER_DOUBLE, double_value=delta_y)
-            request = SetParametersAtomically.Request()
+            request = SetParameters.Request()
             request.parameters = [Parameter(name='delta_x', value=value_x), Parameter(name='delta_y', value=value_y)]
             return cli.call_async(request)
         else:

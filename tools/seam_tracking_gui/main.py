@@ -10,6 +10,7 @@ from point_data import PointData
 from custom_figure import CustomFigure
 from custom_dialog import mydialog
 from codes import Codes
+from datetime import datetime
 
 class App(tk.Tk):
     """Toplevel window."""
@@ -21,7 +22,6 @@ class App(tk.Tk):
         self.option_add('*tearOff', False)
         self.protocol("WM_DELETE_WINDOW", self.__exit)
 
-        # self.pnts_data = PointData()
         self.seam_data = PointData()
         self.codes = Codes()
 
@@ -33,10 +33,8 @@ class App(tk.Tk):
         frameR = self._init_list()
         frameR.grid(row=0, column=1, sticky=tk.NSEW)
 
-        status = ScrolledText(self, height=5, wrap='none',state=tk.DISABLED)
-        status.grid(row=1, column=0, columnspan=2, sticky=tk.EW)
-        # t = tk.Text()
-        # t.config()
+        self.status = ScrolledText(self, height=5, wrap='none')
+        self.status.grid(row=1, column=0, columnspan=2, sticky=tk.EW)
 
         self.rowconfigure(0, weight=4)
         self.rowconfigure(1, weight=1)
@@ -44,11 +42,14 @@ class App(tk.Tk):
         self.columnconfigure(1, weight=1)
 
         self.ros = RosNode()
-        # self.ros.sub_pnts(self._ros_cb_pnts)
         self.ros.sub_seam(self._ros_cb_seam)
 
         self._thread = Thread(target=rclpy.spin, args=[self.ros])
         self._thread.start()
+
+        self.ros.get_exposure()
+        self.ros.get_task()
+        self.ros.get_delta()
 
     def __exit(self):
         self.ros.destroy_node()
@@ -71,8 +72,6 @@ class App(tk.Tk):
         frame.rowconfigure(0, weight=1)
         frame.columnconfigure(0, weight=1)
 
-        # self.bind('<<RosSubLine>>', lambda e: fig.update_pnts(self.pnts_data))
-        # self.bind('<<RosSubLine>>', lambda e: canvas.draw_idle(), add='+')
         self.bind('<<RosSubSeam>>', lambda e: fig.update_seam(self.seam_data))
         self.bind('<<RosSubSeam>>', lambda e: canvas.draw_idle(), add='+')
         return frame
@@ -148,80 +147,97 @@ class App(tk.Tk):
         menubar.add_cascade(menu=menu_edit, label='Edit')
         menubar.add_cascade(menu=menu_help, label='Help')
 
-    # def _ros_cb_pnts(self, msg):
-    #     self.pnts_data.from_msg(msg)
-    #     self.event_generate('<<RosSubLine>>', when='tail')
-
     def _ros_cb_seam(self, msg):
         self.seam_data.from_msg(msg)
         self.event_generate('<<RosSubSeam>>', when='tail')
 
     def _cb_menu_exposure(self, *args):
-        exposure = simpledialog.askinteger('Exposure time', 'Input exposure time:')
+        v = self.ros._param_exposure
+        v = str(v) if v is not None else ''
+        exposure = simpledialog.askinteger('Exposure time', 'Input exposure time:', initialvalue=v)
         if exposure is None:
             return
         future = self.ros.set_exposure(exposure)
         if future is not None:
-            future.add_done_callback(self._cb_menu_exposure_done)
+            future.add_done_callback(
+                lambda f: self._cb_menu_exposure_done(f, exposure)
+            )
         else:
-            messagebox.showinfo('Info', message='Service is not ready!')
+            self._msg('Service is not ready!', level='Warning')
 
-    def _cb_menu_exposure_done(self, future):
+    def _cb_menu_exposure_done(self, future, exposure):
         try:
-            res, *r = future.result().results
+            res, = future.result().results
             if res.successful:
-                messagebox.showinfo('Info', message='Done!')
+                self.ros._param_exposure = exposure
+                self._msg(f'Exposure time set to: {exposure} (us)')
             else:
-                messagebox.showwarning('Warning', message=res.reason)
+                self._msg(f'{res.reason}', level='Warning')
         except Exception as e:
-            messagebox.showerror('Error', message=str(e))
+            self._msg(f'{str(e)}', level='Error')
 
     def _cb_menu_offset(self, *args):
-        dx, dy = mydialog(self)
+        x, y = '', ''
+        if self.ros._param_delta_x is not None:
+            x = f'{self.ros._param_delta_x:.2f}'
+        if self.ros._param_delta_y is not None:
+            y = f'{self.ros._param_delta_y:.2f}'
+        dx, dy = mydialog(self, initialvalue=(x, y))
         if dx is None or dy is None:
             return
         future = self.ros.set_delta(dx, dy)
         if future is not None:
-            future.add_done_callback(self._cb_menu_offset_done)
+            future.add_done_callback(
+                lambda f: self._cb_menu_offset_done(f, dx, dy)
+            )
         else:
-            messagebox.showinfo('Info', message='Service is not ready!')
+            self._msg('Service is not ready!', level='Warning')
 
-    def _cb_menu_offset_done(self, future):
+    def _cb_menu_offset_done(self, future, dx, dy):
         try:
-            res = future.result().result
-            if res.successful:
-                messagebox.showinfo('Info', message='Done!')
+            rx, ry = future.result().results
+            if rx.successful:
+                self.ros._param_delta_x = dx
+                self._msg(f'Offset x set to: {dx:.2f} (mm)')
             else:
-                messagebox.showwarning('Warning', message=res.reason)
+                self._msg(f'{rx.reason}', level='Warning')
+            if ry.successful:
+                self.ros._param_delta_y = dy
+                self._msg(f'Offset y set to: {dy:.2f} (mm)')
+            else:
+                self._msg(f'{ry.reason}', level='Warning')
         except Exception as e:
-            messagebox.showerror('Error', message=str(e))
+            self._msg(f'{str(e)}', level='Error')
 
     def _cb_btn_laser(self, *args):
         if self.btn_laser['text'] == 'Laser on':
+            self._msg('Button [Laser on] clicked')
             future = self.ros.laser_on()
             if future is not None:
                 self.btn_laser.state(['pressed'])
                 future.add_done_callback(self._cb_btn_laser_on_done)
             else:
-                messagebox.showinfo('Info', message='Service is not ready!')
+                self._msg('Service is not ready!', level='Warning')
         else:
+            self._msg('Button [Laser off] clicked')
             future = self.ros.laser_off()
             if future is not None:
                 self.btn_laser.state(['!pressed'])
                 future.add_done_callback(self._cb_btn_laser_off_done)
             else:
-                messagebox.showinfo('Info', message='Service is not ready!')
+                self._msg('Service is not ready!', level='Warning')
     
     def _cb_btn_laser_on_done(self, future):
         try:
             res = future.result()
             if res.success:
                 self.btn_laser['text'] = 'Laser off'
+                self._msg(f'Laser set to: on')
             else:
-                messagebox.showwarning('Warning', message=res.message)
+                self._msg(f'{res.message}', level='Warning')
                 self.btn_laser.state(['!pressed'])
         except Exception as e:
-            messagebox.showerror('Error', message=str(e))
+            self._msg(f'{str(e)}', level='Error')
             self.btn_laser.state(['!pressed'])
 
     def _cb_btn_laser_off_done(self, future):
@@ -229,39 +245,43 @@ class App(tk.Tk):
             res = future.result()
             if res.success:
                 self.btn_laser['text'] = 'Laser on'
+                self._msg(f'Laser set to: off')
             else:
-                messagebox.showwarning('Warning', message=res.message)
+                self._msg(f'{res.message}', level='Warning')
                 self.btn_laser.state(['pressed'])
         except Exception as e:
-            messagebox.showerror('Error', message=str(e))
+            self._msg(f'{str(e)}', level='Error')
             self.btn_laser.state(['pressed'])
 
     def _cb_btn_camera(self, *args):
         if self.btn_camera['text'] == 'Camera on':
+            self._msg('Button [Camera on] clicked')
             future = self.ros.camera_on()
             if future is not None:
                 self.btn_camera.state(['pressed'])
                 future.add_done_callback(self._cb_btn_camera_on_done)
             else:
-                messagebox.showinfo('Info', message='Service is not ready!')
+                self._msg('Service is not ready!', level='Warning')
         else:
+            self._msg('Button [Camera off] clicked')
             future = self.ros.camera_off()
             if future is not None:
                 self.btn_camera.state(['!pressed'])
                 future.add_done_callback(self._cb_btn_camera_off_done)
             else:
-                messagebox.showinfo('Info', message='Service is not ready!')
+                self._msg('Service is not ready!', level='Warning')
     
     def _cb_btn_camera_on_done(self, future):
         try:
             res = future.result()
             if res.success:
                 self.btn_camera['text'] = 'Camera off'
+                self._msg(f'Camera set to: on')
             else:
-                messagebox.showwarning('Warning', message=res.message)
+                self._msg(f'{res.message}', level='Warning')
                 self.btn_camera.state(['!pressed'])
         except Exception as e:
-            messagebox.showerror('Error', message=str(e))
+            self._msg(f'{str(e)}', level='Error')
             self.btn_camera.state(['!pressed'])
 
     def _cb_btn_camera_off_done(self, future):
@@ -269,126 +289,144 @@ class App(tk.Tk):
             res = future.result()
             if res.success:
                 self.btn_camera['text'] = 'Camera on'
+                self._msg(f'Camera set to: off')
             else:
-                messagebox.showwarning('Warning', message=res.message)
+                self._msg(f'{res.message}', level='Warning')
                 self.btn_camera.state(['pressed'])
         except Exception as e:
-            messagebox.showerror('Error', message=str(e))
+            self._msg(f'{str(e)}', level='Error')
             self.btn_camera.state(['pressed'])
 
     def _cb_btn_backup(self, *args):
+        self._msg('Button [Backup] clicked')
         filename = filedialog.asksaveasfilename(
             title='Backup codes',
             initialfile='codes.json',
             defaultextension='json',
             filetypes=[('JSON JavaScript Object Notation', '.json')])
         if filename:
-            self.codes.dump(filename)
+            try:
+                self.codes.dump(filename)
+                self._msg('Backup done!')
+            except Exception as e:
+                self._msg(f'{str(e)}', level='Error')
 
     def _cb_btn_upload(self, *args):
+        self._msg('Button [Upload] clicked')
         filename = filedialog.askopenfilename(
             title='Upload codes',
             initialfile='codes.json',
             defaultextension='json',
             filetypes=[('JSON JavaScript Object Notation', '.json')])
         if filename:
-            self.codes.load(filename)
-            self.event_generate('<<UpdateCode>>', when='tail')
-            self._update_codes()
+            try:
+                self.codes.load(filename)
+                self._update_codes()
+                self._msg('Upload done!')
+            except Exception as e:
+                self._msg(f'{str(e)}', level='Error')
 
     def _cb_btn_refresh(self, *args):
+        self._msg('Button [Refresh] clicked')
         future = self.ros.get_codes()
         if future is not None:
             future.add_done_callback(self._cb_btn_refresh_done)
         else:
-            messagebox.showinfo('Info', message='Service is not ready!')
+            self._msg('Service is not ready!', level='Warning')
 
     def _cb_btn_refresh_done(self, future):
         try:
             res = future.result()
             if res.success:
                 self.codes.loads(res.codes)
-                self._change_index(res.index)
+                self._update_codes()
+                self._msg(f'Refresh done!')
             else:
-                messagebox.showwarning('Warning', message=res.message)
+                self._msg(f'{res.message}', level='Warning')
         except Exception as e:
-            messagebox.showerror('Error', message=str(e))
+            self._msg(f'{str(e)}', level='Error')
 
     def _cb_btn_previous(self, *args):
+        self._msg('Button [Previous] clicked')
         if self._code_modified():
             answer = messagebox.askyesno('Question', message='Code modified, leave anyway?')
             if answer:
                 self.codes.previous()
-                self.event_generate('<<UpdateCode>>', when='tail')
                 self._update_codes()
         else:
             self.codes.previous()
-            self.event_generate('<<UpdateCode>>', when='tail')
             self._update_codes()
 
     def _cb_btn_next(self, *args):
+        self._msg('Button [Next] clicked')
         if self._code_modified():
             answer = messagebox.askyesno('Question', message='Code modified, leave anyway?')
             if answer:
                 self.codes.next()
-                self.event_generate('<<UpdateCode>>', when='tail')
                 self._update_codes()
         else:
             self.codes.next()
-            self.event_generate('<<UpdateCode>>', when='tail')
             self._update_codes()
 
     def _cb_btn_task(self, *args):
-        task = simpledialog.askinteger('Task', 'Input task ID:')
+        self._msg('Button [Task] clicked')
+        v = self.ros._param_task
+        v = str(v) if v is not None else ''
+        task = simpledialog.askinteger('Task', 'Input task ID:', initialvalue=v)
         if task is None:
             return
         future = self.ros.set_task(task)
         if future is not None:
-            future.add_done_callback(self._cb_btn_task_done)
+            future.add_done_callback(
+                lambda f: self._cb_btn_task_done(f, task)
+            )
         else:
-            messagebox.showinfo('Info', message='Service is not ready!')
+            self._msg('Service is not ready!', level='Warning')
 
-    def _cb_btn_task_done(self, future):
+    def _cb_btn_task_done(self, future, task):
         try:
-            res, *r = future.result().results
+            res, = future.result().results
             if res.successful:
-                self.btn_refresh.invoke()
+                self.ros._param_task = task
+                self._msg(f'Task set to: {task}')
             else:
-                messagebox.showwarning('Warning', message=res.reason)
+                self._msg(f'{res.reason}', level='Warning')
         except Exception as e:
-            messagebox.showerror('Error', message=str(e))
+            self._msg(f'{str(e)}', level='Error')
 
     def _cb_btn_append(self, *args):
+        self._msg('Button [Append] clicked')
         self.codes.append_code('def fn(x, y, *args):\n    return [], []')
-        self.event_generate('<<UpdateCode>>', when='tail')
         self._update_codes()
 
     def _cb_btn_delete(self, *args):
+        self._msg('Button [Delete] clicked')
         self.codes.delete_code()
-        self.event_generate('<<UpdateCode>>', when='tail')
         self._update_codes()
 
     def _cb_btn_modify(self, *args):
+        self._msg('Button [Modify] clicked')
         self.codes.modify_code(self.texts.get('1.0', 'end').rstrip())
         self._update_codes()
 
     def _cb_btn_commit(self, *args):
+        self._msg('Button [Commit] clicked')
         s = self.codes.dumps()
         future = self.ros.set_codes(s)
         if future is not None:
             future.add_done_callback(self._cb_btn_commit_done)
         else:
-            messagebox.showinfo('Info', message='Service is not ready!')
+            self._msg('Service is not ready!', level='Warning')
 
     def _cb_btn_commit_done(self, future):
         try:
             res = future.result()
             if res.success:
-                messagebox.showinfo('Info', message='Done!')
+                self._msg('Commit done!')
             else:
-                messagebox.showwarning('Warning', message=res.message)
+                self._msg(f'{res.message}', level='Warning')
         except Exception as e:
-            messagebox.showerror('Error', message=str(e))
+            self._msg(f'{str(e)}', level='Error')
 
     def _update_codes(self):
         pos = self.codes.pos()
@@ -396,6 +434,7 @@ class App(tk.Tk):
             self.btn_task['text'] = 'Task:   '
         else:
             self.btn_task['text'] = f'Task: {pos:>2}'
+
         if self.codes.is_valid():
             self.btn_delete.state(['!disabled'])
             self.btn_modify.state(['!disabled'])
@@ -404,20 +443,30 @@ class App(tk.Tk):
             self.btn_delete.state(['disabled'])
             self.btn_modify.state(['disabled'])
             self.btn_commit.state(['disabled'])
+
         if self.codes.is_begin():
             self.btn_previous.state(['disabled'])
         else:
             self.btn_previous.state(['!disabled'])
+
         if self.codes.is_end():
             self.btn_next.state(['disabled'])
         else:
             self.btn_next.state(['!disabled'])
+
+        self.event_generate('<<UpdateCode>>', when='tail')
 
     def _code_modified(self):
         if self.codes.code().rstrip() == self.texts.get('1.0', 'end').rstrip():
             return False
         else:
             return True
+
+    def _msg(self, s: str, *, level = 'Info'):
+        n = datetime.now()
+        t = n.strftime("%m/%d/%Y %H:%M:%S")
+        s = f'[{t}] [{level:^10}]  {s}\n'
+        self.status.insert('1.0', s)
 
 if __name__ == '__main__':
     rclpy.init()
