@@ -92,10 +92,9 @@ class SeamTracking(Node):
                 try:
                     self.codes.reload(id=p.value)
                 except Exception as e:
+                    result.successful = False
                     result.reason = str(e)
-                    pos = self.codes.pos()
-                    pos = pos if pos is not None else -1
-                    p._value = pos
+                    return result
             if p.name == 'delta_x':
                 self.delta_x = p.value
             if p.name == 'delta_y':
