@@ -11,7 +11,7 @@ from shared_interfaces.srv import SetCode
 from shared_interfaces.srv import GetCodes
 from shared_interfaces.srv import SetCodes
 
-from codes import Codes
+from .codes import Codes
 import ros2_numpy as rnp
 import numpy as np
 
@@ -184,7 +184,7 @@ class SeamTracking(Node):
                     self.get_logger().error(str(e))
                     self.error = str(e)
             d = np.array(
-                zip(a + x, b + y, c + z),
+                list(zip(a + x, b + y, c + z)),
                 dtype=[('x', np.float32), ('y', np.float32), ('z', np.float32)])
             ret = rnp.msgify(PointCloud2, d)
             ret.header = msg.header
