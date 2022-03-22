@@ -16,6 +16,7 @@
 
 #include <deque>
 #include <exception>
+#include <future>
 #include <map>
 #include <memory>
 #include <utility>
@@ -26,7 +27,6 @@
 namespace rotate_image
 {
 
-using std_msgs::msg::Header;
 using sensor_msgs::msg::Image;
 
 class RotateImage::_Impl
@@ -37,78 +37,87 @@ public:
   {
     _node->declare_parameter("workers", _workers);
     _node->get_parameter("workers", _workers);
+    _deque_size = _workers + 1;
     for (int i = 0; i < _workers; ++i) {
       _threads.push_back(std::thread(&_Impl::_Worker, this));
     }
+    _threads.push_back(std::thread(&_Impl::_Manager, this));
     RCLCPP_INFO(_node->get_logger(), "Employ %d workers successfully", _workers);
   }
 
   ~_Impl()
   {
-    _con.notify_all();
+    _images_con.notify_all();
+    _futures_con.notify_one();
     for (auto & t : _threads) {
       t.join();
     }
   }
 
-  void PushBack(Image::UniquePtr ptr)
+  void PushBackImage(Image::UniquePtr ptr)
   {
-    std::unique_lock<std::mutex> lk(_mutex);
-    _deq.emplace_back(std::move(ptr));
+    std::unique_lock<std::mutex> lk(_images_mut);
+    _images.emplace_back(std::move(ptr));
+    auto s = static_cast<int>(_images.size());
+    if (s > _deque_size) {
+      _images.pop_front();
+    }
     lk.unlock();
-    _con.notify_all();
+    _images_con.notify_all();
+  }
+
+  void PushBackFuture(std::future<Image::UniquePtr> f)
+  {
+    std::unique_lock<std::mutex> lk(_futures_mut);
+    _futures.emplace_back(std::move(f));
+    lk.unlock();
+    _futures_con.notify_one();
   }
 
 private:
-  void _Worker()
+  void _Manager()
   {
-    Image::_data_type _buf;
     while (rclcpp::ok()) {
-      std::unique_lock<std::mutex> lk(_mutex);
-      if (_deq.empty() == false) {
-        if (_deq.size() == 60) {
-          RCLCPP_WARN(_node->get_logger(), "Buffer exceed 60");
-        }
-        auto ptr = std::move(_deq.front());
-        _deq.pop_front();
+      std::unique_lock<std::mutex> lk(_futures_mut);
+      if (_futures.empty() == false) {
+        auto f = std::move(_futures.front());
+        _futures.pop_front();
         lk.unlock();
-        if (ptr->header.frame_id == "-1") {
-          auto img = std::make_unique<Image>();
-          img->header = ptr->header;
-          _Publish(img);
-        } else {
-          if (ptr->encoding != "mono8") {
-            RCLCPP_WARN(_node->get_logger(), "Can not handle color image");
-            continue;
-          } else {
-            _buf.resize(ptr->width * ptr->height);
-            cv::Mat dst(ptr->width, ptr->height, CV_8UC1, _buf.data());
-            cv::Mat img(ptr->height, ptr->width, CV_8UC1, ptr->data.data());
-            cv::rotate(img, dst, cv::ROTATE_90_CLOCKWISE);
-            std::swap(ptr->data, _buf);
-            std::swap(ptr->width, ptr->height);
-            ptr->step = ptr->width;
-            _Publish(ptr);
-          }
-        }
+        auto ptr = f.get();
+        _node->Publish(ptr);
       } else {
-        _con.wait(lk);
+        _futures_con.wait(lk);
       }
     }
   }
 
-  void _Publish(Image::UniquePtr & ptr)
+  void _Worker()
   {
-    if (_workers == 1) {
-      _node->Publish(ptr);
-    } else {
-      std::lock_guard<std::mutex> guard(_sync);
-      auto id = std::stoi(ptr->header.frame_id);
-      _buf[id] = std::move(ptr);
-      if (_buf.size() > _workers * 2) {
-        auto pos = _buf.begin();
-        _node->Publish(pos->second);
-        _buf.erase(pos);
+    Image::_data_type _buf;
+    while (rclcpp::ok()) {
+      std::unique_lock<std::mutex> lk(_images_mut);
+      if (_images.empty() == false) {
+        auto ptr = std::move(_images.front());
+        _images.pop_front();
+        std::promise<Image::UniquePtr> prom;
+        PushBackFuture(prom.get_future());
+        lk.unlock();
+        if (ptr->header.frame_id == "-1") {
+          auto img = std::make_unique<Image>();
+          img->header = ptr->header;
+          prom.set_value(std::move(ptr));
+        } else {
+          _buf.resize(ptr->width * ptr->height);
+          cv::Mat dst(ptr->width, ptr->height, CV_8UC1, _buf.data());
+          cv::Mat img(ptr->height, ptr->width, CV_8UC1, ptr->data.data());
+          cv::rotate(img, dst, cv::ROTATE_90_CLOCKWISE);
+          std::swap(ptr->data, _buf);
+          std::swap(ptr->width, ptr->height);
+          ptr->step = ptr->width;
+          prom.set_value(std::move(ptr));
+        }
+      } else {
+        _images_con.wait(lk);
       }
     }
   }
@@ -116,10 +125,16 @@ private:
 private:
   RotateImage * _node;
   int _workers = 1;
-  std::map<int, Image::UniquePtr> _buf;
-  std::mutex _mutex, _sync;       ///< Mutex to protect shared storage
-  std::condition_variable _con;   ///< Conditional variable rely on mutex
-  std::deque<Image::UniquePtr> _deq;
+  int _deque_size;
+
+  std::mutex _images_mut;
+  std::condition_variable _images_con;
+  std::deque<Image::UniquePtr> _images;
+
+  std::mutex _futures_mut;
+  std::condition_variable _futures_con;
+  std::deque<std::future<Image::UniquePtr>> _futures;
+
   std::vector<std::thread> _threads;
 };
 
@@ -128,8 +143,6 @@ RotateImage::RotateImage(const rclcpp::NodeOptions & options)
 {
   _pubImage = this->create_publisher<Image>(_pubImageName, rclcpp::SensorDataQoS());
 
-  _pubHeader = this->create_publisher<Header>(_pubHeaderName, 10);
-
   _impl = std::make_unique<_Impl>(this);
 
   _sub = this->create_subscription<Image>(
@@ -137,7 +150,7 @@ RotateImage::RotateImage(const rclcpp::NodeOptions & options)
     rclcpp::SensorDataQoS(),
     [this](Image::UniquePtr ptr)
     {
-      _impl->PushBack(std::move(ptr));
+      _impl->PushBackImage(std::move(ptr));
     }
   );
 
@@ -148,7 +161,6 @@ RotateImage::~RotateImage()
 {
   _sub.reset();
   _impl.reset();
-  _pubHeader.reset();
   _pubImage.reset();
 
   RCLCPP_INFO(this->get_logger(), "Destroyed successfully");

@@ -19,7 +19,6 @@
 #include <utility>
 
 #include "rclcpp/rclcpp.hpp"
-#include "std_msgs/msg/header.hpp"
 #include "sensor_msgs/msg/image.hpp"
 
 namespace rotate_image
@@ -33,27 +32,20 @@ public:
 
   void Publish(sensor_msgs::msg::Image::UniquePtr & ptr)
   {
-    static int idA = -1;
-    auto idB = std::stoi(ptr->header.frame_id);
-    if (idB != idA + 1) {
-      RCLCPP_ERROR(this->get_logger(), "Skipped frame: from %d to %d", idA, idB);
+    if (std::stoi(ptr->header.frame_id) % 100 == 0) {
+      RCLCPP_INFO(this->get_logger(), "rotated");
     }
-    _pubHeader->publish(ptr->header);
     _pubImage->publish(std::move(ptr));
-    idA = idB;
   }
 
 private:
   const char * _pubImageName = "~/image_rotated";
   rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr _pubImage;
 
-  const char * _pubHeaderName = "~/header";
-  rclcpp::Publisher<std_msgs::msg::Header>::SharedPtr _pubHeader;
-
   class _Impl;
   std::unique_ptr<_Impl> _impl;
 
-  const char * _subName = "~/image";
+  const char * _subName = "/camera_tis_node/image";
   rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr _sub;
 };
 
