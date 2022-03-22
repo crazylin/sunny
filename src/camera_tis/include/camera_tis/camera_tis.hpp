@@ -19,8 +19,6 @@
 #include <memory>
 
 #include "rclcpp/rclcpp.hpp"
-#include "std_msgs/msg/header.hpp"
-#include "std_srvs/srv/trigger.hpp"
 #include "sensor_msgs/msg/image.hpp"
 
 namespace camera_tis
@@ -34,40 +32,18 @@ public:
 
   void Publish(sensor_msgs::msg::Image::UniquePtr & ptr)
   {
-    static int idA = -1;
-    auto idB = std::stoi(ptr->header.frame_id);
-    if (idB != idA + 1) {
-      RCLCPP_ERROR(this->get_logger(), "Skipped frame: from %d to %d", idA, idB);
-    }
-    _pubHeader->publish(ptr->header);
     _pubImage->publish(std::move(ptr));
-    idA = idB;
   }
 
 private:
   void _Init();
-  void _Start(
-    const std::shared_ptr<std_srvs::srv::Trigger::Request>,
-    std::shared_ptr<std_srvs::srv::Trigger::Response> response);
-  void _Stop(
-    const std::shared_ptr<std_srvs::srv::Trigger::Request>,
-    std::shared_ptr<std_srvs::srv::Trigger::Response> response);
 
 private:
   const char * _pubImageName = "~/image";
   rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr _pubImage;
 
-  const char * _pubHeaderName = "~/header";
-  rclcpp::Publisher<std_msgs::msg::Header>::SharedPtr _pubHeader;
-
   class _Impl;
   std::unique_ptr<_Impl> _impl;
-
-  const char * _srvStartName = "~/start";
-  rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr _srvStart;
-
-  const char * _srvStopName = "~/stop";
-  rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr _srvStop;
 
   OnSetParametersCallbackHandle::SharedPtr _parCallbackHandle;
 

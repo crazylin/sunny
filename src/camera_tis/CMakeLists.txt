@@ -19,7 +19,6 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
-find_package(std_srvs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(TIS REQUIRED IMPORTED_TARGET gstreamer-1.0 gstreamer-video-1.0 gobject-introspection-1.0 tcam)
@@ -29,7 +28,6 @@ add_library(camera_tis SHARED src/camera_tis.cpp)
 ament_target_dependencies(camera_tis
   rclcpp
   rclcpp_components
-  std_srvs
   sensor_msgs
 )
 

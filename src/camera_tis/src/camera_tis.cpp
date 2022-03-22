@@ -28,8 +28,6 @@ extern "C"
 namespace camera_tis
 {
 
-using std_msgs::msg::Header;
-using std_srvs::srv::Trigger;
 using sensor_msgs::msg::Image;
 
 const auto WIDTH = 1536, HEIGHT = 1024, FPS = 60;
@@ -74,10 +72,6 @@ extern "C" GstFlowReturn callback(GstElement * sink, void * user_data)
 
       gst_buffer_unmap(buffer, &info);
       gst_video_info_free(video_info);
-
-      // time_t T = time(NULL);
-      // struct tm tm = *localtime(&T);
-      // printf("f:%d, t:%d\n", framecount, tm.tm_sec);
     }
     framecount++;
     gst_sample_unref(sample);
@@ -115,10 +109,11 @@ public:
     gst_debug_set_default_threshold(GST_LEVEL_WARNING);
     gst_init(NULL, NULL);
     const char * pipeline_str =
-      "tcambin name=source ! "
-      "capsfilter name=filter ! "
-      "videoconvert ! "
-      "appsink name=sink emit-signals=true sync=false";
+      "tcambin name=source "
+      "! capsfilter name=filter "
+      "! queue max-size-buffers=2 leaky=downstream "
+      "! videoconvert "
+      "! appsink name=sink emit-signals=true sync=false drop=true max-buffers=4";
     GError * err = NULL;
     _pipeline = gst_parse_launch(pipeline_str, &err);
     if (_pipeline == NULL) {
@@ -149,37 +144,56 @@ public:
     gst_object_unref(_pipeline);
   }
 
-  void Start()
+  int Power(bool p)
   {
-    gst_element_set_state(_pipeline, GST_STATE_PLAYING);
+    if (p) {
+      return PowerOn();
+    } else {
+      return PowerOff();
+    }
   }
 
-  void Stop()
+  int PowerOn()
   {
-    gst_element_set_state(_pipeline, GST_STATE_PAUSED);
+    if (!_power) {
+      auto ret = gst_element_set_state(_pipeline, GST_STATE_PLAYING);
+      if (ret != GST_STATE_CHANGE_FAILURE) {
+        _power = true;
+        return 0;
+      } else {
+        return 1;
+      }
+    } else {
+      return 0;
+    }
+  }
+
+  int PowerOff()
+  {
+    if (_power) {
+      auto ret = gst_element_set_state(_pipeline, GST_STATE_PAUSED);
+      if (ret != GST_STATE_CHANGE_FAILURE) {
+        _power = false;
+        return 0;
+      } else {
+        return 1;
+      }
+    } else {
+      return 0;
+    }
   }
 
   void _InitializeParameters()
   {
     _node->declare_parameter("exposure_time", _expo);
+    _node->declare_parameter("power", _power);
   }
 
   void _UpdateParameters()
   {
     _node->get_parameter("exposure_time", _expo);
+    _node->get_parameter("power", _power);
   }
-
-  /*gboolean _SetProperty(const char * property, bool value)
-  {
-    GstElement * bin = gst_bin_get_by_name(GST_BIN(_pipeline), "source");
-    GValue val = G_VALUE_INIT;
-    g_value_init(&val, G_TYPE_BOOLEAN);
-    g_value_set_boolean(&val, value);
-    gboolean ret = tcam_prop_set_tcam_property(TCAM_PROP(bin), property, &val);
-    g_value_unset(&val);
-    gst_object_unref(bin);
-    return ret;
-  }*/
 
   gboolean _SetProperty(const char * property, const char * value)
   {
@@ -251,6 +265,7 @@ private:
   CameraTis * _node;
   GstElement * _pipeline;
   int _expo = 1000;
+  bool _power = false;
 };
 
 CameraTis::CameraTis(const rclcpp::NodeOptions & options)
@@ -263,11 +278,7 @@ CameraTis::~CameraTis()
 {
   try {
     _init.join();
-
-    _srvStart.reset();
-    _srvStop.reset();
     _impl.reset();
-    _pubHeader.reset();
     _pubImage.reset();
 
     RCLCPP_INFO(this->get_logger(), "Destroyed successfully");
@@ -283,17 +294,7 @@ void CameraTis::_Init()
   try {
     _pubImage = this->create_publisher<Image>(_pubImageName, rclcpp::SensorDataQoS());
 
-    _pubHeader = this->create_publisher<Header>(_pubHeaderName, 10);
-
     _impl = std::make_unique<_Impl>(this);
-
-    _srvStop = this->create_service<Trigger>(
-      _srvStopName,
-      std::bind(&CameraTis::_Stop, this, std::placeholders::_1, std::placeholders::_2));
-
-    _srvStart = this->create_service<Trigger>(
-      _srvStartName,
-      std::bind(&CameraTis::_Start, this, std::placeholders::_1, std::placeholders::_2));
 
     _parCallbackHandle = this->add_on_set_parameters_callback(
       [this](const std::vector<rclcpp::Parameter> & parameters) {
@@ -306,6 +307,12 @@ void CameraTis::_Init()
               result.successful = false;
               result.reason = "Failed to set exposure time";
             }
+          } else if (parameter.get_name() == "power") {
+            auto ret = this->_impl->Power(parameter.as_bool());
+            if (ret) {
+              result.successful = false;
+              result.reason = "Failed to set power";
+            }
           }
         }
         return result;
@@ -316,46 +323,6 @@ void CameraTis::_Init()
     rclcpp::shutdown();
   } catch (...) {
     RCLCPP_ERROR(this->get_logger(), "Exception in initializer: unknown");
-    rclcpp::shutdown();
-  }
-}
-
-void CameraTis::_Start(
-  const std::shared_ptr<Trigger::Request>,
-  std::shared_ptr<Trigger::Response> response)
-{
-  try {
-    response->success = false;
-    response->message = "Fail: camera start";
-
-    _impl->Start();
-
-    response->success = true;
-    response->message = "Success: camera start";
-  } catch (const std::exception & e) {
-    RCLCPP_WARN(this->get_logger(), "Exception in service start: %s", e.what());
-  } catch (...) {
-    RCLCPP_WARN(this->get_logger(), "Exception in service start: unknown");
-  }
-}
-
-void CameraTis::_Stop(
-  const std::shared_ptr<Trigger::Request>,
-  std::shared_ptr<Trigger::Response> response)
-{
-  try {
-    response->success = false;
-    response->message = "Fail: camera stop";
-
-    _impl->Stop();
-
-    response->success = true;
-    response->message = "Success: camera stop";
-  } catch (const std::exception & e) {
-    RCLCPP_ERROR(this->get_logger(), "Exception in service stop: %s", e.what());
-    rclcpp::shutdown();
-  } catch (...) {
-    RCLCPP_ERROR(this->get_logger(), "Exception in service stop: unknown");
     rclcpp::shutdown();
   }
 }

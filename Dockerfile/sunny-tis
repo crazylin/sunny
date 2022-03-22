@@ -55,5 +55,3 @@ RUN /ros_entrypoint.sh colcon build \
 #     gpio_raspberry \
 #     pipeline_tis
 
-RUN chmod +x /ws/ros_entrypoint.sh
-
