@@ -46,7 +46,7 @@ def generate_launch_description():
     with open(configFile2, 'r') as file:
         handle = yaml.safe_load(file)
         configParams2 = handle['rotate_image_node']['ros__parameters']
-        configParams2['workers'] = 1
+        configParams2['workers'] = 2
 
     node2 = ComposableNode(
         package='rotate_image',
@@ -63,7 +63,7 @@ def generate_launch_description():
     with open(configFile3, 'r') as file:
         handle = yaml.safe_load(file)
         configParams3 = handle['laser_line_center_node']['ros__parameters']
-        configParams3['workers'] = 3
+        configParams3['workers'] = 4
 
     node3 = ComposableNode(
         package='laser_line_center',
