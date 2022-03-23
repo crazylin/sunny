@@ -33,25 +33,21 @@ namespace modbus
 {
 
 using namespace std::chrono_literals;
-using std_srvs::srv::Trigger;
 using sensor_msgs::msg::PointCloud2;
 
-bool EndsWith(const std::string & value, const std::string & ending)
+/*
+void AsynSendRequest(
+  rclcpp::Client<SetParameters>::SharedPtr cli,
+  const char* name,
+  bool value)
 {
-  if (value.size() < ending.size()) {
-    return false;
-  }
-  return std::equal(ending.rbegin(), ending.rend(), value.rbegin());
-}
-
-void CheckAndSend(rclcpp::Client<Trigger>::SharedPtr ptr)
-{
-  auto t = std::make_shared<Trigger::Request>();
-
-  if (rclcpp::ok() && ptr->service_is_ready()) {
-    ptr->async_send_request(t);
+  if (cli->service_is_ready()) {
+    auto r = std::make_shared<SetParameters::Request::SharedPtr>();
+    r->parameters.push_back(rclcpp::Parameter(name, value));
+    cli->async_send_request(r);
   }
 }
+*/
 
 class Modbus::_Impl
 {
@@ -70,12 +66,8 @@ public:
       throw std::runtime_error("Can not initialize modbus registers");
     }
 
-    // mb_mapping->tab_registers[0] = 255;
     mb_mapping->tab_registers[1] = 255;
-    /*mb_mapping->tab_registers[2] = 255;
-    mb_mapping->tab_registers[3] = 255;
-    mb_mapping->tab_registers[4] = 254;*/
-    std::thread temp(
+    std::thread _thread(
       [this]() {
         while (rclcpp::ok()) {
           _ListenAndAccept();
@@ -85,7 +77,7 @@ public:
       }
     );
 
-    temp.detach();
+    _thread.detach();
   }
 
   ~_Impl()
@@ -102,17 +94,6 @@ public:
   {
     std::lock_guard<std::mutex> lock(_mutex);
 
-    /*if (z * 10000 > SHRT_MAX) {
-      mb_mapping->tab_registers[16] = 0;
-      mb_mapping->tab_registers[17] = 0;
-      mb_mapping->tab_registers[18] = 0;
-      mb_mapping->tab_registers[19] = 0;
-    } else {
-      mb_mapping->tab_registers[16] = (uint16_t) valid;
-      mb_mapping->tab_registers[17] = (uint16_t) x;
-      mb_mapping->tab_registers[18] = (uint16_t) y * 10000;
-      mb_mapping->tab_registers[19] = (uint16_t) z * 10000;
-    }*/
     if (valid) {
       mb_mapping->tab_registers[2] = 255;
       mb_mapping->tab_registers[3] = static_cast<uint16_t>(y * 100 + 9000);
@@ -156,11 +137,11 @@ private:
 
       if (query[7] == 0x10 && query[8] == 0x01 && query[9] == 0x01) {
         if (query[14]) {
-          CheckAndSend(_node->_map["gpio_high"]);
-          CheckAndSend(_node->_map["camera_start"]);
+          //AsynSendRequest(_set_param_gpio, "laser", true);
+          //AsynSendRequest(_set_param_camera, "power", true);
         } else {
-          CheckAndSend(_node->_map["camera_stop"]);
-          CheckAndSend(_node->_map["gpio_low"]);
+          //AsynSendRequest(_set_param_camera, "power", false);
+          //AsynSendRequest(_set_param_gpio, "laser", true);
         }
       }
 
@@ -204,57 +185,6 @@ void Modbus::_Init()
 
   _UpdateParameters();
 
-  /*while (rclcpp::ok()) {
-    auto srvs = this->get_service_names_and_types();
-    auto pos = std::find_if(
-      srvs.begin(), srvs.end(), [](const std::pair<std::string, std::vector<std::string>> & p) {
-        return EndsWith(p.first, "/gpio_raspberry_node/high");
-      }
-    );
-
-    if (pos == srvs.end()) {
-      std::this_thread::sleep_for(200ms);
-      continue;
-    } else {
-      _map[pos->first] = nullptr;
-      break;
-    }
-  }
-
-  while (rclcpp::ok()) {
-    auto srvs = this->get_service_names_and_types();
-    auto pos = std::find_if(
-      srvs.begin(), srvs.end(), [](const std::pair<std::string, std::vector<std::string>> & p) {
-        return EndsWith(p.first, "/gpio_raspberry_node/low");
-      }
-    );
-
-    if (pos == srvs.end()) {
-      std::this_thread::sleep_for(200ms);
-      continue;
-    } else {
-      _map[pos->first] = nullptr;
-      break;
-    }
-  }*/
-  _map["gpio_high"] = this->create_client<Trigger>("/gpio_raspberry_node/high");
-  _map["gpio_low"] = this->create_client<Trigger>("/gpio_raspberry_node/low");
-  _map["camera_start"] = this->create_client<Trigger>("/camera_tis_node/start");
-  _map["camera_stop"] = this->create_client<Trigger>("/camera_tis_node/stop");
-  for (auto & p : _map) {
-    while (rclcpp::ok()) {
-      if (!p.second->service_is_ready()) {
-        std::this_thread::sleep_for(200ms);
-      } else {
-        RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Services ready [%s]", p.first.c_str());
-        break;
-      }
-    }
-    /*const auto & n = p.first;
-    p.second = this->create_client<Trigger>(n);
-    RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Services ready [%s]", n.c_str());*/
-  }
-
   _impl = std::make_unique<_Impl>(this);
 
   _sub = this->create_subscription<PointCloud2>(
@@ -262,12 +192,14 @@ void Modbus::_Init()
     rclcpp::SensorDataQoS(),
     std::bind(&Modbus::_Sub, this, std::placeholders::_1));
 
+  //_set_param_camera = this->create_client("/camera_tis_node/set_parameters");
+  //_set_param_gpio = this->create_client("/gpio_raspberry_node/set_parameters");
+
   RCLCPP_INFO(this->get_logger(), "Initialized successfully");
 }
 
 void Modbus::_Sub(PointCloud2::UniquePtr ptr)
 {
-  // _impl->Update(ptr->valid, ptr->x, ptr->y, ptr->z);
   if (ptr->height == 0 || ptr->width == 0) {
     _impl->Update(false, 0., 0., 0.);
   } else {

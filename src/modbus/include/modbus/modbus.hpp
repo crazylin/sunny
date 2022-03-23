@@ -20,7 +20,7 @@
 #include <string>
 
 #include "rclcpp/rclcpp.hpp"
-#include "std_srvs/srv/trigger.hpp"
+#include "rcl_interfaces/srv/set_parameters.hpp"
 #include "sensor_msgs/msg/point_cloud2.hpp"
 
 namespace modbus
@@ -45,7 +45,8 @@ public:
   const char * _subName = "~/seam";
   rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr _sub;
 
-  std::map<std::string, rclcpp::Client<std_srvs::srv::Trigger>::SharedPtr> _map;
+  rclcpp::Client<rcl_interfaces::srv::SetParameters>::SharedPtr _set_param_camera;
+  rclcpp::Client<rcl_interfaces::srv::SetParameters>::SharedPtr _set_param_gpio;
 
   std::thread _init;
 };
