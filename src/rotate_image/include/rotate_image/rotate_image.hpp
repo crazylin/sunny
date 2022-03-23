@@ -32,9 +32,6 @@ public:
 
   void Publish(sensor_msgs::msg::Image::UniquePtr & ptr)
   {
-    if (std::stoi(ptr->header.frame_id) % 100 == 0) {
-      RCLCPP_INFO(this->get_logger(), "rotated");
-    }
     _pubImage->publish(std::move(ptr));
   }
 
