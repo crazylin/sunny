@@ -16,6 +16,7 @@
 
 #include <deque>
 #include <exception>
+#include <future>
 #include <map>
 #include <memory>
 #include <utility>
@@ -26,7 +27,6 @@
 namespace line_center_reconstruction
 {
 
-using std_msgs::msg::Header;
 using sensor_msgs::msg::PointCloud2;
 using sensor_msgs::msg::PointField;
 
@@ -38,27 +38,42 @@ public:
   {
     _InitializeParameters();
     _UpdateParameters();
+    _deque_size = _workers + 1;
 
     for (int i = 0; i < _workers; ++i) {
       _threads.push_back(std::thread(&LineCenterReconstruction::_Impl::_Worker, this));
     }
+    _threads.push_back(std::thread(&_Impl::_Manager, this));
     RCLCPP_INFO(_node->get_logger(), "Employ %d workers successfully", _workers);
   }
 
   ~_Impl()
   {
-    _con.notify_all();
+    _points_con.notify_all();
+    _futures_con.notify_one();
     for (auto & t : _threads) {
       t.join();
     }
   }
 
-  void PushBack(PointCloud2::UniquePtr & ptr)
+  void PushBackPoint(PointCloud2::UniquePtr & ptr)
   {
-    std::unique_lock<std::mutex> lk(_mutex);
-    _deq.emplace_back(std::move(ptr));
+    std::unique_lock<std::mutex> lk(_points_mut);
+    _points.emplace_back(std::move(ptr));
+    auto s = static_cast<int>(_points.size());
+    if (s > _deque_size) {
+      _points.pop_front();
+    }
     lk.unlock();
-    _con.notify_all();
+    _points_con.notify_all();
+  }
+
+  void PushBackFuture(std::future<PointCloud2::UniquePtr> f)
+  {
+    std::unique_lock<std::mutex> lk(_futures_mut);
+    _futures.emplace_back(std::move(f));
+    lk.unlock();
+    _futures_con.notify_one();
   }
 
 private:
@@ -84,30 +99,46 @@ private:
     _H = cv::Mat(3, 3, CV_64F, h.data()).clone();
   }
 
-  void _Worker()
+  void _Manager()
   {
     while (rclcpp::ok()) {
-      std::unique_lock<std::mutex> lk(_mutex);
-      if (_deq.empty() == false) {
-        if (_deq.size() == 60) {
-          RCLCPP_WARN(_node->get_logger(), "Buffer exceed 60");
-        }
-        auto ptr = std::move(_deq.front());
-        _deq.pop_front();
+      std::unique_lock<std::mutex> lk(_futures_mut);
+      if (_futures.empty() == false) {
+        auto f = std::move(_futures.front());
+        _futures.pop_front();
         lk.unlock();
-        _Execute(ptr);
+        auto ptr = f.get();
+        _node->Publish(ptr);
       } else {
-        _con.wait(lk);
+        _futures_con.wait(lk);
       }
     }
   }
 
-  void _Execute(PointCloud2::UniquePtr & ptr)
+  void _Worker()
+  {
+    while (rclcpp::ok()) {
+      std::unique_lock<std::mutex> lk(_points_mut);
+      if (_points.empty() == false) {
+        auto ptr = std::move(_points.front());
+        _points.pop_front();
+        std::promise<PointCloud2::UniquePtr> prom;
+        PushBackFuture(prom.get_future());
+        lk.unlock();
+        auto msg = _Execute(ptr);
+        prom.set_value(std::move(msg));
+      } else {
+        _points_con.wait(lk);
+      }
+    }
+  }
+
+  PointCloud2::UniquePtr _Execute(PointCloud2::UniquePtr & ptr)
   {
     if (ptr->header.frame_id == "-1" || ptr->width == 0) {
       auto msg = std::make_unique<PointCloud2>();
       msg->header = ptr->header;
-      _Publish(msg);
+      return msg;
     } else {
       auto src = _FromPointCloud2(ptr);
       std::vector<cv::Point2f> dst;
@@ -115,7 +146,7 @@ private:
       cv::perspectiveTransform(src, dst, _H);
       auto msg = _ToPointCloud2(dst, src);
       msg->header = ptr->header;
-      _Publish(msg);
+      return msg;
     }
   }
 
@@ -182,30 +213,21 @@ private:
     return ptr;
   }
 
-  void _Publish(PointCloud2::UniquePtr & ptr)
-  {
-    if (_workers == 1) {
-      _node->Publish(ptr);
-    } else {
-      std::lock_guard<std::mutex> guard(_sync);
-      auto id = std::stoi(ptr->header.frame_id);
-      _buf[id] = std::move(ptr);
-      if (_buf.size() > _workers * 2) {
-        auto pos = _buf.begin();
-        _node->Publish(pos->second);
-        _buf.erase(pos);
-      }
-    }
-  }
-
 private:
   LineCenterReconstruction * _node;
   int _workers = 1;
+  int _deque_size;
+
   cv::Mat _coef, _dist, _H;
-  std::map<int, PointCloud2::UniquePtr> _buf;
-  std::mutex _mutex, _sync;       ///< Mutex to protect shared storage
-  std::condition_variable _con;   ///< Conditional variable rely on mutex
-  std::deque<PointCloud2::UniquePtr> _deq;
+
+  std::mutex _points_mut;
+  std::condition_variable _points_con;
+  std::deque<PointCloud2::UniquePtr> _points;
+
+  std::mutex _futures_mut;
+  std::condition_variable _futures_con;
+  std::deque<std::future<PointCloud2::UniquePtr>> _futures;
+
   std::vector<std::thread> _threads;
 };
 
@@ -214,8 +236,6 @@ LineCenterReconstruction::LineCenterReconstruction(const rclcpp::NodeOptions & o
 {
   _pub = this->create_publisher<PointCloud2>(_pubName, rclcpp::SensorDataQoS());
 
-  _pubHeader = this->create_publisher<Header>(_pubHeaderName, 10);
-
   _impl = std::make_unique<_Impl>(this);
 
   _sub = this->create_subscription<PointCloud2>(
@@ -223,7 +243,7 @@ LineCenterReconstruction::LineCenterReconstruction(const rclcpp::NodeOptions & o
     rclcpp::SensorDataQoS(),
     [this](PointCloud2::UniquePtr ptr)
     {
-      _impl->PushBack(ptr);
+      _impl->PushBackPoint(ptr);
     }
   );
 
@@ -234,7 +254,6 @@ LineCenterReconstruction::~LineCenterReconstruction()
 {
   _sub.reset();
   _impl.reset();
-  _pubHeader.reset();
   _pub.reset();
 
   RCLCPP_INFO(this->get_logger(), "Destroyed successfully");
