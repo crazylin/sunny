@@ -95,9 +95,9 @@ class SeamTracking(Node):
                     result.successful = False
                     result.reason = str(e)
                     return result
-            if p.name == 'delta_x':
+            elif p.name == 'delta_x':
                 self.delta_x = p.value
-            if p.name == 'delta_y':
+            elif p.name == 'delta_y':
                 self.delta_y = p.value
         return result
 
@@ -170,27 +170,33 @@ class SeamTracking(Node):
             y = d['y'].tolist()
             u = d['u'].tolist()
             v = d['v'].tolist()
-            z = [0.] * len(x)
             try:
                 a, b = self.codes(x, y, u, v)
-                c = [1.] * len(a)
-                if len(a):
-                    a[0] += self.delta_x
-                    b[0] += self.delta_y
-                    c[0] = 2.
             except Exception as e:
-                a, b, c = [], [], []
                 if self.error != str(e):
                     self.get_logger().error(str(e))
                     self.error = str(e)
-            d = np.array(
-                list(zip(a + x, b + y, c + z)),
-                dtype=[('x', np.float32), ('y', np.float32), ('z', np.float32)])
-            ret = rnp.msgify(PointCloud2, d)
+                a, b = [], []
+            
+            if len(a):
+                c = [1.] * len(a)
+                a[0] += self.delta_x
+                b[0] += self.delta_y
+                c[0] = 2.
+                d = np.array(
+                    list(zip(a, b, c)),
+                    dtype=[('x', np.float32), ('y', np.float32), ('z', np.float32)])
+                ret = rnp.msgify(PointCloud2, d)
+                ret.header = msg.header
+                self.pub.publish(ret)
+            else:
+                ret = PointCloud2()
+                ret.header = msg.header
+                self.pub.publish(ret)
+        else:
+            ret = PointCloud2()
             ret.header = msg.header
             self.pub.publish(ret)
-        else:
-            self.pub.publish(msg)
 
 def main(args=None):
     rclpy.init(args=args)
