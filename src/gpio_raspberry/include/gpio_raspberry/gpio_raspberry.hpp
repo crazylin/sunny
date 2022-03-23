@@ -18,7 +18,6 @@
 #include <memory>
 
 #include "rclcpp/rclcpp.hpp"
-#include "std_srvs/srv/trigger.hpp"
 
 namespace gpio_raspberry
 {
@@ -34,16 +33,10 @@ private:
   void _UpdateParameters();
 
 private:
-  int _port = 26;
-
   class _Impl;
   std::unique_ptr<_Impl> _impl;
 
-  const char * _srvHighName = "~/high";
-  rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr _srvHigh;
-
-  const char * _srvLowName = "~/low";
-  rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr _srvLow;
+  OnSetParametersCallbackHandle::SharedPtr _parCallbackHandle;
 };
 
 }  // namespace gpio_raspberry

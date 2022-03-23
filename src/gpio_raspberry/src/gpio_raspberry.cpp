@@ -15,14 +15,14 @@
 #include "gpio_raspberry/gpio_raspberry.hpp"
 
 #include <gpiod.h>
+
 #include <fstream>
 #include <memory>
 #include <string>
+#include <vector>
 
 namespace gpio_raspberry
 {
-
-using std_srvs::srv::Trigger;
 
 class GpioRaspberry::_Impl
 {
@@ -40,14 +40,13 @@ public:
   {
   }
 
-  int High()
+  int Laser(bool f)
   {
-    return gpiod_line_set_value(_line_26.get(), 1);
-  }
-
-  int Low()
-  {
-    return gpiod_line_set_value(_line_26.get(), 0);
+    if (f) {
+      return gpiod_line_set_value(_line_26.get(), 1);
+    } else {
+      return gpiod_line_set_value(_line_26.get(), 0);
+    }
   }
 
 private:
@@ -63,33 +62,21 @@ GpioRaspberry::GpioRaspberry(const rclcpp::NodeOptions & options)
 
   _UpdateParameters();
 
-  _srvHigh = this->create_service<Trigger>(
-    _srvHighName,
-    [this](const std::shared_ptr<Trigger::Request>, std::shared_ptr<Trigger::Response> response)
-    {
-      if (_impl->High()) {
-        response->success = false;
-        response->message = "Failed: IO set to high";
-      } else {
-        response->success = true;
-        response->message = "Success: IO set to high";
+  _parCallbackHandle = this->add_on_set_parameters_callback(
+    [this](const std::vector<rclcpp::Parameter> & parameters) {
+      rcl_interfaces::msg::SetParametersResult result;
+      result.successful = true;
+      for (const auto & parameter : parameters) {
+        if (parameter.get_name() == "laser") {
+          auto ret = this->_impl->Laser(parameter.as_bool());
+          if (ret) {
+            result.successful = false;
+            result.reason = "Failed to set laser";
+          }
+        }
       }
-    }
-  );
-
-  _srvLow = this->create_service<Trigger>(
-    _srvLowName,
-    [this](const std::shared_ptr<Trigger::Request>, std::shared_ptr<Trigger::Response> response)
-    {
-      if (_impl->Low()) {
-        response->success = false;
-        response->message = "Failed: IO set to low";
-      } else {
-        response->success = true;
-        response->message = "Success: IO set to low";
-      }
-    }
-  );
+      return result;
+    });
 
   RCLCPP_INFO(this->get_logger(), "Initialized successfully");
 }
@@ -107,12 +94,12 @@ GpioRaspberry::~GpioRaspberry()
 
 void GpioRaspberry::_InitializeParameters()
 {
-  // this->declare_parameter("port", _port);
+  this->declare_parameter("laser", false);
 }
 
 void GpioRaspberry::_UpdateParameters()
 {
-  // this->get_parameter("port", _port);
+  // this->get_parameter("laser", _laser);
 }
 
 }  // namespace gpio_raspberry
