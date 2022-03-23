@@ -20,7 +20,6 @@
 #include <string>
 
 #include "rclcpp/rclcpp.hpp"
-#include "rcl_interfaces/srv/set_parameters.hpp"
 #include "sensor_msgs/msg/point_cloud2.hpp"
 
 namespace modbus
@@ -32,21 +31,25 @@ public:
   explicit Modbus(const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
   ~Modbus();
 
+public:
+  void GpioLaser(bool);
+  void CameraPower(bool);
+
 private:
   void _Init();
   void _InitializeParameters();
   void _UpdateParameters();
   void _Sub(sensor_msgs::msg::PointCloud2::UniquePtr ptr);
 
-public:
+private:
   class _Impl;
   std::unique_ptr<_Impl> _impl;
 
   const char * _subName = "~/seam";
   rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr _sub;
 
-  rclcpp::Client<rcl_interfaces::srv::SetParameters>::SharedPtr _set_param_camera;
-  rclcpp::Client<rcl_interfaces::srv::SetParameters>::SharedPtr _set_param_gpio;
+  std::shared_ptr<rclcpp::AsyncParametersClient> _param_camera;
+  std::shared_ptr<rclcpp::AsyncParametersClient> _param_gpio;
 
   std::thread _init;
 };

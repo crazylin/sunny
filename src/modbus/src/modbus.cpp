@@ -137,11 +137,11 @@ private:
 
       if (query[7] == 0x10 && query[8] == 0x01 && query[9] == 0x01) {
         if (query[14]) {
-          //AsynSendRequest(_set_param_gpio, "laser", true);
-          //AsynSendRequest(_set_param_camera, "power", true);
+          _node->GpioLaser(true);
+          _node->CameraPower(true);
         } else {
-          //AsynSendRequest(_set_param_camera, "power", false);
-          //AsynSendRequest(_set_param_gpio, "laser", true);
+          _node->CameraPower(false);
+          _node->GpioLaser(false);
         }
       }
 
@@ -169,6 +169,8 @@ Modbus::~Modbus()
 {
   try {
     _init.join();
+    _param_gpio.reset();
+    _param_camera.reset();
     _sub.reset();
     _impl.reset();
     RCLCPP_INFO(this->get_logger(), "Destroyed successfully");
@@ -176,6 +178,24 @@ Modbus::~Modbus()
     RCLCPP_FATAL(this->get_logger(), "Exception in destructor: %s", e.what());
   } catch (...) {
     RCLCPP_FATAL(this->get_logger(), "Exception in destructor: unknown");
+  }
+}
+
+void Modbus::GpioLaser(bool f)
+{
+  if (f) {
+    _param_gpio->set_parameters({rclcpp::Parameter("laser", true)});
+  } else {
+    _param_gpio->set_parameters({rclcpp::Parameter("laser", false)});
+  }
+}
+
+void Modbus::CameraPower(bool f)
+{
+  if (f) {
+    _param_camera->set_parameters({rclcpp::Parameter("power", true)});
+  } else {
+    _param_camera->set_parameters({rclcpp::Parameter("power", false)});
   }
 }
 
@@ -192,8 +212,8 @@ void Modbus::_Init()
     rclcpp::SensorDataQoS(),
     std::bind(&Modbus::_Sub, this, std::placeholders::_1));
 
-  //_set_param_camera = this->create_client("/camera_tis_node/set_parameters");
-  //_set_param_gpio = this->create_client("/gpio_raspberry_node/set_parameters");
+  _param_camera = std::make_shared<rclcpp::AsyncParametersClient>(this, "camera_tis_node");
+  _param_gpio = std::make_shared<rclcpp::AsyncParametersClient>(this, "gpio_raspberry_node");
 
   RCLCPP_INFO(this->get_logger(), "Initialized successfully");
 }
