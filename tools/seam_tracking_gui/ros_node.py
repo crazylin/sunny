@@ -9,7 +9,6 @@ from shared_interfaces.srv import SetCodes
 from rcl_interfaces.srv import GetParameters, SetParameters
 from rcl_interfaces.msg import Parameter, ParameterType, ParameterValue
 
-import time
 
 class RosNode(Node):
     """Ros node."""
@@ -23,14 +22,17 @@ class RosNode(Node):
 
         self._sub = {}
         self._cli = {}
-        self._create_client('laser_on', Trigger, '/gpio_raspberry_node/high')
-        self._create_client('laser_off', Trigger, '/gpio_raspberry_node/low')
-        self._create_client('camera_on', Trigger, '/camera_tis_node/start')
-        self._create_client('camera_off', Trigger, '/camera_tis_node/stop')
+
         self._create_client('get_code', GetCode, '/seam_tracking_node/get_code')
         self._create_client('set_code', SetCode, '/seam_tracking_node/set_code')
         self._create_client('get_codes', GetCodes, '/seam_tracking_node/get_codes')
         self._create_client('set_codes', SetCodes, '/seam_tracking_node/set_codes')
+
+        self._create_client('get_power', GetParameters, '/camera_tis_node/get_parameters')
+        self._create_client('set_power', SetParameters, '/camera_tis_node/set_parameters')
+
+        self._create_client('get_laser', GetParameters, '/gpio_raspberry_node/get_parameters')
+        self._create_client('set_laser', SetParameters, '/gpio_raspberry_node/set_parameters')
 
         self._create_client('get_exposure', GetParameters, '/camera_tis_node/get_parameters')
         self._create_client('set_exposure', SetParameters, '/camera_tis_node/set_parameters')
@@ -41,15 +43,15 @@ class RosNode(Node):
         self._create_client('get_delta', GetParameters, '/seam_tracking_node/get_parameters')
         self._create_client('set_delta', SetParameters, '/seam_tracking_node/set_parameters')
 
-    # def sub_pnts(self, cb):
-    #     qos = qos_profile_sensor_data
-    #     qos.depth = 1
-    #     self._create_subscription(
-    #         'pnts',
-    #         PointCloud2,
-    #         '/line_center_reconstruction_node/pnts',
-    #         cb,
-    #         qos)
+    def sub_pnts(self, cb):
+        qos = qos_profile_sensor_data
+        qos.depth = 1
+        self._create_subscription(
+            'pnts',
+            PointCloud2,
+            '/line_center_reconstruction_node/pnts',
+            cb,
+            qos)
 
     def sub_seam(self, cb):
         qos = qos_profile_sensor_data
@@ -61,39 +63,7 @@ class RosNode(Node):
             cb,
             qos)
 
-    def laser_on(self):
-        cli = self._cli['laser_on']
-        if cli.service_is_ready():
-            request = Trigger.Request()
-            return cli.call_async(request)
-        else:
-            return None
-
-    def laser_off(self):
-        cli = self._cli['laser_off']
-        if cli.service_is_ready():
-            request = Trigger.Request()
-            return cli.call_async(request)
-        else:
-            return None
-
-    def camera_on(self):
-        cli = self._cli['camera_on']
-        if cli.service_is_ready():
-            request = Trigger.Request()
-            return cli.call_async(request)
-        else:
-            return None
-
-    def camera_off(self):
-        cli = self._cli['camera_off']
-        if cli.service_is_ready():
-            request = Trigger.Request()
-            return cli.call_async(request)
-        else:
-            return None
-
-    def get_code(self, *, id = -1):
+    def get_code(self, *, id: int = -1):
         cli = self._cli['get_code']
         if cli.service_is_ready():
             request = GetCode.Request()
@@ -102,7 +72,7 @@ class RosNode(Node):
         else:
             return None
 
-    def set_code(self, code, *, id = -1):
+    def set_code(self, code, *, id: int = -1):
         cli = self._cli['set_code']
         if cli.service_is_ready():
             request = SetCode.Request()
@@ -120,11 +90,49 @@ class RosNode(Node):
         else:
             return None
 
-    def set_codes(self, codes):
+    def set_codes(self, codes: str):
         cli = self._cli['set_codes']
         if cli.service_is_ready():
             request = SetCodes.Request()
             request.codes = codes
+            return cli.call_async(request)
+        else:
+            return None
+
+    def get_power(self):
+        cli = self._cli['get_power']
+        if cli.service_is_ready():
+            request = GetParameters.Request()
+            request.names = ['power']
+            return cli.call_async(request)
+        else:
+            return None
+
+    def set_power(self, power: bool):
+        cli = self._cli['set_power']
+        if cli.service_is_ready():
+            value = ParameterValue(type=ParameterType.PARAMETER_BOOL, bool_value=power)
+            request = SetParameters.Request()
+            request.parameters = [Parameter(name='power', value=value)]
+            return cli.call_async(request)
+        else:
+            return None
+
+    def get_laser(self):
+        cli = self._cli['get_laser']
+        if cli.service_is_ready():
+            request = GetParameters.Request()
+            request.names = ['laser']
+            return cli.call_async(request)
+        else:
+            return None
+
+    def set_laser(self, laser: bool):
+        cli = self._cli['set_laser']
+        if cli.service_is_ready():
+            value = ParameterValue(type=ParameterType.PARAMETER_BOOL, bool_value=laser)
+            request = SetParameters.Request()
+            request.parameters = [Parameter(name='laser', value=value)]
             return cli.call_async(request)
         else:
             return None
