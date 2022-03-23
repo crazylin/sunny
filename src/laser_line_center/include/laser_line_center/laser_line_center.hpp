@@ -19,7 +19,6 @@
 #include <utility>
 
 #include "rclcpp/rclcpp.hpp"
-#include "std_msgs/msg/header.hpp"
 #include "sensor_msgs/msg/image.hpp"
 #include "sensor_msgs/msg/point_cloud2.hpp"
 
@@ -34,22 +33,12 @@ public:
 
   void Publish(sensor_msgs::msg::PointCloud2::UniquePtr & ptr)
   {
-    static int idA = -1;
-    auto idB = std::stoi(ptr->header.frame_id);
-    if (idB != idA + 1) {
-      RCLCPP_ERROR(this->get_logger(), "Skipped frame: from %d to %d", idA, idB);
-    }
-    _pubHeader->publish(ptr->header);
     _pub->publish(std::move(ptr));
-    idA = idB;
   }
 
 private:
   const char * _pubName = "~/line";
   rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr _pub;
-
-  const char * _pubHeaderName = "~/header";
-  rclcpp::Publisher<std_msgs::msg::Header>::SharedPtr _pubHeader;
 
   class _Impl;
   std::unique_ptr<_Impl> _impl;

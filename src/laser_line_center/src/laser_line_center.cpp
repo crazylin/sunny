@@ -16,6 +16,7 @@
 
 #include <deque>
 #include <exception>
+#include <future>
 #include <map>
 #include <memory>
 #include <utility>
@@ -26,7 +27,6 @@
 namespace laser_line_center
 {
 
-using std_msgs::msg::Header;
 using sensor_msgs::msg::Image;
 using sensor_msgs::msg::PointCloud2;
 using sensor_msgs::msg::PointField;
@@ -39,26 +39,41 @@ public:
   {
     _InitializeParameters();
     _UpdateParameters();
+    _deque_size = _workers + 1;
     for (int i = 0; i < _workers; ++i) {
       _threads.push_back(std::thread(&_Impl::_Worker, this));
     }
+    _threads.push_back(std::thread(&_Impl::_Manager, this));
     RCLCPP_INFO(_node->get_logger(), "Employ %d workers successfully", _workers);
   }
 
   ~_Impl()
   {
-    _con.notify_all();
+    _images_con.notify_all();
+    _futures_con.notify_one();
     for (auto & t : _threads) {
       t.join();
     }
   }
 
-  void PushBack(Image::UniquePtr & ptr)
+  void PushBackImage(Image::UniquePtr & ptr)
   {
-    std::unique_lock<std::mutex> lk(_mutex);
-    _deq.emplace_back(std::move(ptr));
+    std::unique_lock<std::mutex> lk(_images_mut);
+    _images.emplace_back(std::move(ptr));
+    auto s = static_cast<int>(_images.size());
+    if (s > _deque_size) {
+      _images.pop_front();
+    }
     lk.unlock();
-    _con.notify_all();
+    _images_con.notify_all();
+  }
+
+  void PushBackFuture(std::future<PointCloud2::UniquePtr> f)
+  {
+    std::unique_lock<std::mutex> lk(_futures_mut);
+    _futures.emplace_back(std::move(f));
+    lk.unlock();
+    _futures_con.notify_one();
   }
 
 private:
@@ -78,6 +93,57 @@ private:
     _node->get_parameter("width_min", _widthMin);
     _node->get_parameter("width_max", _widthMax);
     _node->get_parameter("workers", _workers);
+  }
+
+  void _Manager()
+  {
+    while (rclcpp::ok()) {
+      std::unique_lock<std::mutex> lk(_futures_mut);
+      if (_futures.empty() == false) {
+        auto f = std::move(_futures.front());
+        _futures.pop_front();
+        lk.unlock();
+        auto ptr = f.get();
+        _node->Publish(ptr);
+      } else {
+        _futures_con.wait(lk);
+      }
+    }
+  }
+
+  void _Worker()
+  {
+    cv::Mat _dx;
+    while (rclcpp::ok()) {
+      std::unique_lock<std::mutex> lk(_images_mut);
+      if (_images.empty() == false) {
+        auto ptr = std::move(_images.front());
+        _images.pop_front();
+        std::promise<PointCloud2::UniquePtr> prom;
+        PushBackFuture(prom.get_future());
+        lk.unlock();
+        if (ptr->header.frame_id == "-1") {
+          auto line = std::make_unique<PointCloud2>();
+          line->header = ptr->header;
+          prom.set_value(std::move(line));
+        } else {
+          cv::Mat img(ptr->height, ptr->width, CV_8UC1, ptr->data.data());
+          if (img.empty()) {
+            RCLCPP_WARN(_node->get_logger(), "Image message is empty");
+            auto line = std::make_unique<PointCloud2>();
+            line->header = ptr->header;
+            prom.set_value(std::move(line));
+          } else {
+            _UpdateParameters();
+            auto line = _Execute(img, _dx);
+            line->header = ptr->header;
+            prom.set_value(std::move(line));
+          }
+        }
+      } else {
+        _images_con.wait(lk);
+      }
+    }
   }
 
   PointCloud2::UniquePtr _Execute(const cv::Mat & img, cv::Mat & _dx)
@@ -127,46 +193,6 @@ private:
     return _ConstructPointCloud2(pnts);
   }
 
-  void _Worker()
-  {
-    cv::Mat _dx;
-    while (rclcpp::ok()) {
-      std::unique_lock<std::mutex> lk(_mutex);
-      if (_deq.empty() == false) {
-        if (_deq.size() == 60) {
-          RCLCPP_WARN(_node->get_logger(), "Buffer exceed 60");
-        }
-        auto ptr = std::move(_deq.front());
-        _deq.pop_front();
-        lk.unlock();
-        if (ptr->header.frame_id == "-1") {
-          auto line = std::make_unique<PointCloud2>();
-          line->header = ptr->header;
-          _Publish(line);
-        } else {
-          if (ptr->encoding != "mono8") {
-            RCLCPP_WARN(_node->get_logger(), "Can not handle color image");
-            continue;
-          }
-
-          cv::Mat img(ptr->height, ptr->width, CV_8UC1, ptr->data.data());
-          if (img.empty()) {
-            RCLCPP_WARN(_node->get_logger(), "Image message is empty");
-            continue;
-          }
-
-          _UpdateParameters();
-
-          auto line = _Execute(img, _dx);
-          line->header = ptr->header;
-          _Publish(line);
-        }
-      } else {
-        _con.wait(lk);
-      }
-    }
-  }
-
   PointCloud2::UniquePtr _ConstructPointCloud2(const std::vector<float> & pnts)
   {
     auto num = pnts.size() / 2;
@@ -200,28 +226,13 @@ private:
     return ptr;
   }
 
-  void _Publish(PointCloud2::UniquePtr & ptr)
-  {
-    if (_workers == 1) {
-      _node->Publish(ptr);
-    } else {
-      std::lock_guard<std::mutex> guard(_sync);
-      auto id = std::stoi(ptr->header.frame_id);
-      _buf[id] = std::move(ptr);
-      if (_buf.size() > _workers * 2) {
-        auto pos = _buf.begin();
-        _node->Publish(pos->second);
-        _buf.erase(pos);
-      }
-    }
-  }
-
 private:
   int _ksize = 5;
   int _threshold = 35;
   int _widthMin = 1;
   int _widthMax = 30;
   int _workers = 1;
+  int _deque_size;
   std::map<int, double> _scale = {
     {1, 1.},
     {3, 1. / 4.},
@@ -231,10 +242,15 @@ private:
   };
 
   LaserLineCenter * _node;
-  std::map<int, PointCloud2::UniquePtr> _buf;
-  std::mutex _mutex, _sync;       ///< Mutex to protect shared storage
-  std::condition_variable _con;   ///< Conditional variable rely on mutex
-  std::deque<Image::UniquePtr> _deq;
+
+  std::mutex _images_mut;
+  std::condition_variable _images_con;
+  std::deque<Image::UniquePtr> _images;
+
+  std::mutex _futures_mut;
+  std::condition_variable _futures_con;
+  std::deque<std::future<PointCloud2::UniquePtr>> _futures;
+
   std::vector<std::thread> _threads;
 };
 
@@ -243,8 +259,6 @@ LaserLineCenter::LaserLineCenter(const rclcpp::NodeOptions & options)
 {
   _pub = this->create_publisher<PointCloud2>(_pubName, rclcpp::SensorDataQoS());
 
-  _pubHeader = this->create_publisher<Header>(_pubHeaderName, 10);
-
   _impl = std::make_unique<_Impl>(this);
 
   _sub = this->create_subscription<Image>(
@@ -252,7 +266,7 @@ LaserLineCenter::LaserLineCenter(const rclcpp::NodeOptions & options)
     rclcpp::SensorDataQoS(),
     [this](Image::UniquePtr ptr)
     {
-      _impl->PushBack(ptr);
+      _impl->PushBackImage(ptr);
     }
   );
 
@@ -264,7 +278,6 @@ LaserLineCenter::~LaserLineCenter()
   try {
     _sub.reset();
     _impl.reset();
-    _pubHeader.reset();
     _pub.reset();
 
     RCLCPP_INFO(this->get_logger(), "Destroyed successfully");
