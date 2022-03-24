@@ -53,6 +53,12 @@ class App(tk.Tk):
         self.ros.get_task()
         self.ros.get_delta()
 
+        if f := self.ros.get_laser():
+            f.add_done_callback(self._cb_get_laser)
+
+        if f := self.ros.get_power():
+            f.add_done_callback(self._cb_get_power)
+
     def __exit(self):
         self.ros.destroy_node()
         self.destroy()
@@ -91,7 +97,7 @@ class App(tk.Tk):
         self.texts = ScrolledText(frame, wrap = 'none')
 
         self.btn_laser = ttk.Button(frame, text='Laser on', width=10, command=self._cb_btn_laser)
-        self.btn_camera = ttk.Button(frame, text='Camera on', width=10, command=self._cb_btn_camera)
+        self.btn_power = ttk.Button(frame, text='Camera on', width=10, command=self._cb_btn_power)
 
         self.btn_append = ttk.Button(frame, text='Append', width=10, command=self._cb_btn_append)
         self.btn_delete = ttk.Button(frame, text='Delete', width=10, command=self._cb_btn_delete)
@@ -112,7 +118,7 @@ class App(tk.Tk):
         self.texts.grid(row=1, column=0, columnspan=4, sticky=tk.NSEW)
 
         self.btn_laser.grid(row=2, column=0, sticky=tk.EW)
-        self.btn_camera.grid(row=3, column=0, sticky=tk.EW)
+        self.btn_power.grid(row=3, column=0, sticky=tk.EW)
 
         self.btn_append.grid(row=2, column=1, sticky=tk.EW)
         self.btn_delete.grid(row=3, column=1, sticky=tk.EW)
@@ -217,6 +223,15 @@ class App(tk.Tk):
         except Exception as e:
             self._msg(f'{str(e)}', level='Error')
 
+    def _cb_get_laser(self, future):
+        res, = future.result().values
+        if res.bool_value:
+            self.btn_laser['text'] = 'Laser off'
+            self.btn_laser.state(['pressed'])
+        else:
+            self.btn_laser['text'] = 'Laser on'
+            self.btn_laser.state(['!pressed'])
+
     def _cb_btn_laser(self, *args):
         if self.btn_laser['text'] == 'Laser on':
             self._msg('Button [Laser on] clicked')
@@ -261,49 +276,58 @@ class App(tk.Tk):
             self._msg(f'{str(e)}', level='Error')
             self.btn_laser.state(['pressed'])
 
-    def _cb_btn_camera(self, *args):
-        if self.btn_camera['text'] == 'Camera on':
+    def _cb_get_power(self, future):
+        res, = future.result().values
+        if res.bool_value:
+            self.btn_power['text'] = 'Camera off'
+            self.btn_power.state(['pressed'])
+        else:
+            self.btn_power['text'] = 'Camera on'
+            self.btn_power.state(['!pressed'])
+
+    def _cb_btn_power(self, *args):
+        if self.btn_power['text'] == 'Camera on':
             self._msg('Button [Camera on] clicked')
             future = self.ros.set_power(True)
             if future is not None:
-                self.btn_camera.state(['pressed'])
-                future.add_done_callback(self._cb_btn_camera_on_done)
+                self.btn_power.state(['pressed'])
+                future.add_done_callback(self._cb_btn_power_on_done)
             else:
                 self._msg('Service is not ready!', level='Warning')
         else:
             self._msg('Button [Camera off] clicked')
             future = self.ros.set_power(False)
             if future is not None:
-                self.btn_camera.state(['!pressed'])
-                future.add_done_callback(self._cb_btn_camera_off_done)
+                self.btn_power.state(['!pressed'])
+                future.add_done_callback(self._cb_btn_power_off_done)
             else:
                 self._msg('Service is not ready!', level='Warning')
     
-    def _cb_btn_camera_on_done(self, future):
+    def _cb_btn_power_on_done(self, future):
         try:
             res, = future.result().results
             if res.successful:
-                self.btn_camera['text'] = 'Camera off'
+                self.btn_power['text'] = 'Camera off'
                 self._msg(f'Camera set to: on')
             else:
                 self._msg(f'{res.reason}', level='Warning')
-                self.btn_camera.state(['!pressed'])
+                self.btn_power.state(['!pressed'])
         except Exception as e:
             self._msg(f'{str(e)}', level='Error')
-            self.btn_camera.state(['!pressed'])
+            self.btn_power.state(['!pressed'])
 
-    def _cb_btn_camera_off_done(self, future):
+    def _cb_btn_power_off_done(self, future):
         try:
             res, = future.result().results
             if res.successful:
-                self.btn_camera['text'] = 'Camera on'
+                self.btn_power['text'] = 'Camera on'
                 self._msg(f'Camera set to: off')
             else:
                 self._msg(f'{res.reason}', level='Warning')
-                self.btn_camera.state(['pressed'])
+                self.btn_power.state(['pressed'])
         except Exception as e:
             self._msg(f'{str(e)}', level='Error')
-            self.btn_camera.state(['pressed'])
+            self.btn_power.state(['pressed'])
 
     def _cb_btn_backup(self, *args):
         self._msg('Button [Backup] clicked')
@@ -439,9 +463,12 @@ class App(tk.Tk):
     def _update_codes(self):
         pos = self.codes.pos()
         if pos is None:
-            self.btn_task['text'] = 'Task:   '
+            self.btn_task['text'] = 'Task:     '
         else:
-            self.btn_task['text'] = f'Task: {pos:>2}'
+            if pos == self.ros._param_task:
+                self.btn_task['text'] = f'Task: {pos:>2}*'
+            else:
+                self.btn_task['text'] = f'Task: {pos:>2} '
 
         if self.codes.is_valid():
             self.btn_delete.state(['!disabled'])

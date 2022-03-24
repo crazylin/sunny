@@ -1,7 +1,6 @@
 ﻿from rclpy.node import Node
 from rclpy.qos import qos_profile_sensor_data
 from sensor_msgs.msg import PointCloud2
-from std_srvs.srv import Trigger
 from shared_interfaces.srv import GetCode
 from shared_interfaces.srv import SetCode
 from shared_interfaces.srv import GetCodes
@@ -139,8 +138,8 @@ class RosNode(Node):
 
     def _get_exposure_done(self, future):
         try:
-            res = future.result()
-            self._param_exposure = res.values[0].integer_value
+            value, = future.result().values
+            self._param_exposure = value.integer_value
         except Exception as e:
             self.get_logger().error(str(e))
 
@@ -166,8 +165,8 @@ class RosNode(Node):
 
     def _get_task_done(self, future):
         try:
-            res = future.result()
-            self._param_task = res.values[0].integer_value
+            value, = future.result().values
+            self._param_task = value.integer_value
         except Exception as e:
             self.get_logger().error(str(e))
 
@@ -193,8 +192,8 @@ class RosNode(Node):
 
     def _get_delta_done(self, future):
         try:
-            res = future.result()
-            self._param_delta_x, self._param_delta_y = res.values[0].double_value, res.values[1].double_value
+            value_x, value_y = future.result().values
+            self._param_delta_x, self._param_delta_y = value_x.double_value, value_y.double_value
         except Exception as e:
             self.get_logger().error(str(e))
 

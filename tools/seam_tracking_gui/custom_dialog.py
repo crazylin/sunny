@@ -10,7 +10,6 @@ class MyDialog(Dialog):
         super().__init__(parent, title)
 
     def body(self, frame):
-        # print(type(frame)) # tkinter.Frame
         u = tk.Frame(frame)
         self.delta_x_label = tk.Label(u, width=10, text="Offset x:")
         self.delta_x_label.pack(side=tk.LEFT)
@@ -34,7 +33,6 @@ class MyDialog(Dialog):
         return frame
 
     def ok_pressed(self):
-        # print("ok")
         try:
             self._x = float(self.delta_x_box.get())
             self._y = float(self.delta_y_box.get())
