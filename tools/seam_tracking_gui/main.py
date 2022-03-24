@@ -39,8 +39,8 @@ class App(tk.Tk):
 
         self.rowconfigure(0, weight=4)
         self.rowconfigure(1, weight=1)
-        self.columnconfigure(0, weight=3)
-        self.columnconfigure(1, weight=1)
+        self.columnconfigure(0, weight=1)
+        self.columnconfigure(1, weight=3)
 
         self.ros = RosNode()
         self.ros.sub_pnts(self._ros_cb_pnts)
