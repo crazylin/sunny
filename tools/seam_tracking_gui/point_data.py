@@ -15,7 +15,7 @@ class PointData():
 
     def from_msg(self, msg: PointCloud2):
         with self._lock:
-            if msg.data:
+            if len(msg.data):
                 d = rnp.numpify(msg)
                 self._x = d['x'].tolist()
                 self._y = d['y'].tolist()

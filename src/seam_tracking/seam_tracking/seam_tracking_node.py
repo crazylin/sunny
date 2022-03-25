@@ -164,54 +164,36 @@ class SeamTracking(Node):
         return response
 
     def _cb_sub(self, msg: PointCloud2):
-        if msg.data:
-            d = rnp.numpify(msg)
-            x = d['x'].tolist()
-            y = d['y'].tolist()
-            u = d['u'].tolist()
-            v = d['v'].tolist()
+        ret = PointCloud2()
+        ret.header = msg.header
+        if len(msg.data):
             try:
-                a, b = self.codes(x, y, u, v)
+                d = rnp.numpify(msg)
+                r = self.codes(d)
+                if r is not None and len(r):
+                    ret = rnp.msgify(PointCloud2, r)
+                    ret.header = msg.header
             except Exception as e:
                 if self.error != str(e):
                     self.get_logger().error(str(e))
                     self.error = str(e)
-                a, b = [], []
-            
-            if len(a):
-                c = [1.] * len(a)
-                a[0] += self.delta_x
-                b[0] += self.delta_y
-                c[0] = 2.
-                d = np.array(
-                    list(zip(a, b, c)),
-                    dtype=[('x', np.float32), ('y', np.float32), ('z', np.float32)])
-                ret = rnp.msgify(PointCloud2, d)
-                ret.header = msg.header
-                self.pub.publish(ret)
-            else:
-                ret = PointCloud2()
-                ret.header = msg.header
-                self.pub.publish(ret)
-        else:
-            ret = PointCloud2()
-            ret.header = msg.header
-            self.pub.publish(ret)
+
+        self.pub.publish(ret)
 
 def main(args=None):
     rclpy.init(args=args)
 
-    sm = SeamTracking()
+    seam_tracking = SeamTracking()
 
     try:
-        rclpy.spin(sm)
+        rclpy.spin(seam_tracking)
     except KeyboardInterrupt:
         pass
     finally:
         # Destroy the node explicitly
         # (optional - otherwise it will be done automatically
         # when the garbage collector destroys the node object)
-        sm.destroy_node()
+        seam_tracking.destroy_node()
         rclpy.shutdown()
 
 if __name__ == '__main__':
