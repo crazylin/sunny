@@ -30,9 +30,6 @@ class SeamTracking(Node):
             self.codes.reload(id=p.value)
         except Exception as e:
             self.get_logger().error(str(e))
-            pos = self.codes.pos()
-            pos = pos if pos is not None else -1
-            self.set_parameters([Parameter('task', value=pos)])
 
         self.declare_parameter('delta_x', 0.)
         self.delta_x = self.get_parameter('delta_x').value
@@ -92,9 +89,7 @@ class SeamTracking(Node):
                 try:
                     self.codes.reload(id=p.value)
                 except Exception as e:
-                    result.successful = False
-                    result.reason = str(e)
-                    return result
+                    self.get_logger().error(str(e))
             elif p.name == 'delta_x':
                 self.delta_x = p.value
             elif p.name == 'delta_y':

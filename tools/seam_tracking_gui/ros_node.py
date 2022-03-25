@@ -14,10 +14,6 @@ class RosNode(Node):
 
     def __init__(self):
         super().__init__('seam_tracking_gui')
-        self._param_exposure = None
-        self._param_task = None
-        self._param_delta_x = None
-        self._param_delta_y = None
 
         self._sub = {}
         self._cli = {}
@@ -27,20 +23,14 @@ class RosNode(Node):
         self._create_client('get_codes', GetCodes, '/seam_tracking_node/get_codes')
         self._create_client('set_codes', SetCodes, '/seam_tracking_node/set_codes')
 
-        self._create_client('get_power', GetParameters, '/camera_tis_node/get_parameters')
-        self._create_client('set_power', SetParameters, '/camera_tis_node/set_parameters')
+        self._create_client('camera_get', GetParameters, '/camera_tis_node/get_parameters')
+        self._create_client('camera_set', SetParameters, '/camera_tis_node/set_parameters')
 
-        self._create_client('get_laser', GetParameters, '/gpio_raspberry_node/get_parameters')
-        self._create_client('set_laser', SetParameters, '/gpio_raspberry_node/set_parameters')
+        self._create_client('gpio_get', GetParameters, '/gpio_raspberry_node/get_parameters')
+        self._create_client('gpio_set', SetParameters, '/gpio_raspberry_node/set_parameters')
 
-        self._create_client('get_exposure', GetParameters, '/camera_tis_node/get_parameters')
-        self._create_client('set_exposure', SetParameters, '/camera_tis_node/set_parameters')
-
-        self._create_client('get_task', GetParameters, '/seam_tracking_node/get_parameters')
-        self._create_client('set_task', SetParameters, '/seam_tracking_node/set_parameters')
-
-        self._create_client('get_delta', GetParameters, '/seam_tracking_node/get_parameters')
-        self._create_client('set_delta', SetParameters, '/seam_tracking_node/set_parameters')
+        self._create_client('seam_get', GetParameters, '/seam_tracking_node/get_parameters')
+        self._create_client('seam_set', SetParameters, '/seam_tracking_node/set_parameters')
 
     def sub_pnts(self, cb):
         qos = qos_profile_sensor_data
@@ -98,122 +88,47 @@ class RosNode(Node):
         else:
             return None
 
-    def get_power(self):
-        cli = self._cli['get_power']
+    def camera_get(self, params: list):
+        return self._get_params('camera_get', params)
+
+    def camera_set(self, d: dict):
+        return self._set_params('camera_set', d)
+
+    def gpio_get(self, params: list):
+        return self._get_params('gpio_get', params)
+
+    def gpio_set(self, d: dict):
+        return self._set_params('gpio_set', d)
+
+    def seam_get(self, params: list):
+        return self._get_params('seam_get', params)
+
+    def seam_set(self, d: dict):
+        return self._set_params('seam_set', d)
+
+    def _get_params(self, name: str, params: list):
+        cli = self._cli[name]
         if cli.service_is_ready():
             request = GetParameters.Request()
-            request.names = ['power']
+            request.names = params
             return cli.call_async(request)
         else:
             return None
 
-    def set_power(self, power: bool):
-        cli = self._cli['set_power']
+    def _set_params(self, name: str, d: dict):
+        cli = self._cli[name]
         if cli.service_is_ready():
-            value = ParameterValue(type=ParameterType.PARAMETER_BOOL, bool_value=power)
             request = SetParameters.Request()
-            request.parameters = [Parameter(name='power', value=value)]
-            return cli.call_async(request)
-        else:
-            return None
-
-    def get_laser(self):
-        cli = self._cli['get_laser']
-        if cli.service_is_ready():
-            request = GetParameters.Request()
-            request.names = ['laser']
-            return cli.call_async(request)
-        else:
-            return None
-
-    def set_laser(self, laser: bool):
-        cli = self._cli['set_laser']
-        if cli.service_is_ready():
-            value = ParameterValue(type=ParameterType.PARAMETER_BOOL, bool_value=laser)
-            request = SetParameters.Request()
-            request.parameters = [Parameter(name='laser', value=value)]
-            return cli.call_async(request)
-        else:
-            return None
-
-    def _get_exposure_done(self, future):
-        try:
-            value, = future.result().values
-            self._param_exposure = value.integer_value
-        except Exception as e:
-            self.get_logger().error(str(e))
-
-    def get_exposure(self):
-        cli = self._cli['get_exposure']
-        if cli.service_is_ready():
-            request = GetParameters.Request()
-            request.names = ['exposure_time']
-            f = cli.call_async(request)
-            f.add_done_callback(self._get_exposure_done)
-        else:
-            self.get_logger().info('Service is not ready!')
-
-    def set_exposure(self, exposure):
-        cli = self._cli['set_exposure']
-        if cli.service_is_ready():
-            value = ParameterValue(type=ParameterType.PARAMETER_INTEGER, integer_value=exposure)
-            request = SetParameters.Request()
-            request.parameters = [Parameter(name='exposure_time', value=value)]
-            return cli.call_async(request)
-        else:
-            return None
-
-    def _get_task_done(self, future):
-        try:
-            value, = future.result().values
-            self._param_task = value.integer_value
-        except Exception as e:
-            self.get_logger().error(str(e))
-
-    def get_task(self):
-        cli = self._cli['get_task']
-        if cli.service_is_ready():
-            request = GetParameters.Request()
-            request.names = ['task']
-            f = cli.call_async(request)
-            f.add_done_callback(self._get_task_done)
-        else:
-            self.get_logger().info('Service is not ready!')
-
-    def set_task(self, task):
-        cli = self._cli['set_task']
-        if cli.service_is_ready():
-            value = ParameterValue(type=ParameterType.PARAMETER_INTEGER, integer_value=task)
-            request = SetParameters.Request()
-            request.parameters = [Parameter(name='task', value=value)]
-            return cli.call_async(request)
-        else:
-            return None
-
-    def _get_delta_done(self, future):
-        try:
-            value_x, value_y = future.result().values
-            self._param_delta_x, self._param_delta_y = value_x.double_value, value_y.double_value
-        except Exception as e:
-            self.get_logger().error(str(e))
-
-    def get_delta(self):
-        cli = self._cli['get_delta']
-        if cli.service_is_ready():
-            request = GetParameters.Request()
-            request.names = ['delta_x', 'delta_y']
-            f = cli.call_async(request)
-            f.add_done_callback(self._get_delta_done)
-        else:
-            self.get_logger().info('Service is not ready!')
-
-    def set_delta(self, delta_x, delta_y):
-        cli = self._cli['set_delta']
-        if cli.service_is_ready():
-            value_x = ParameterValue(type=ParameterType.PARAMETER_DOUBLE, double_value=delta_x)
-            value_y = ParameterValue(type=ParameterType.PARAMETER_DOUBLE, double_value=delta_y)
-            request = SetParameters.Request()
-            request.parameters = [Parameter(name='delta_x', value=value_x), Parameter(name='delta_y', value=value_y)]
+            for k, v in d.items():
+                if type(v) is int:
+                    value = ParameterValue(type=ParameterType.PARAMETER_INTEGER, integer_value=v)
+                elif type(v) is float:
+                    value = ParameterValue(type=ParameterType.PARAMETER_DOUBLE, double_value=v)
+                elif type(v) is bool:
+                    value = ParameterValue(type=ParameterType.PARAMETER_BOOL, bool_value=v)
+                else:
+                    continue
+                request.parameters.append(Parameter(name=k, value=value))
             return cli.call_async(request)
         else:
             return None

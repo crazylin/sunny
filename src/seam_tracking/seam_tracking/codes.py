@@ -21,15 +21,6 @@ class Codes(list):
         self._file = file
         self._pos = None
 
-    def _sync(self):
-        if len(self):
-            if self._pos is None:
-                self._pos = 0
-            elif self._pos >= len(self):
-                self._pos = len(self) - 1
-        else:
-            self._pos = None
-
     def __call__(self, *args, **kwargs):
         with self._lock:
             return self._code(*args, **kwargs)
@@ -38,12 +29,10 @@ class Codes(list):
         with self._lock:
             with open(self._file) as fp:
                 self[:] = json.load(fp)
-            self._sync()
 
     def loads(self, s: str):
         with self._lock:
             self[:] = json.loads(s)
-            self._sync()
 
     def dump(self):
         with self._lock, open(self._file) as fp:
@@ -55,11 +44,8 @@ class Codes(list):
 
     def reload(self, *, id: int = None):
         with self._lock:
-            if id is None:
-                self._code.reload(self[self._pos])
-            else:
-                self._code.reload(self[id])
-                self._pos = id
+            self._pos = id if id is not None else self._pos
+            self._code.reload(self[self._pos])
 
     def get_code(self, *, id: int = None):
         with self._lock:
@@ -82,7 +68,6 @@ class Codes(list):
     def set_codes(self, s: str):
         with self._lock:
             self[:] = json.loads(s)
-            self._sync()
             with open(self._file, 'w') as fp:
                 fp.write(s)
             self._code.reload(self[self._pos])
