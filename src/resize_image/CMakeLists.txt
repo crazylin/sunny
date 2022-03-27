@@ -36,7 +36,7 @@ ament_target_dependencies(resize_image
   sensor_msgs
 )
 
-target_link_libraries(rotate_image ${OpenCV_LIBS})
+target_link_libraries(resize_image ${OpenCV_LIBS})
 
 rclcpp_components_register_node(resize_image
   PLUGIN "resize_image::ResizeImage"
