@@ -53,6 +53,7 @@ class App(tk.Tk):
         self.ros = RosNode()
         self.ros.sub_pnts(self._ros_cb_pnts)
         self.ros.sub_seam(self._ros_cb_seam)
+        self.ros.sub_log(self._ros_cb_log)
 
         self._thread = Thread(target=rclpy.spin, args=[self.ros])
         self._thread.start()
@@ -164,6 +165,19 @@ class App(tk.Tk):
         self.seam_data.from_msg(msg)
         self.event_generate('<<RosSubSeam>>', when='tail')
 
+    def _ros_cb_log(self, msg):
+        if msg.level == 10:
+            level = 'Debug'
+        elif msg.level == 20:
+            level = 'Info'
+        elif msg.level == 30:
+            level = 'Warn'
+        elif msg.level == 40:
+            level = 'Error'
+        elif msg.level == 50:
+            level = 'Fatal'
+        self._msg(msg.name + ': ' + msg.msg, level=level)
+
     def _cb_menu_exposure_done(self, future, exposure):
         try:
             res, = future.result().results
@@ -171,7 +185,7 @@ class App(tk.Tk):
                 self._params['exposure_time'] = exposure
                 self._msg(f'Exposure time set to: {exposure} (us)')
             else:
-                self._msg(f'{res.reason}', level='Warning')
+                self._msg(f'{res.reason}', level='Warn')
         except Exception as e:
             self._msg(f'{str(e)}', level='Error')
 
@@ -187,7 +201,7 @@ class App(tk.Tk):
                 lambda f: self._cb_menu_exposure_done(f, exposure)
             )
         else:
-            self._msg('Service exposure_time is not ready!', level='Warning')
+            self._msg('Service exposure_time is not ready!', level='Warn')
 
     def _cb_menu_offset_done(self, future, dx, dy):
         try:
@@ -196,12 +210,12 @@ class App(tk.Tk):
                 self._params['delta_x'] = dx
                 self._msg(f'Offset x set to: {dx:.2f} (mm)')
             else:
-                self._msg(f'{rx.reason}', level='Warning')
+                self._msg(f'{rx.reason}', level='Warn')
             if ry.successful:
                 self._params['delta_y'] = dy
                 self._msg(f'Offset y set to: {dy:.2f} (mm)')
             else:
-                self._msg(f'{ry.reason}', level='Warning')
+                self._msg(f'{ry.reason}', level='Warn')
         except Exception as e:
             self._msg(f'{str(e)}', level='Error')
 
@@ -222,7 +236,7 @@ class App(tk.Tk):
                 lambda f: self._cb_menu_offset_done(f, dx, dy)
             )
         else:
-            self._msg('Service delta is not ready!', level='Warning')
+            self._msg('Service delta is not ready!', level='Warn')
 
     def _cb_btn_laser(self, *args):
         if self.btn_laser['text'] == 'Laser on':
@@ -232,7 +246,7 @@ class App(tk.Tk):
                 self.btn_laser.state(['pressed'])
                 future.add_done_callback(self._cb_btn_laser_on_done)
             else:
-                self._msg('Service gpio set parameters is not ready!', level='Warning')
+                self._msg('Service gpio set parameters is not ready!', level='Warn')
         else:
             self._msg('Button [Laser off] clicked')
             future = self.ros.gpio_set({'laser': False})
@@ -240,7 +254,7 @@ class App(tk.Tk):
                 self.btn_laser.state(['!pressed'])
                 future.add_done_callback(self._cb_btn_laser_off_done)
             else:
-                self._msg('Service gpio set parameters is not ready!', level='Warning')
+                self._msg('Service gpio set parameters is not ready!', level='Warn')
     
     def _cb_btn_laser_on_done(self, future):
         try:
@@ -250,7 +264,7 @@ class App(tk.Tk):
                 self.btn_laser['text'] = 'Laser off'
                 self._msg(f'Laser set to: on')
             else:
-                self._msg(f'{res.reason}', level='Warning')
+                self._msg(f'{res.reason}', level='Warn')
                 self.btn_laser.state(['!pressed'])
         except Exception as e:
             self._msg(f'{str(e)}', level='Error')
@@ -264,7 +278,7 @@ class App(tk.Tk):
                 self.btn_laser['text'] = 'Laser on'
                 self._msg(f'Laser set to: off')
             else:
-                self._msg(f'{res.reason}', level='Warning')
+                self._msg(f'{res.reason}', level='Warn')
                 self.btn_laser.state(['pressed'])
         except Exception as e:
             self._msg(f'{str(e)}', level='Error')
@@ -278,7 +292,7 @@ class App(tk.Tk):
                 self.btn_power.state(['pressed'])
                 future.add_done_callback(self._cb_btn_power_on_done)
             else:
-                self._msg('Service camera set parameters is not ready!', level='Warning')
+                self._msg('Service camera set parameters is not ready!', level='Warn')
         else:
             self._msg('Button [Camera off] clicked')
             future = self.ros.camera_set({'power': False})
@@ -286,7 +300,7 @@ class App(tk.Tk):
                 self.btn_power.state(['!pressed'])
                 future.add_done_callback(self._cb_btn_power_off_done)
             else:
-                self._msg('Service camera set parameters is not ready!', level='Warning')
+                self._msg('Service camera set parameters is not ready!', level='Warn')
     
     def _cb_btn_power_on_done(self, future):
         try:
@@ -296,7 +310,7 @@ class App(tk.Tk):
                 self.btn_power['text'] = 'Camera off'
                 self._msg(f'Camera set to: on')
             else:
-                self._msg(f'{res.reason}', level='Warning')
+                self._msg(f'{res.reason}', level='Warn')
                 self.btn_power.state(['!pressed'])
         except Exception as e:
             self._msg(f'{str(e)}', level='Error')
@@ -310,7 +324,7 @@ class App(tk.Tk):
                 self.btn_power['text'] = 'Camera on'
                 self._msg(f'Camera set to: off')
             else:
-                self._msg(f'{res.reason}', level='Warning')
+                self._msg(f'{res.reason}', level='Warn')
                 self.btn_power.state(['pressed'])
         except Exception as e:
             self._msg(f'{str(e)}', level='Error')
@@ -325,7 +339,7 @@ class App(tk.Tk):
                 self._update_codes()
                 self._msg(f'Task set to: {task}')
             else:
-                self._msg(f'{res.reason}', level='Warning')
+                self._msg(f'{res.reason}', level='Warn')
         except Exception as e:
             self._msg(f'{str(e)}', level='Error')
 
@@ -342,7 +356,7 @@ class App(tk.Tk):
                 lambda f: self._cb_btn_task_done(f, task)
             )
         else:
-            self._msg('Service seam set parameters is not ready!', level='Warning')
+            self._msg('Service seam set parameters is not ready!', level='Warn')
 
     def _cb_btn_backup(self, *args):
         self._msg('Button [Backup] clicked')
@@ -381,7 +395,7 @@ class App(tk.Tk):
                 self.codes.goto(id=self._params['task'])
                 self._update_codes()
             else:
-                self._msg(f'{res.message}', level='Warning')
+                self._msg(f'{res.message}', level='Warn')
         except Exception as e:
             self._msg(f'{str(e)}', level='Error')
 
@@ -430,26 +444,31 @@ class App(tk.Tk):
         if f := self.ros.get_codes():
             f.add_done_callback(self._get_codes_done)
         else:
-            self._msg('Service seam get codes is not ready!', level='Warning')
+            self._msg('Service seam get codes is not ready!', level='Warn')
 
         if f := self.ros.camera_get(['power', 'exposure_time']):
             f.add_done_callback(self._camera_get_done)
         else:
-            self._msg('Service camera get parameters is not ready!', level='Warning')
+            self._msg('Service camera get parameters is not ready!', level='Warn')
 
         if f := self.ros.gpio_get(['laser']):
             f.add_done_callback(self._gpio_get_done)
         else:
-            self._msg('Service gpio get parameters is not ready!', level='Warning')
+            self._msg('Service gpio get parameters is not ready!', level='Warn')
 
         if f := self.ros.seam_get(['task', 'delta_x', 'delta_y']):
             f.add_done_callback(self._seam_get_done)
         else:
-            self._msg('Service seam get parameters is not ready!', level='Warning')
+            self._msg('Service seam get parameters is not ready!', level='Warn')
 
     def _cb_btn_refresh(self, *args):
         self._msg('Button [Refresh] clicked')
-        self._refresh()
+        if self._code_modified():
+            answer = messagebox.askyesno('Question', message='Code modified, leave anyway?')
+            if answer:
+                self._refresh()
+        else:
+            self._refresh()
 
     def _cb_btn_previous(self, *args):
         self._msg('Button [Previous] clicked')
@@ -495,7 +514,7 @@ class App(tk.Tk):
         if future is not None:
             future.add_done_callback(self._cb_btn_commit_done)
         else:
-            self._msg('Service seam set codes is not ready!', level='Warning')
+            self._msg('Service seam set codes is not ready!', level='Warn')
 
     def _cb_btn_commit_done(self, future):
         try:
@@ -503,7 +522,7 @@ class App(tk.Tk):
             if res.success:
                 self._msg('Commit done!')
             else:
-                self._msg(f'{res.message}', level='Warning')
+                self._msg(f'{res.message}', level='Warn')
         except Exception as e:
             self._msg(f'{str(e)}', level='Error')
 

@@ -6,8 +6,7 @@ from shared_interfaces.srv import SetCode
 from shared_interfaces.srv import GetCodes
 from shared_interfaces.srv import SetCodes
 from rcl_interfaces.srv import GetParameters, SetParameters
-from rcl_interfaces.msg import Parameter, ParameterType, ParameterValue
-
+from rcl_interfaces.msg import Parameter, ParameterType, ParameterValue, Log
 
 class RosNode(Node):
     """Ros node."""
@@ -51,6 +50,14 @@ class RosNode(Node):
             '/seam_tracking_node/seam',
             cb,
             qos)
+
+    def sub_log(self, cb):
+        self._create_subscription(
+            'log',
+            Log,
+            '/rosout',
+            cb,
+            10)
 
     def get_code(self, *, id: int = -1):
         cli = self._cli['get_code']
