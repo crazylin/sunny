@@ -29,6 +29,8 @@ extern "C"
 #include <utility>
 #include <vector>
 
+#include "opencv2/opencv.hpp"
+
 namespace camera_tis
 {
 
@@ -88,7 +90,7 @@ public:
       "! capsfilter name=filter "
       "! queue max-size-buffers=2 leaky=downstream "
       "! videoconvert "
-      "! appsink name=sink emit-signals=true sync=false drop=true max-buffers=4";
+      "! appsink name=sink emit-signals=true sync=false drop=true max-buffers=5";
     GError * err = NULL;
     _pipeline = gst_parse_launch(pipeline_str, &err);
     if (_pipeline == NULL) {
@@ -312,15 +314,16 @@ public:
               break;
             }
             /* Get a pointer to the image data */
-          unsigned char * data = info.data;
+          cv::Mat src(WIDTH, HEIGHT, CV_8UC1, CV_8UC1, info.data);
           ptr->header.stamp = _node->now();
-          ptr->height = HEIGHT;
-          ptr->width = WIDTH;
+          ptr->height = HEIGHT / 2;
+          ptr->width = WIDTH / 2;
           ptr->encoding = "mono8";
           ptr->is_bigendian = false;
-          ptr->step = WIDTH;
-          ptr->data.resize(HEIGHT * WIDTH);
-          memcpy(ptr->data.data(), data, HEIGHT * WIDTH);
+          ptr->step = WIDTH / 2;
+          ptr->data.resize(HEIGHT * WIDTH / 4);
+          cv::Mat dst(ptr->width, ptr->height, CV_8UC1, ptr->data.data());
+          cv::resize(img, dst, cv::Size());
 
           gst_buffer_unmap(buffer, &info);
           gst_video_info_free(video_info);

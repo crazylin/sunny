@@ -38,7 +38,7 @@ def generate_launch_description():
         plugin='camera_tis::CameraTis',
         parameters=[configParams],
         extra_arguments=[{'use_intra_process_comms': True}])
-
+'''
     configFile = os.path.join(
         get_package_share_directory('resize_image'),
         'config',
@@ -55,7 +55,7 @@ def generate_launch_description():
         remappings=[('~/image', '/camera_tis_node/image')],
         parameters=[configParams],
         extra_arguments=[{'use_intra_process_comms': True}])
-
+'''
     configFile = os.path.join(
         get_package_share_directory('rotate_image'),
         'config',
@@ -69,7 +69,7 @@ def generate_launch_description():
     rotate_image_node = ComposableNode(
         package='rotate_image',
         plugin='rotate_image::RotateImage',
-        remappings=[('~/image', '/resize_image_node/image_resized')],
+        remappings=[('~/image', '/camera_tis_node/image')],
         parameters=[configParams],
         extra_arguments=[{'use_intra_process_comms': True}])
 
@@ -114,7 +114,7 @@ def generate_launch_description():
         executable='component_container_mt',
         composable_node_descriptions=[
             camera_tis_node,
-            resize_image_node,
+            # resize_image_node,
             rotate_image_node,
             laser_line_center_node,
             line_center_reconstruction_node],

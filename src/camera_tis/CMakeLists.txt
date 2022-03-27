@@ -21,6 +21,7 @@ find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(PkgConfig REQUIRED)
+find_package(OpenCV REQUIRED)
 pkg_check_modules(TIS REQUIRED IMPORTED_TARGET gstreamer-1.0 gstreamer-video-1.0 gobject-introspection-1.0 tcam)
 
 add_library(camera_tis SHARED src/camera_tis.cpp)
@@ -30,6 +31,8 @@ ament_target_dependencies(camera_tis
   rclcpp_components
   sensor_msgs
 )
+
+target_link_libraries(camera_tis ${OpenCV_LIBS})
 
 target_include_directories(camera_tis
   PUBLIC
