@@ -38,6 +38,23 @@ def generate_launch_description():
         parameters=[configParams1],
         extra_arguments=[{'use_intra_process_comms': True}])
 
+    configFile8 = os.path.join(
+        get_package_share_directory('resize_image'),
+        'config',
+        'params.yaml')
+
+    with open(configFile8, 'r') as file:
+        handle = yaml.safe_load(file)
+        configParams8 = handle['resize_image_node']['ros__parameters']
+        configParams8['workers'] = 2
+
+    node8 = ComposableNode(
+        package='resize_image',
+        plugin='resize_image::ResizeImage',
+        remappings=[('~/image', '/camera_tis_node/image')],
+        parameters=[configParams8],
+        extra_arguments=[{'use_intra_process_comms': True}])
+
     configFile2 = os.path.join(
         get_package_share_directory('rotate_image'),
         'config',
@@ -51,7 +68,7 @@ def generate_launch_description():
     node2 = ComposableNode(
         package='rotate_image',
         plugin='rotate_image::RotateImage',
-        remappings=[('~/image', '/camera_tis_node/image')],
+        remappings=[('~/image', '/resize_image_node/image_rotated')],
         parameters=[configParams2],
         extra_arguments=[{'use_intra_process_comms': True}])
 
@@ -94,7 +111,7 @@ def generate_launch_description():
         namespace='',
         package='rclcpp_components',
         executable='component_container_mt',
-        composable_node_descriptions=[node1, node2, node3, node4],
+        composable_node_descriptions=[node1, node8, node2, node3, node4],
         output='screen')
 
     configFile5 = os.path.join(

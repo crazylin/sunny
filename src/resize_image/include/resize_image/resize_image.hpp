@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef ROTATE_IMAGE__ROTATE_IMAGE_HPP_
-#define ROTATE_IMAGE__ROTATE_IMAGE_HPP_
+#ifndef RESIZE_IMAGE__RESIZE_IMAGE_HPP_
+#define RESIZE_IMAGE__RESIZE_IMAGE_HPP_
 
 #include <memory>
 #include <utility>
@@ -21,14 +21,14 @@
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/image.hpp"
 
-namespace rotate_image
+namespace resize_image
 {
 
-class RotateImage : public rclcpp::Node
+class ResizeImage : public rclcpp::Node
 {
 public:
-  explicit RotateImage(const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
-  virtual ~RotateImage();
+  explicit ResizeImage(const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
+  virtual ~ResizeImage();
 
   void Publish(sensor_msgs::msg::Image::UniquePtr & ptr)
   {
@@ -36,7 +36,16 @@ public:
   }
 
 private:
-  const char * _pubImageName = "~/image_rotated";
+  void _Init();
+  void _InitializeParameters();
+  void _UpdateParameters();
+  void _Sub(std_msgs::msg::String::UniquePtr ptr);  // TODO(imp)
+  void _Srv(
+    const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
+    std::shared_ptr<std_srvs::srv::Trigger::Response> response);  // TODO(imp)
+
+private:
+  const char * _pubImageName = "~/image_resized";
   rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr _pubImage;
 
   class _Impl;
@@ -46,6 +55,6 @@ private:
   rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr _sub;
 };
 
-}  // namespace rotate_image
+}  // namespace resize_image
 
-#endif  // ROTATE_IMAGE__ROTATE_IMAGE_HPP_
+#endif  // RESIZE_IMAGE__RESIZE_IMAGE_HPP_

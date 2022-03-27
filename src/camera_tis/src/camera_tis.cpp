@@ -30,7 +30,7 @@ namespace camera_tis
 
 using sensor_msgs::msg::Image;
 
-const auto WIDTH = 1536, HEIGHT = 1024, FPS = 60;
+const auto WIDTH = 3072, HEIGHT = 2048, FPS = 60;
 
 /*
   This function will be called in a separate thread when our appsink
