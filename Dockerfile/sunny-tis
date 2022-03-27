@@ -32,6 +32,7 @@ RUN /ros_entrypoint.sh colcon build \
     shared_interfaces \
     ros2_numpy \
     camera_tis \
+    resize_image \
     rotate_image \
     branch_image \
     laser_line_center \
@@ -46,6 +47,7 @@ RUN /ros_entrypoint.sh colcon build \
 #   --packages-select \
 #     shared_interfaces \
 #     camera_tis \
+#     resize_image \
 #     rotate_image \
 #     branch_image \
 #     laser_line_center \
