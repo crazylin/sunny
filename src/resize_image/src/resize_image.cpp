@@ -32,7 +32,7 @@ using sensor_msgs::msg::Image;
 class ResizeImage::_Impl
 {
 public:
-  explicit _Impl(RisizeImage * ptr)
+  explicit _Impl(ResizeImage * ptr)
   : _node(ptr)
   {
     _node->declare_parameter("workers", _workers);
