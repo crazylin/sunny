@@ -314,7 +314,7 @@ public:
               break;
             }
             /* Get a pointer to the image data */
-          cv::Mat src(WIDTH, HEIGHT, CV_8UC1, CV_8UC1, info.data);
+          cv::Mat src(WIDTH, HEIGHT, CV_8UC1, info.data);
           ptr->header.stamp = _node->now();
           ptr->height = HEIGHT / 2;
           ptr->width = WIDTH / 2;
@@ -323,7 +323,7 @@ public:
           ptr->step = WIDTH / 2;
           ptr->data.resize(HEIGHT * WIDTH / 4);
           cv::Mat dst(ptr->width, ptr->height, CV_8UC1, ptr->data.data());
-          cv::resize(img, dst, cv::Size());
+          cv::resize(src, dst, cv::Size());
 
           gst_buffer_unmap(buffer, &info);
           gst_video_info_free(video_info);
