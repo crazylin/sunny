@@ -168,6 +168,8 @@ ResizeImage::~ResizeImage()
   RCLCPP_INFO(this->get_logger(), "Destroyed successfully");
 }
 
+}  // namespace resize_image
+
 #include "rclcpp_components/register_node_macro.hpp"
 
 // Register the component with class_loader.
