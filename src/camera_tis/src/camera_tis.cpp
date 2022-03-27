@@ -301,38 +301,32 @@ public:
         PushBackFuture(prom.get_future());
         lk.unlock();
         auto ptr = std::make_unique<Image>();
-        if (sample) {
-          GstBuffer * buffer = gst_sample_get_buffer(sample);
-          GstMapInfo info;  // contains the actual image
-          if (gst_buffer_map(buffer, &info, GST_MAP_READ)) {
-            GstVideoInfo * video_info = gst_video_info_new();
-              if (!gst_video_info_from_caps(video_info, gst_sample_get_caps(sample))) {
-                RCLCPP_WARN(rclcpp::get_logger("rclcpp"), "Failed to parse video info");
-                rclcpp::shutdown();
-                return GST_FLOW_ERROR;
-              }
+        GstBuffer * buffer = gst_sample_get_buffer(sample);
+        GstMapInfo info;  // contains the actual image
+        if (gst_buffer_map(buffer, &info, GST_MAP_READ)) {
+          GstVideoInfo * video_info = gst_video_info_new();
+            if (!gst_video_info_from_caps(video_info, gst_sample_get_caps(sample))) {
+              gst_sample_unref(sample);
+              RCLCPP_ERROR(rclcpp::get_logger("rclcpp"), "Failed to parse video info");
+              rclcpp::shutdown();
+              break;
+            }
             /* Get a pointer to the image data */
-            unsigned char * data = info.data;
-            ptr->header.stamp = node->now();
-            ptr->header.frame_id = std::to_string(framecount);
-            ptr->height = HEIGHT;
-            ptr->width = WIDTH;
-            ptr->encoding = "mono8";
-            ptr->is_bigendian = false;
-            ptr->step = WIDTH;
-            ptr->data.resize(HEIGHT * WIDTH);
-            memcpy(ptr->data.data(), data, HEIGHT * WIDTH);
+          unsigned char * data = info.data;
+          ptr->header.stamp = _node->now();
+          ptr->height = HEIGHT;
+          ptr->width = WIDTH;
+          ptr->encoding = "mono8";
+          ptr->is_bigendian = false;
+          ptr->step = WIDTH;
+          ptr->data.resize(HEIGHT * WIDTH);
+          memcpy(ptr->data.data(), data, HEIGHT * WIDTH);
 
-            gst_buffer_unmap(buffer, &info);
-            gst_video_info_free(video_info);
-          }
-          prom.set_value(std::move(ptr));
-          gst_sample_unref(sample);
-          return GST_FLOW_OK;
-        } else {
-          prom.set_value(std::move(ptr));
-          return GST_FLOW_ERROR;
+          gst_buffer_unmap(buffer, &info);
+          gst_video_info_free(video_info);
         }
+        prom.set_value(std::move(ptr));
+        gst_sample_unref(sample);
       } else {
         _images_con.wait(lk);
       }
