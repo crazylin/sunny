@@ -31,6 +31,7 @@ def generate_launch_description():
     with open(configFile, 'r') as file:
         handle = yaml.safe_load(file)
         configParams = handle['camera_tis_node']['ros__parameters']
+        configParams['workers'] = 2
 
     camera_tis_node = ComposableNode(
         package='camera_tis',

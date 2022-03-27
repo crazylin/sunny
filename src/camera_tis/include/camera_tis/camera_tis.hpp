@@ -35,6 +35,8 @@ public:
     _pubImage->publish(std::move(ptr));
   }
 
+  void PushBackImage(void * sample);
+
 private:
   void _Init();
 
