@@ -31,14 +31,13 @@ def generate_launch_description():
     with open(configFile, 'r') as file:
         handle = yaml.safe_load(file)
         configParams = handle['camera_tis_node']['ros__parameters']
-        configParams['workers'] = 2
 
     camera_tis_node = ComposableNode(
         package='camera_tis',
         plugin='camera_tis::CameraTis',
         parameters=[configParams],
         extra_arguments=[{'use_intra_process_comms': True}])
-'''
+    '''
     configFile = os.path.join(
         get_package_share_directory('resize_image'),
         'config',
@@ -55,7 +54,7 @@ def generate_launch_description():
         remappings=[('~/image', '/camera_tis_node/image')],
         parameters=[configParams],
         extra_arguments=[{'use_intra_process_comms': True}])
-'''
+    '''
     configFile = os.path.join(
         get_package_share_directory('rotate_image'),
         'config',

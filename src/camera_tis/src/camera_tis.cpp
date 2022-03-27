@@ -51,7 +51,27 @@ extern "C" GstFlowReturn callback(GstElement * sink, void * user_data)
   /* Retrieve the buffer */
   g_signal_emit_by_name(sink, "pull-sample", &sample, NULL);
   if (sample) {
-    node->PushBackImage(sample);
+    auto ptr = std::make_unique<Image>();
+    GstBuffer * buffer = gst_sample_get_buffer(sample);
+    GstMapInfo info;  // contains the actual image
+    if (gst_buffer_map(buffer, &info, GST_MAP_READ)) {
+      /* Get a pointer to the image data */
+      cv::Mat src(WIDTH, HEIGHT, CV_8UC1, info.data);
+      ptr->header.stamp = node->now();
+      ptr->height = HEIGHT / 2;
+      ptr->width = WIDTH / 2;
+      ptr->encoding = "mono8";
+      ptr->is_bigendian = false;
+      ptr->step = WIDTH / 2;
+      ptr->data.resize(HEIGHT * WIDTH / 4);
+      cv::Mat dst(ptr->width, ptr->height, CV_8UC1, ptr->data.data());
+      cv::resize(src, dst, dst.size(), 0., 0., cv::INTER_NEAREST);
+
+      gst_buffer_unmap(buffer, &info);
+      gst_video_info_free(video_info);
+    }
+    gst_sample_unref(sample);
+    node->Publish(std::move(ptr));
     return GST_FLOW_OK;
   } else {
     return GST_FLOW_ERROR;
@@ -90,7 +110,7 @@ public:
       "! capsfilter name=filter "
       "! queue max-size-buffers=2 leaky=downstream "
       "! videoconvert "
-      "! appsink name=sink emit-signals=true sync=false drop=true max-buffers=5";
+      "! appsink name=sink emit-signals=true sync=false drop=true max-buffers=4";
     GError * err = NULL;
     _pipeline = gst_parse_launch(pipeline_str, &err);
     if (_pipeline == NULL) {
@@ -113,22 +133,11 @@ public:
     gst_object_unref(sink);
 
     block_until_playing(_pipeline);
-
-    for (int i = 0; i < _workers; ++i) {
-      _threads.push_back(std::thread(&_Impl::_Worker, this));
-    }
-    _threads.push_back(std::thread(&_Impl::_Manager, this));
-    RCLCPP_INFO(_node->get_logger(), "Employ %d workers successfully", _workers);
   }
 
   ~_Impl()
   {
-    // gst_element_set_state(_pipeline, GST_STATE_NULL);
-    _images_con.notify_all();
-    _futures_con.notify_one();
-    for (auto & t : _threads) {
-      t.join();
-    }
+    gst_element_set_state(_pipeline, GST_STATE_NULL);
     gst_object_unref(_pipeline);
   }
 
@@ -175,15 +184,12 @@ public:
   {
     _node->declare_parameter("exposure_time", _expo);
     _node->declare_parameter("power", _power);
-    _node->declare_parameter("workers", _workers);
   }
 
   void _UpdateParameters()
   {
     _node->get_parameter("exposure_time", _expo);
     _node->get_parameter("power", _power);
-    _node->get_parameter("workers", _workers);
-    _deque_size = _workers + 1;
   }
 
   gboolean _SetProperty(const char * property, const char * value)
@@ -252,46 +258,6 @@ public:
     return TRUE;
   }
 
-  void PushBackImage(GstSample * sample)
-  {
-    std::unique_lock<std::mutex> lk(_images_mut);
-    _images.emplace_back(sample);
-    auto s = static_cast<int>(_images.size());
-    if (s > _deque_size) {
-      sample = _images.front();
-      _images.pop_front();
-      gst_sample_unref(sample);
-    }
-    lk.unlock();
-    _images_con.notify_all();
-  }
-
-  void PushBackFuture(std::future<Image::UniquePtr> f)
-  {
-    std::unique_lock<std::mutex> lk(_futures_mut);
-    _futures.emplace_back(std::move(f));
-    lk.unlock();
-    _futures_con.notify_one();
-  }
-
-  void _Manager()
-  {
-    while (rclcpp::ok()) {
-      std::unique_lock<std::mutex> lk(_futures_mut);
-      if (_futures.empty() == false) {
-        auto f = std::move(_futures.front());
-        _futures.pop_front();
-        lk.unlock();
-        auto ptr = f.get();
-        static int frame_id = 0;
-        ptr->header.frame_id = std::to_string(frame_id++);
-        _node->Publish(ptr);
-      } else {
-        _futures_con.wait(lk);
-      }
-    }
-  }
-
   void _Worker()
   {
     while (rclcpp::ok()) {
@@ -302,34 +268,7 @@ public:
         std::promise<Image::UniquePtr> prom;
         PushBackFuture(prom.get_future());
         lk.unlock();
-        auto ptr = std::make_unique<Image>();
-        GstBuffer * buffer = gst_sample_get_buffer(sample);
-        GstMapInfo info;  // contains the actual image
-        if (gst_buffer_map(buffer, &info, GST_MAP_READ)) {
-          GstVideoInfo * video_info = gst_video_info_new();
-            if (!gst_video_info_from_caps(video_info, gst_sample_get_caps(sample))) {
-              gst_sample_unref(sample);
-              RCLCPP_ERROR(rclcpp::get_logger("rclcpp"), "Failed to parse video info");
-              rclcpp::shutdown();
-              break;
-            }
-            /* Get a pointer to the image data */
-          cv::Mat src(WIDTH, HEIGHT, CV_8UC1, info.data);
-          ptr->header.stamp = _node->now();
-          ptr->height = HEIGHT / 2;
-          ptr->width = WIDTH / 2;
-          ptr->encoding = "mono8";
-          ptr->is_bigendian = false;
-          ptr->step = WIDTH / 2;
-          ptr->data.resize(HEIGHT * WIDTH / 4);
-          cv::Mat dst(ptr->width, ptr->height, CV_8UC1, ptr->data.data());
-          cv::resize(src, dst, cv::Size());
-
-          gst_buffer_unmap(buffer, &info);
-          gst_video_info_free(video_info);
-        }
-        prom.set_value(std::move(ptr));
-        gst_sample_unref(sample);
+        
       } else {
         _images_con.wait(lk);
       }
@@ -338,22 +277,10 @@ public:
 
 private:
   CameraTis * _node;
-  int _workers = 1;
-  int _deque_size;
 
   GstElement * _pipeline;
   int _expo = 1000;
   bool _power = false;
-
-  std::mutex _images_mut;
-  std::condition_variable _images_con;
-  std::deque<GstSample *> _images;
-
-  std::mutex _futures_mut;
-  std::condition_variable _futures_con;
-  std::deque<std::future<Image::UniquePtr>> _futures;
-
-  std::vector<std::thread> _threads;
 };
 
 CameraTis::CameraTis(const rclcpp::NodeOptions & options)
@@ -413,11 +340,6 @@ void CameraTis::_Init()
     RCLCPP_ERROR(this->get_logger(), "Exception in initializer: unknown");
     rclcpp::shutdown();
   }
-}
-
-void CameraTis::PushBackImage(void * sample)
-{
-  _impl->PushBackImage(static_cast<GstSample *>(sample));
 }
 
 }  // namespace camera_tis

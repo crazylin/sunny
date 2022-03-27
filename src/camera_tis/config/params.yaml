@@ -1,6 +1,5 @@
 camera_tis_node:
   ros__parameters:
-    workers: 1                  #int
     power: false                #bool
     exposure_time: 1000         #int in us
     fx: 0.5                     #double
