@@ -21,8 +21,12 @@ extern "C"
   #include <tcamprop.h>
 }
 
+#include <deque>
 #include <exception>
+#include <future>
+#include <map>
 #include <memory>
+#include <utility>
 #include <vector>
 
 namespace camera_tis
