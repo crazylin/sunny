@@ -36,15 +36,6 @@ public:
   }
 
 private:
-  void _Init();
-  void _InitializeParameters();
-  void _UpdateParameters();
-  void _Sub(std_msgs::msg::String::UniquePtr ptr);  // TODO(imp)
-  void _Srv(
-    const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
-    std::shared_ptr<std_srvs::srv::Trigger::Response> response);  // TODO(imp)
-
-private:
   const char * _pubImageName = "~/image_resized";
   rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr _pubImage;
 

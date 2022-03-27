@@ -110,7 +110,7 @@ private:
           _buf.resize(ptr->width * ptr->height / 4);
           cv::Mat dst(ptr->width / 2, ptr->height / 2, CV_8UC1, _buf.data());
           cv::Mat img(ptr->height, ptr->width, CV_8UC1, ptr->data.data());
-          cv::resize(img, dst, 0.5, 0.5);
+          cv::resize(img, dst, cv::Size(), 0.5, 0.5);
           std::swap(ptr->data, _buf);
           // std::swap(ptr->width, ptr->height);
           ptr->width /= 2;
