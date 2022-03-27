@@ -32,14 +32,24 @@ RUN /ros_entrypoint.sh colcon build \
     shared_interfaces \
     ros2_numpy \
     camera_tis \
-    resize_image \
     rotate_image \
     branch_image \
     laser_line_center \
     line_center_reconstruction \
     modbus \
+    gpio_raspberry
+
+RUN /ros_entrypoint.sh colcon build \
+  --cmake-args \
+    -DCMAKE_BUILD_TYPE=Release \
+  --packages-select \
+    resize_image
+
+RUN /ros_entrypoint.sh colcon build \
+  --cmake-args \
+    -DCMAKE_BUILD_TYPE=Release \
+  --packages-select \
     seam_tracking \
-    gpio_raspberry \
     pipeline_tis
 
 # colcon test
