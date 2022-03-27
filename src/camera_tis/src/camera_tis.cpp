@@ -68,10 +68,9 @@ extern "C" GstFlowReturn callback(GstElement * sink, void * user_data)
       cv::resize(src, dst, dst.size(), 0., 0., cv::INTER_NEAREST);
 
       gst_buffer_unmap(buffer, &info);
-      gst_video_info_free(video_info);
     }
     gst_sample_unref(sample);
-    node->Publish(std::move(ptr));
+    node->Publish(ptr);
     return GST_FLOW_OK;
   } else {
     return GST_FLOW_ERROR;
@@ -256,23 +255,6 @@ public:
     gst_caps_unref(caps);
     gst_object_unref(bin);
     return TRUE;
-  }
-
-  void _Worker()
-  {
-    while (rclcpp::ok()) {
-      std::unique_lock<std::mutex> lk(_images_mut);
-      if (_images.empty() == false) {
-        auto sample = _images.front();
-        _images.pop_front();
-        std::promise<Image::UniquePtr> prom;
-        PushBackFuture(prom.get_future());
-        lk.unlock();
-        
-      } else {
-        _images_con.wait(lk);
-      }
-    }
   }
 
 private:
