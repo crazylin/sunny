@@ -23,87 +23,87 @@ from launch_ros.actions import Node
 
 def generate_launch_description():
     """Generate launch description with a component."""
-    configFile1 = os.path.join(
+    configFile = os.path.join(
         get_package_share_directory('camera_tis'),
         'config',
         'params.yaml')
 
-    with open(configFile1, 'r') as file:
+    with open(configFile, 'r') as file:
         handle = yaml.safe_load(file)
-        configParams1 = handle['camera_tis_node']['ros__parameters']
+        configParams = handle['camera_tis_node']['ros__parameters']
 
-    node1 = ComposableNode(
+    camera_tis_node = ComposableNode(
         package='camera_tis',
         plugin='camera_tis::CameraTis',
-        parameters=[configParams1],
+        parameters=[configParams],
         extra_arguments=[{'use_intra_process_comms': True}])
 
-    configFile8 = os.path.join(
+    configFile = os.path.join(
         get_package_share_directory('resize_image'),
         'config',
         'params.yaml')
 
-    with open(configFile8, 'r') as file:
+    with open(configFile, 'r') as file:
         handle = yaml.safe_load(file)
-        configParams8 = handle['resize_image_node']['ros__parameters']
-        configParams8['workers'] = 2
+        configParams = handle['resize_image_node']['ros__parameters']
+        configParams['workers'] = 2
 
-    node8 = ComposableNode(
+    resize_image_node = ComposableNode(
         package='resize_image',
         plugin='resize_image::ResizeImage',
         remappings=[('~/image', '/camera_tis_node/image')],
-        parameters=[configParams8],
+        parameters=[configParams],
         extra_arguments=[{'use_intra_process_comms': True}])
 
-    configFile2 = os.path.join(
+    configFile = os.path.join(
         get_package_share_directory('rotate_image'),
         'config',
         'params.yaml')
 
-    with open(configFile2, 'r') as file:
+    with open(configFile, 'r') as file:
         handle = yaml.safe_load(file)
-        configParams2 = handle['rotate_image_node']['ros__parameters']
-        configParams2['workers'] = 2
+        configParams = handle['rotate_image_node']['ros__parameters']
+        configParams['workers'] = 2
 
-    node2 = ComposableNode(
+    rotate_image_node = ComposableNode(
         package='rotate_image',
         plugin='rotate_image::RotateImage',
-        remappings=[('~/image', '/resize_image_node/image_rotated')],
-        parameters=[configParams2],
+        remappings=[('~/image', '/resize_image_node/image_resized')],
+        parameters=[configParams],
         extra_arguments=[{'use_intra_process_comms': True}])
 
-    configFile3 = os.path.join(
+    configFile = os.path.join(
         get_package_share_directory('laser_line_center'),
         'config',
         'params.yaml')
 
-    with open(configFile3, 'r') as file:
+    with open(configFile, 'r') as file:
         handle = yaml.safe_load(file)
-        configParams3 = handle['laser_line_center_node']['ros__parameters']
-        configParams3['workers'] = 4
+        configParams = handle['laser_line_center_node']['ros__parameters']
+        configParams['workers'] = 4
 
-    node3 = ComposableNode(
+    laser_line_center_node = ComposableNode(
         package='laser_line_center',
         plugin='laser_line_center::LaserLineCenter',
         remappings=[('~/image', '/rotate_image_node/image_rotated')],
-        parameters=[configParams3],
+        parameters=[configParams],
         extra_arguments=[{'use_intra_process_comms': True}])
 
-    configFile4 = os.path.join(
+    configFile = os.path.join(
         get_package_share_directory('line_center_reconstruction'),
         'config',
         'params.yaml')
 
-    with open(configFile4, 'r') as file:
+    with open(configFile, 'r') as file:
         handle = yaml.safe_load(file)
-        configParams4 = handle['line_center_reconstruction_node']['ros__parameters']
-        configParams4['workers'] = 2
+        configParams = handle['line_center_reconstruction_node']['ros__parameters']
+        configParams['workers'] = 2
 
-    node4 = ComposableNode(
+    line_center_reconstruction_node = ComposableNode(
         package='line_center_reconstruction',
         plugin='line_center_reconstruction::LineCenterReconstruction',
         remappings=[('~/line', '/laser_line_center_node/line')],
-        parameters=[configParams4],
+        parameters=[configParams],
         extra_arguments=[{'use_intra_process_comms': True}])
 
     container = ComposableNodeContainer(
@@ -111,51 +111,59 @@ def generate_launch_description():
         namespace='',
         package='rclcpp_components',
         executable='component_container_mt',
-        composable_node_descriptions=[node1, node8, node2, node3, node4],
+        composable_node_descriptions=[
+            camera_tis_node,
+            resize_image_node,
+            rotate_image_node,
+            laser_line_center_node,
+            line_center_reconstruction_node],
         output='screen')
 
-    configFile5 = os.path.join(
+    configFile = os.path.join(
         get_package_share_directory('seam_tracking'),
         'config',
         'params.yaml')
 
-    with open(configFile5, 'r') as file:
+    with open(configFile, 'r') as file:
         handle = yaml.safe_load(file)
-        configParams5 = handle['seam_tracking_node']['ros__parameters']
+        configParams = handle['seam_tracking_node']['ros__parameters']
 
-    node5 = Node(
+    seam_tracking_node = Node(
         package='seam_tracking',
         executable='seam_tracking_node',
         remappings=[('~/pnts', '/line_center_reconstruction_node/pnts')],
-        parameters=[configParams5])
+        parameters=[configParams])
 
-    configFile6 = os.path.join(
+    configFile = os.path.join(
         get_package_share_directory('modbus'),
         'config',
         'params.yaml')
 
-    with open(configFile6, 'r') as file:
+    with open(configFile, 'r') as file:
         handle = yaml.safe_load(file)
-        configParams6 = handle['modbus_node']['ros__parameters']
+        configParams = handle['modbus_node']['ros__parameters']
 
-    node6 = Node(
+    modbus_node = Node(
         package='modbus',
         executable='modbus_node',
         remappings=[('~/seam', '/seam_tracking_node/seam')],
-        parameters=[configParams6])
+        parameters=[configParams])
 
-    configFile7 = os.path.join(
+    configFile = os.path.join(
         get_package_share_directory('gpio_raspberry'),
         'config',
         'params.yaml')
 
-    with open(configFile7, 'r') as file:
+    with open(configFile, 'r') as file:
         handle = yaml.safe_load(file)
-        configParams7 = handle['gpio_raspberry_node']['ros__parameters']
+        configParams = handle['gpio_raspberry_node']['ros__parameters']
 
-    node7 = Node(
+    gpio_raspberry_node = Node(
         package='gpio_raspberry',
         executable='gpio_raspberry_node',
-        parameters=[configParams7])
+        parameters=[configParams])
 
-    return launch.LaunchDescription([container, node5, node6, node7])
+    return launch.LaunchDescription([container,
+        seam_tracking_node,
+        modbus_node,
+        gpio_raspberry_node])
