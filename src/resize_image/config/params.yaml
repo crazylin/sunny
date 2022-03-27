@@ -1,5 +1,5 @@
 resize_image_node:
   ros__parameters:
     workers: 1                  #int
-    fx: 0.5			 #double
-    fy: 0.5			 #double
+    fx: 0.5                     #double
+    fy: 0.5                     #double
