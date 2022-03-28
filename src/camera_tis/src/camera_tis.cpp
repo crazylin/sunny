@@ -21,22 +21,17 @@ extern "C"
   #include <tcamprop.h>
 }
 
-#include <deque>
 #include <exception>
-#include <future>
-#include <map>
 #include <memory>
 #include <utility>
 #include <vector>
-
-#include "opencv2/opencv.hpp"
 
 namespace camera_tis
 {
 
 using sensor_msgs::msg::Image;
 
-const auto WIDTH = 3072, HEIGHT = 2048, FPS = 60;
+const auto WIDTH = 1536, HEIGHT = 1024, SIZE = 1536 * 1024, FPS = 60;
 
 /*
   This function will be called in a separate thread when our appsink
@@ -46,6 +41,7 @@ const auto WIDTH = 3072, HEIGHT = 2048, FPS = 60;
 */
 extern "C" GstFlowReturn callback(GstElement * sink, void * user_data)
 {
+  static unsigned int frame = 0;
   auto node = static_cast<CameraTis *>(user_data);
   GstSample * sample = NULL;
   /* Retrieve the buffer */
@@ -56,16 +52,15 @@ extern "C" GstFlowReturn callback(GstElement * sink, void * user_data)
     GstMapInfo info;  // contains the actual image
     if (gst_buffer_map(buffer, &info, GST_MAP_READ)) {
       /* Get a pointer to the image data */
-      cv::Mat src(WIDTH, HEIGHT, CV_8UC1, info.data);
       ptr->header.stamp = node->now();
-      ptr->height = HEIGHT / 2;
-      ptr->width = WIDTH / 2;
+      ptr->header.frame_id = std::to_string(frame++);
+      ptr->height = HEIGHT;
+      ptr->width = WIDTH;
       ptr->encoding = "mono8";
       ptr->is_bigendian = false;
-      ptr->step = WIDTH / 2;
-      ptr->data.resize(HEIGHT * WIDTH / 4);
-      cv::Mat dst(ptr->width, ptr->height, CV_8UC1, ptr->data.data());
-      cv::resize(src, dst, dst.size(), 0., 0., cv::INTER_NEAREST);
+      ptr->step = WIDTH;
+      ptr->data.resize(SIZE);
+      memcpy(ptr->data.data(), info.data, SIZE);
 
       gst_buffer_unmap(buffer, &info);
     }
@@ -106,9 +101,9 @@ public:
     gst_init(NULL, NULL);
     const char * pipeline_str =
       "tcambin name=source "
-      "! capsfilter name=filter "
-      "! queue max-size-buffers=2 leaky=downstream "
-      "! videoconvert "
+      "! video/x-raw,format=GRAY8,width=3072,height=2048,framerate=60/1 "
+      "! videoscale "
+      "! video/x-raw,width=1536,height=1024 "
       "! appsink name=sink emit-signals=true sync=false drop=true max-buffers=4";
     GError * err = NULL;
     _pipeline = gst_parse_launch(pipeline_str, &err);
@@ -121,7 +116,7 @@ public:
     _SetProperty("Exposure Time (us)", _expo);
     _SetProperty("Brightness", 0);
 
-    _SetCaps("GRAY8", WIDTH, HEIGHT, FPS);
+    //_SetCaps("GRAY8", WIDTH, HEIGHT, FPS);
 
     /* retrieve the appsink from the pipeline */
     GstElement * sink = gst_bin_get_by_name(GST_BIN(_pipeline), "sink");
@@ -234,7 +229,7 @@ public:
     return ret;
   }
 
-  gboolean _SetCaps(const char * format, int width, int height, int fps)
+  /*gboolean _SetCaps(const char * format, int width, int height, int fps)
   {
     GstElement * bin = gst_bin_get_by_name(GST_BIN(_pipeline), "filter");
 
@@ -255,7 +250,7 @@ public:
     gst_caps_unref(caps);
     gst_object_unref(bin);
     return TRUE;
-  }
+  }*/
 
 private:
   CameraTis * _node;
