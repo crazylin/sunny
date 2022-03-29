@@ -21,8 +21,8 @@ class CustomFigure(Figure):
         self._seam, = ax.plot([], [], 'go', label='Seam')
         self._pick, = ax.plot([], [], 'rs', label='Picked')
         ax.plot(bx, by, linewidth=3)
-        self._info = ax.text(10, 190, 'frames:\nfps:')
-        self._xxyy = ax.text(40, 190, 'X:\nY:')
+        self._info = ax.text(0, 390, 'frames:\nfps:')
+        self._xxyy = ax.text(60, 390, 'X:\nY:')
         ax.legend()
 
     def update_seam(self, seam: PointData):
