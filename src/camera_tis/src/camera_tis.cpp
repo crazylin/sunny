@@ -33,62 +33,6 @@ using sensor_msgs::msg::Image;
 
 const auto WIDTH = 1536, HEIGHT = 1024, SIZE = 1536 * 1024, FPS = 60;
 
-/*
-  This function will be called in a separate thread when our appsink
-  says there is data for us. user_data has to be defined
-  when calling g_signal_connect. It can be used to pass objects etc.
-  from your other function to the callback.
-*/
-extern "C" GstFlowReturn callback(GstElement * sink, void * user_data)
-{
-  static unsigned int frame = 0;
-  auto node = static_cast<CameraTis *>(user_data);
-  GstSample * sample = NULL;
-  /* Retrieve the buffer */
-  g_signal_emit_by_name(sink, "pull-sample", &sample, NULL);
-  if (sample) {
-    auto ptr = std::make_unique<Image>();
-    GstBuffer * buffer = gst_sample_get_buffer(sample);
-    GstMapInfo info;  // contains the actual image
-    if (gst_buffer_map(buffer, &info, GST_MAP_READ)) {
-      /* Get a pointer to the image data */
-      ptr->header.stamp = node->now();
-      ptr->header.frame_id = std::to_string(frame++);
-      ptr->height = HEIGHT;
-      ptr->width = WIDTH;
-      ptr->encoding = "mono8";
-      ptr->is_bigendian = false;
-      ptr->step = WIDTH;
-      ptr->data.resize(SIZE);
-      memcpy(ptr->data.data(), info.data, SIZE);
-
-      gst_buffer_unmap(buffer, &info);
-    }
-    gst_sample_unref(sample);
-    node->Publish(ptr);
-    return GST_FLOW_OK;
-  } else {
-    return GST_FLOW_ERROR;
-  }
-}
-
-gboolean block_until_playing(GstElement * pipeline)
-{
-  while (TRUE) {
-    GstState state;
-    GstState pending;
-
-    // wait 0.5 seconds for something to happen
-    GstStateChangeReturn ret = gst_element_get_state(pipeline, &state, &pending, 500000000);
-
-    if (ret == GST_STATE_CHANGE_SUCCESS) {
-      return TRUE;
-    } else if (ret == GST_STATE_CHANGE_FAILURE) {
-      return FALSE;
-    }
-  }
-}
-
 class CameraTis::_Impl
 {
 public:
@@ -101,7 +45,7 @@ public:
     gst_init(NULL, NULL);
     const char * pipeline_str =
       "tcambin name=source "
-      "! video/x-raw,format=GRAY8,width=3072,height=2048,framerate=60/1 "
+      "! video/x-raw,format=GRAY8,width=3072,height=2048,framerate=30/1 "
       "! videoscale "
       "! video/x-raw,width=1536,height=1024 "
       "! appsink name=sink emit-signals=true sync=false drop=true max-buffers=4";
@@ -116,23 +60,51 @@ public:
     _SetProperty("Exposure Time (us)", _expo);
     _SetProperty("Brightness", 0);
 
-    //_SetCaps("GRAY8", WIDTH, HEIGHT, FPS);
-
-    /* retrieve the appsink from the pipeline */
-    GstElement * sink = gst_bin_get_by_name(GST_BIN(_pipeline), "sink");
-
-    // tell appsink what function to call when it notifies us
-    g_signal_connect(sink, "new-sample", G_CALLBACK(callback), _node);
-
-    gst_object_unref(sink);
-
-    block_until_playing(_pipeline);
+    gst_element_set_state(_pipeline, GST_STATE_PAUSED);
+    _thread = std::thread(&_Impl::spin, this);
   }
 
   ~_Impl()
   {
     gst_element_set_state(_pipeline, GST_STATE_NULL);
+    _thread.join();
     gst_object_unref(_pipeline);
+  }
+
+  void spin()
+  {
+    GstElement * sink = gst_bin_get_by_name(GST_BIN(pipeline), "sink");
+    int frame = 0;
+    while (rclcpp::ok()) {
+      GstSample* sample = NULL;
+      g_signal_emit_by_name(sink, "pull-sample", &sample, NULL);
+      if (sample == NULL) {
+        continue;
+      }
+      GstBuffer * buffer = gst_sample_get_buffer(sample);
+      if (buffer == NULL) {
+        gst_sample_unref(sample);
+        continue;
+      }
+
+      GstMapInfo info;
+      if (gst_buffer_map(buffer, &info, GST_MAP_READ)) {
+        auto ptr = std::make_unique<Image>();
+        ptr->header.stamp = _node->now();
+        ptr->header.frame_id = std::to_string(frame++);
+        ptr->height = HEIGHT;
+        ptr->width = WIDTH;
+        ptr->encoding = "mono8";
+        ptr->is_bigendian = false;
+        ptr->step = WIDTH;
+        ptr->data.resize(SIZE);
+        memcpy(ptr->data.data(), info.data, SIZE);
+        _node->Publish(ptr);
+        gst_buffer_unmap(buffer, &info);
+      }
+      gst_sample_unref(sample);
+    }
+    gst_object_unref(sink);
   }
 
   int Power(bool p)
@@ -229,35 +201,14 @@ public:
     return ret;
   }
 
-  /*gboolean _SetCaps(const char * format, int width, int height, int fps)
-  {
-    GstElement * bin = gst_bin_get_by_name(GST_BIN(_pipeline), "filter");
-
-    GstCaps * caps = gst_caps_new_empty();
-
-    GstStructure * structure = gst_structure_from_string("video/x-raw", NULL);
-    gst_structure_set(
-      structure,
-      "format", G_TYPE_STRING, format,
-      "width", G_TYPE_INT, width,
-      "height", G_TYPE_INT, height,
-      "framerate", GST_TYPE_FRACTION, fps, 1,
-      NULL);
-
-    gst_caps_append_structure(caps, structure);
-
-    g_object_set(G_OBJECT(bin), "caps", caps, NULL);
-    gst_caps_unref(caps);
-    gst_object_unref(bin);
-    return TRUE;
-  }*/
-
 private:
   CameraTis * _node;
 
   GstElement * _pipeline;
   int _expo = 1000;
   bool _power = false;
+
+  std::thread _thread;
 };
 
 CameraTis::CameraTis(const rclcpp::NodeOptions & options)
