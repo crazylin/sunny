@@ -166,8 +166,8 @@ class SeamTracking(Node):
                 d = rnp.numpify(msg)
                 r = self.codes(d)
                 if r is not None and len(r):
-                    r['x'][0] += delta_x
-                    r['y'][0] += delta_y
+                    r['x'][0] += self.delta_x
+                    r['y'][0] += self.delta_y
                     ret = rnp.msgify(PointCloud2, r)
                     ret.header = msg.header
             except Exception as e:
