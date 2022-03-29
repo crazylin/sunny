@@ -7,15 +7,15 @@ class CustomFigure(Figure):
     def __init__(self):
         super().__init__()
 
-        bx = [-9, 16, 55, 76, -9]
-        by = [200, -4, -4, 200, 200]
+        bx = [-20, 33, 110, 152, -20]
+        by = [400, -12, -12, 400, 400]
 
         ax = super().add_subplot()
         ax.set_xlabel("X axis (mm)")
         ax.set_ylabel("Y axis (mm)")
         ax.set_title('Graph')
-        ax.set_xlim(-10, 80)
-        ax.set_ylim(-10, 210)
+        ax.set_xlim(-30, 160)
+        ax.set_ylim(-20, 420)
 
         self._pnts, = ax.plot([], [], 'b.', label='Laser')
         self._seam, = ax.plot([], [], 'go', label='Seam')

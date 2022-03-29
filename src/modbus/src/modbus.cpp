@@ -96,8 +96,8 @@ public:
 
     if (valid) {
       mb_mapping->tab_registers[2] = 255;
-      mb_mapping->tab_registers[3] = static_cast<uint16_t>(y * 100 + 9000);
-      mb_mapping->tab_registers[4] = static_cast<uint16_t>(z * 100 + 10400);
+      mb_mapping->tab_registers[3] = static_cast<uint16_t>(y * 100 + 2000);
+      mb_mapping->tab_registers[4] = static_cast<uint16_t>(z * 100 + 2000);
     } else {
       mb_mapping->tab_registers[2] = 0;
     }
