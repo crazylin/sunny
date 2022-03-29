@@ -73,7 +73,7 @@ public:
 
   void spin()
   {
-    GstElement * sink = gst_bin_get_by_name(GST_BIN(pipeline), "sink");
+    GstElement * sink = gst_bin_get_by_name(GST_BIN(_pipeline), "sink");
     int frame = 0;
     while (rclcpp::ok()) {
       GstSample* sample = NULL;
