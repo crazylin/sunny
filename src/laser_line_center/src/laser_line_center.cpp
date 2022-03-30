@@ -164,7 +164,7 @@ private:
 
       auto minPos = minEle - pRow;
       auto minP = minPos == 0 ? pRow[minPos + 1] : pRow[minPos - 1];
-      auto minN = minPos == img.cols - 1 : pRow[minPos - 1] : pRow[minPos + 1];
+      auto minN = minPos == img.cols - 1 ? pRow[minPos - 1] : pRow[minPos + 1];
 
       auto maxPos = maxEle - pRow;
       auto maxP = maxPos == 0 ? pRow[maxPos + 1] : pRow[maxPos - 1];
