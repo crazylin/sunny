@@ -152,8 +152,7 @@ private:
     pnts.reserve(img.rows * 2);
 
     cv::Sobel(img, _dx, CV_16S, 1, 0, _ksize, _scale[_ksize]);
-
-    for (decltype(img.rows) r = 1; r < img.rows - 1; ++r) {
+    for (decltype(img.rows) r = 0; r < img.rows; ++r) {
       auto pRow = _dx.ptr<short>(r);  // NOLINT
       auto minmax = std::minmax_element(pRow, pRow + img.cols);
 
@@ -164,18 +163,24 @@ private:
       auto maxVal = *maxEle;
 
       auto minPos = minEle - pRow;
+      auto minP = minPos == 0 ? pRow[minPos + 1] : pRow[minPos - 1];
+      auto minN = minPos == img.cols - 1 : pRow[minPos - 1] : pRow[minPos + 1];
+
       auto maxPos = maxEle - pRow;
+      auto maxP = maxPos == 0 ? pRow[maxPos + 1] : pRow[maxPos - 1];
+      auto maxN = maxPos == img.cols - 1 ? pRow[maxPos - 1] : pRow[maxPos + 1];
+
       auto width = minPos - maxPos;
 
-      auto a1 = pRow[maxPos - 1] + pRow[maxPos + 1] - pRow[maxPos] * 2;
-      auto b1 = pRow[maxPos + 1] - pRow[maxPos - 1];
-      auto s1 = (a1 < 0 ? -0.5 * b1 / a1 : -0.5 * b1 / 1.);
+      auto a1 = maxP + maxN - maxVal * 2;
+      auto b1 = maxP - maxN;
+      auto s1 = (a1 < 0 ? 0.5 * b1 / a1 : 0.5 * b1);
 
-      auto a2 = pRow[minPos - 1] + pRow[minPos + 1] - pRow[minPos] * 2;
-      auto b2 = pRow[minPos + 1] - pRow[minPos - 1];
-      auto s2 = (a2 > 0 ? -0.5 * b2 / a2 : -0.5 * b2 / 1.);
+      auto a2 = minP + minN - minVal * 2;
+      auto b2 = minP - minN;
+      auto s2 = (a2 > 0 ? 0.5 * b2 / a2 : 0.5 * b2);
 
-      auto c = (maxPos + minPos + s1 + s2) * 0.5;
+      auto c = (maxPos + minPos + s1 + s2) / 2.;
 
       if (
         maxVal > _threshold &&
@@ -186,7 +191,7 @@ private:
         minPos < img.cols - 1)
       {
         pnts.push_back(c);
-        pnts.push_back(static_cast<float>(r));
+        pnts.push_back(r);
       }
     }
 
@@ -214,7 +219,7 @@ private:
     ptr->fields[1].count = 1;
 
     ptr->is_bigendian = false;
-    ptr->point_step = 4 * 2;
+    ptr->point_step = 8;
     ptr->row_step = 8 * num;
 
     ptr->data.resize(8 * num);
