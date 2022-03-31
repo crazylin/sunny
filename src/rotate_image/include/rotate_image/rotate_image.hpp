@@ -30,7 +30,7 @@ public:
   explicit RotateImage(const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
   virtual ~RotateImage();
 
-  void Publish(sensor_msgs::msg::Image::UniquePtr & ptr)
+  void publish(sensor_msgs::msg::Image::UniquePtr & ptr)
   {
     _pubImage->publish(std::move(ptr));
   }
