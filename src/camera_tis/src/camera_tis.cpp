@@ -32,7 +32,7 @@ namespace camera_tis
 using sensor_msgs::msg::Image;
 using rcl_interfaces::msg::ParameterDescriptor;
 
-constexpr char PIPELINE_STR[] = 
+constexpr char PIPELINE_STR[] =
   "tcambin name=source"
   " ! video/x-raw,format=GRAY8,width=3072,height=2048,framerate=30/1"
   " ! videoscale"
@@ -68,7 +68,7 @@ public:
 
     gst_element_set_state(_pipeline, GST_STATE_PAUSED);
     _thread = std::thread(&_Impl::spin, this);
-    
+
     _handle = _node->add_on_set_parameters_callback(
       [this](const std::vector<rclcpp::Parameter> & parameters) {
         rcl_interfaces::msg::SetParametersResult result;
