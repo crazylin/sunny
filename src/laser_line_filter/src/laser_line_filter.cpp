@@ -111,7 +111,7 @@ private:
         std::promise<PointCloud2::UniquePtr> prom;
         PushBackFuture(prom.get_future());
         lk.unlock();
-        auto msg = _Execute(ptr);
+        auto msg = _Execute(std::move(ptr));
         prom.set_value(std::move(msg));
       } else {
         _points_con.wait(lk);
