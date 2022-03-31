@@ -31,6 +31,9 @@ class RosNode(Node):
         self._create_client('seam_get', GetParameters, '/seam_tracking_node/get_parameters')
         self._create_client('seam_set', SetParameters, '/seam_tracking_node/set_parameters')
 
+        self._create_client('filter_get', GetParameters, '/laser_line_filter_node/get_parameters')
+        self._create_client('filter_set', SetParameters, '/laser_line_filter_node/set_parameters')
+
     def sub_pnts(self, cb):
         qos = qos_profile_sensor_data
         qos.depth = 1
@@ -112,6 +115,12 @@ class RosNode(Node):
 
     def seam_set(self, d: dict):
         return self._set_params('seam_set', d)
+
+    def filter_get(self, params: list):
+        return self._get_params('filter_get', params)
+
+    def filter_set(self, d: dict):
+        return self._set_params('filter_set', d)
 
     def _get_params(self, name: str, params: list):
         cli = self._cli[name]

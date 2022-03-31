@@ -8,7 +8,7 @@ from ros_node import RosNode
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 from point_data import PointData
 from custom_figure import CustomFigure
-from custom_dialog import mydialog
+from custom_dialog import mydialog, filterdialog
 from codes import Codes
 from datetime import datetime
 
@@ -23,7 +23,11 @@ class App(tk.Tk):
             'laser': False,
             'task': None,
             'delta_x': None,
-            'delta_y': None
+            'delta_y': None,
+            'ws': None,
+            'dev': None,
+            'step': None,
+            'length': None
         }
 
         self.title('Seam Tracking GUI')
@@ -151,6 +155,7 @@ class App(tk.Tk):
         menu_edit = tk.Menu(menubar)
         menu_edit.add_command(label='Exposure time...', command=self._cb_menu_exposure)
         menu_edit.add_command(label='Offset...', command=self._cb_menu_offset)
+        menu_edit.add_command(label='filter...', command=self._cb_menu_filter)
         menu_help = tk.Menu(menubar)
 
         menubar.add_cascade(menu=menu_file, label='File')
@@ -225,7 +230,7 @@ class App(tk.Tk):
         y = f'{y:.2f}' if y is not None else ''
 
         dx, dy = mydialog(self, initialvalue=(x, y))
-        if dx is None or dy is None:
+        if dx is None:
             return
         future = self.ros.seam_set({
             'delta_x': dx,
@@ -237,6 +242,62 @@ class App(tk.Tk):
             )
         else:
             self._msg('Service delta is not ready!', level='Warn')
+
+    def _cb_menu_filter_done(self, future, ws, dev, step, length):
+        try:
+            rws, rdev, rstep, rlength = future.result().results
+            if rws.successful:
+                self._params['ws'] = ws
+                self._msg(f'window size set to: {ws} (pixel)')
+            else:
+                self._msg(f'{rws.reason}', level='Warn')
+
+            if rdev.successful:
+                self._params['dev'] = dev
+                self._msg(f'deviate set to: {dev:.2f} (pixel)')
+            else:
+                self._msg(f'{rdev.reason}', level='Warn')
+
+            if rstep.successful:
+                self._params['step'] = step
+                self._msg(f'step set to: {step:.2f} (pixel)')
+            else:
+                self._msg(f'{rstep.reason}', level='Warn')
+
+            if rlength.successful:
+                self._params['length'] = length
+                self._msg(f'length set to: {length} (pixel)')
+            else:
+                self._msg(f'{rlength.reason}', level='Warn')
+
+        except Exception as e:
+            self._msg(f'{str(e)}', level='Error')
+
+    def _cb_menu_filter(self, *args):
+        ws = self._params['ws']
+        dev = self._params['dev']
+        step = self._params['step']
+        length = self._params['length']
+        ws = f'{ws}' if ws is not None else ''
+        dev = f'{dev:.2f}' if dev is not None else ''
+        step = f'{step:.2f}' if step is not None else ''
+        length = f'{length}' if length is not None else ''
+
+        ws, dev, step, length = filterdialog(self, initialvalue=(ws, dev, step, length))
+        if ws is None:
+            return
+        future = self.ros.filter_set({
+            'window_size': ws,
+            'deviate': dev,
+            'step': step,
+            'length': length
+        })
+        if future is not None:
+            future.add_done_callback(
+                lambda f: self._cb_menu_filter_done(f, ws, dev, step, length)
+            )
+        else:
+            self._msg('Service filter is not ready!', level='Warn')
 
     def _cb_btn_laser(self, *args):
         if self.btn_laser['text'] == 'Laser on':
@@ -440,6 +501,16 @@ class App(tk.Tk):
         except Exception as e:
             self._msg(f'{str(e)}', level='Error')
 
+    def _filter_get_done(self, future):
+        try:
+            ws, dev, step, length = future.result().values
+            self._params['ws'] = ws.integer_value
+            self._params['dev'] = dev.double_value
+            self._params['step'] = step.double_value
+            self._params['length'] = length.integer_value
+        except Exception as e:
+            self._msg(f'{str(e)}', level='Error')
+
     def _refresh(self):
         if f := self.ros.get_codes():
             f.add_done_callback(self._get_codes_done)
@@ -460,6 +531,11 @@ class App(tk.Tk):
             f.add_done_callback(self._seam_get_done)
         else:
             self._msg('Service seam get parameters is not ready!', level='Warn')
+
+        if f := self.ros.filter_get(['window_size', 'deviate', 'step', 'length']):
+            f.add_done_callback(self._filter_get_done)
+        else:
+            self._msg('Service filter get parameters is not ready!', level='Warn')
 
     def _cb_btn_refresh(self, *args):
         self._msg('Button [Refresh] clicked')

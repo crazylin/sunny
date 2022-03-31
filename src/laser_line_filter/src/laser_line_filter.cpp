@@ -240,7 +240,7 @@ LaserLineFilter::LaserLineFilter(const rclcpp::NodeOptions & options)
     }
   );
 
-  this->add_on_set_parameters_callback(
+  _parCallbackHandle = this->add_on_set_parameters_callback(
    [this](const std::vector<rclcpp::Parameter> & parameters) {
       rcl_interfaces::msg::SetParametersResult result;
       result.successful = true;
@@ -249,21 +249,25 @@ LaserLineFilter::LaserLineFilter(const rclcpp::NodeOptions & options)
           if (parameter.as_int() <= 0) {
             result.successful = false;
             result.reason = "Failed to set window size";
+            return result;
           }
         } else if (parameter.get_name() == "deviate") {
           if (parameter.as_double() <= 0) {
             result.successful = false;
             result.reason = "Failed to set deviate";
+            return result;
           }
         } else if (parameter.get_name() == "step") {
           if (parameter.as_double() <= 0) {
             result.successful = false;
             result.reason = "Failed to set step";
+            return result;
           }
         } else if (parameter.get_name() == "length") {
           if (parameter.as_int() <= 0) {
             result.successful = false;
             result.reason = "Failed to set length";
+            return result;
           }
         }
       }

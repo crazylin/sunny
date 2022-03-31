@@ -44,6 +44,8 @@ private:
 
   const char * _subName = "~/line";
   rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr _sub;
+
+  OnSetParametersCallbackHandle::SharedPtr _parCallbackHandle;
 };
 
 }  // namespace laser_line_filter
