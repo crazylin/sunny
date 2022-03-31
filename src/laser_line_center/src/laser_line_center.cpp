@@ -191,7 +191,8 @@ private:
         minPos < img.cols - 1)
       {
         pnts.push_back(c);
-        pnts.push_back(r);
+      } else {
+        pnts.push_back(-1.);
       }
     }
 
@@ -200,33 +201,28 @@ private:
 
   PointCloud2::UniquePtr _ConstructPointCloud2(const std::vector<float> & pnts)
   {
-    auto num = pnts.size() / 2;
+    auto num = pnts.size();
     auto ptr = std::make_unique<PointCloud2>();
 
     ptr->height = 1;
     ptr->width = num;
 
-    ptr->fields.resize(2);
+    ptr->fields.resize(1);
 
     ptr->fields[0].name = "u";
     ptr->fields[0].offset = 0;
     ptr->fields[0].datatype = 7;
     ptr->fields[0].count = 1;
 
-    ptr->fields[1].name = "v";
-    ptr->fields[1].offset = 4;
-    ptr->fields[1].datatype = 7;
-    ptr->fields[1].count = 1;
-
     ptr->is_bigendian = false;
-    ptr->point_step = 8;
-    ptr->row_step = 8 * num;
+    ptr->point_step = 4;
+    ptr->row_step = num * 4;
 
-    ptr->data.resize(8 * num);
+    ptr->data.resize(num * 4);
 
     ptr->is_dense = true;
 
-    memcpy(ptr->data.data(), pnts.data(), 8 * num);
+    memcpy(ptr->data.data(), pnts.data(), num * 4);
 
     return ptr;
   }

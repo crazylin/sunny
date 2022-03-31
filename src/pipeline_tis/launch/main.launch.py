@@ -73,6 +73,23 @@ def generate_launch_description():
         extra_arguments=[{'use_intra_process_comms': True}])
 
     configFile = os.path.join(
+        get_package_share_directory('laser_line_filter'),
+        'config',
+        'params.yaml')
+
+    with open(configFile, 'r') as file:
+        handle = yaml.safe_load(file)
+        configParams = handle['laser_line_filter_node']['ros__parameters']
+        configParams['workers'] = 2
+
+    laser_line_filter_node = ComposableNode(
+        package='laser_line_filter',
+        plugin='laser_line_filter::LaserLineFilter',
+        remappings=[('~/line', '/laser_line_center_node/line')],
+        parameters=[configParams],
+        extra_arguments=[{'use_intra_process_comms': True}])
+
+    configFile = os.path.join(
         get_package_share_directory('line_center_reconstruction'),
         'config',
         'params.yaml')
@@ -85,7 +102,7 @@ def generate_launch_description():
     line_center_reconstruction_node = ComposableNode(
         package='line_center_reconstruction',
         plugin='line_center_reconstruction::LineCenterReconstruction',
-        remappings=[('~/line', '/laser_line_center_node/line')],
+        remappings=[('~/line', '/laser_line_filter_node/line_filtered')],
         parameters=[configParams],
         extra_arguments=[{'use_intra_process_comms': True}])
 
@@ -98,6 +115,7 @@ def generate_launch_description():
             camera_tis_node,
             rotate_image_node,
             laser_line_center_node,
+            laser_line_filter_node,
             line_center_reconstruction_node],
         output='screen')
 

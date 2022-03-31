@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>pipeline_tis</name>
+  <name>laser_line_filter</name>
   <version>0.0.0</version>
   <description>TODO: Package description</description>
   <maintainer email="zhuoqiw@hotmail.com">zhuoqiw</maintainer>
@@ -10,14 +10,8 @@
   <buildtool_depend>ament_cmake</buildtool_depend>
 
   <depend>rclcpp</depend>
-  <depend>camera_tis</depend>
-  <depend>rotate_image</depend>
-  <depend>laser_line_center</depend>
-  <depend>laser_line_filter</depend>
-  <depend>line_center_reconstruction</depend>
-  <depend>seam_tracking</depend>
-  <depend>modbus</depend>
-  <depend>gpio_raspberry</depend>
+  <depend>rclcpp_components</depend>
+  <depend>sensor_msgs</depend>
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>
