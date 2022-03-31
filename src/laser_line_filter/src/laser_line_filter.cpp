@@ -164,10 +164,10 @@ private:
         }
         buf[i] = sum / hit;
       }
-      
+
       // filter by diff with average
       for (int i = 0; i < num; ++i) {
-        if (p[i] < 0) {
+        if (p[i] < 0 || buf[i] < 0) {
           continue;
         }
         if (abs(p[i] - buf[i]) > dev) { // diff
