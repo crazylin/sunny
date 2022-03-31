@@ -119,24 +119,24 @@ private:
     }
   }
 
-  PointCloud2::UniquePtr _Execute(PointCloud2::UniquePtr & ptr)
+  PointCloud2::UniquePtr _Execute(PointCloud2::UniquePtr ptr)
   {
+    auto num = ptr->width;
     if (ptr->header.frame_id == "-1" || num == 0) {
       return ptr;
     } else {
-      auto num = ptr->width;
       std::vector<float> buf;
       buf.resize(num, -1);
       auto p = reinterpret_cast<float *>(ptr->data.data());
 
-      for (auto i = 10; i < num - 10; ++i) { // window
+      for (int i = 10; i < num - 10; ++i) { // window
         if (p[i] < 0) {
           continue;
         }
 
         float sum = 0;
         int hit = 0;
-        for (auto j = -10; j <= 10; ++j { // window
+        for (auto j = -10; j <= 10; ++j) { // window
           if (p[i + j] < 0) {
             continue;
           }
@@ -147,7 +147,7 @@ private:
       }
       
       // filter by diff with average
-      for (auto i = 0; i < num; ++i) {
+      for (int i = 0; i < num; ++i) {
         if (p[i] < 0) {
           continue;
         }
