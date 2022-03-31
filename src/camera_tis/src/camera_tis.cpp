@@ -76,7 +76,7 @@ public:
     GstElement * sink = gst_bin_get_by_name(GST_BIN(_pipeline), "sink");
     int frame = 0;
     while (rclcpp::ok()) {
-      GstSample* sample = NULL;
+      GstSample * sample = NULL;
       g_signal_emit_by_name(sink, "pull-sample", &sample, NULL);
       if (sample == NULL) {
         continue;

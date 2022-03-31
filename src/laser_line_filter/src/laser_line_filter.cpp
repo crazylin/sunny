@@ -138,7 +138,9 @@ private:
     }
   }
 
-  PointCloud2::UniquePtr _Execute(PointCloud2::UniquePtr ptr, int ws, int gap, double dev, double step, int length)
+  PointCloud2::UniquePtr _Execute(
+    PointCloud2::UniquePtr ptr,
+    int ws, int gap, double dev, double step, int length)
   {
     auto num = static_cast<int>(ptr->width);
     if (ptr->header.frame_id == "-1" || num == 0) {
@@ -148,14 +150,14 @@ private:
       buf.resize(num, -1);
       auto p = reinterpret_cast<float *>(ptr->data.data());
 
-      for (int i = ws; i < num - ws; ++i) { // window
+      for (int i = ws; i < num - ws; ++i) {
         if (p[i] < 0) {
           continue;
         }
 
         float sum = 0;
         int hit = 0;
-        for (auto j = -ws; j <= ws; ++j) { // window
+        for (auto j = -ws; j <= ws; ++j) {
           if (p[i + j] < 0) {
             continue;
           }
@@ -170,7 +172,7 @@ private:
         if (p[i] < 0 || buf[i] < 0) {
           continue;
         }
-        if (abs(p[i] - buf[i]) > dev) { // diff
+        if (abs(p[i] - buf[i]) > dev) {
           p[i] = -1;
         }
       }
@@ -189,15 +191,14 @@ private:
             ++j;
             continue;
           }
-          if (j - f < gap && abs(p[j] - p[f]) / (j - f) < step) { // step
+          if (j - f <= gap && abs(p[j] - p[f]) / (j - f) < step) {
             f = j;
             ++j;
-          }
-          else {
+          } else {
             break;
           }
         }
-        if (f - i < length) { // width
+        if (f - i < length) {
           for (auto k = i; k <= f; ++k) {
             p[k] = -1;
           }
@@ -243,7 +244,7 @@ LaserLineFilter::LaserLineFilter(const rclcpp::NodeOptions & options)
   );
 
   _parCallbackHandle = this->add_on_set_parameters_callback(
-   [this](const std::vector<rclcpp::Parameter> & parameters) {
+    [this](const std::vector<rclcpp::Parameter> & parameters) {
       rcl_interfaces::msg::SetParametersResult result;
       result.successful = true;
       for (const auto & parameter : parameters) {
