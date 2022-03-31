@@ -30,13 +30,10 @@ public:
   explicit CameraTis(const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
   virtual ~CameraTis();
 
-  void Publish(sensor_msgs::msg::Image::UniquePtr & ptr)
+  void publish(sensor_msgs::msg::Image::UniquePtr & ptr)
   {
     _pubImage->publish(std::move(ptr));
   }
-
-private:
-  void _Init();
 
 private:
   const char * _pubImageName = "~/image";
@@ -44,10 +41,6 @@ private:
 
   class _Impl;
   std::unique_ptr<_Impl> _impl;
-
-  OnSetParametersCallbackHandle::SharedPtr _parCallbackHandle;
-
-  std::thread _init;
 };
 
 }  // namespace camera_tis

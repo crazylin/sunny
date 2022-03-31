@@ -30,8 +30,17 @@ namespace camera_tis
 {
 
 using sensor_msgs::msg::Image;
+using rcl_interfaces::msg::ParameterDescriptor
 
-const auto WIDTH = 1536, HEIGHT = 1024, SIZE = 1536 * 1024, FPS = 60;
+constexpr char PIPELINE_STR[] = 
+  "tcambin name=source"
+  " ! video/x-raw,format=GRAY8,width=3072,height=2048,framerate=30/1"
+  " ! videoscale"
+  " ! video/x-raw,width=1536,height=1024"
+  " ! appsink name=sink emit-signals=true sync=false drop=true max-buffers=4";
+
+constexpr int WIDTH = 1536, HEIGHT = 1024, SIZE = WIDTH * HEIGHT;
+constexpr int EXPOSURE = 1000;
 
 class CameraTis::_Impl
 {
@@ -39,29 +48,50 @@ public:
   explicit _Impl(CameraTis * ptr)
   : _node(ptr)
   {
-    _InitializeParameters();
-    _UpdateParameters();
+    declare_parameters();
     gst_debug_set_default_threshold(GST_LEVEL_WARNING);
     gst_init(NULL, NULL);
-    const char * pipeline_str =
-      "tcambin name=source "
-      "! video/x-raw,format=GRAY8,width=3072,height=2048,framerate=30/1 "
-      "! videoscale "
-      "! video/x-raw,width=1536,height=1024 "
-      "! appsink name=sink emit-signals=true sync=false drop=true max-buffers=4";
-    GError * err = NULL;
-    _pipeline = gst_parse_launch(pipeline_str, &err);
+
+    _pipeline = gst_parse_launch(PIPELINE_STR, NULL);
     if (_pipeline == NULL) {
       throw std::runtime_error("TIS pipeline fail");
     }
 
-    _SetProperty("Exposure Auto", false);
-    _SetProperty("Gain Auto", false);
-    _SetProperty("Exposure Time (us)", _expo);
-    _SetProperty("Brightness", 0);
+    set_property("Exposure Auto", false);
+    set_property("Gain Auto", false);
+    set_property("Brightness", 0);
+
+    auto e = exposure();
+    if (set_exposure(e)) {
+      throw std::runtime_error("TIS set exposure fail");
+    }
 
     gst_element_set_state(_pipeline, GST_STATE_PAUSED);
     _thread = std::thread(&_Impl::spin, this);
+    
+    _handle = = _node->add_on_set_parameters_callback(
+      [this](const std::vector<rclcpp::Parameter> & parameters) {
+        rcl_interfaces::msg::SetParametersResult result;
+        result.successful = true;
+        for (const auto & p : parameters) {
+          if (p.get_name() == "exposure_time") {
+            auto ret = this->set_exposure(p.as_int());
+            if (ret) {
+              result.successful = false;
+              result.reason = "Failed to set exposure time";
+              return result;
+            }
+          } else if (p.get_name() == "power") {
+            auto ret = this->set_power(p.as_bool());
+            if (ret) {
+              result.successful = false;
+              result.reason = "Failed to set power";
+              return result;
+            }
+          }
+        }
+        return result;
+      });
   }
 
   ~_Impl()
@@ -99,7 +129,7 @@ public:
         ptr->step = WIDTH;
         ptr->data.resize(SIZE);
         memcpy(ptr->data.data(), info.data, SIZE);
-        _node->Publish(ptr);
+        _node->publish(ptr);
         gst_buffer_unmap(buffer, &info);
       }
       gst_sample_unref(sample);
@@ -107,58 +137,55 @@ public:
     gst_object_unref(sink);
   }
 
-  int Power(bool p)
+  int exposure()
   {
-    if (p) {
-      return PowerOn();
-    } else {
-      return PowerOff();
-    }
+    return _node->get_parameter("exposure_time").as_int();
   }
 
-  int PowerOn()
+  int set_exposure(int e)
   {
-    if (!_power) {
-      auto ret = gst_element_set_state(_pipeline, GST_STATE_PLAYING);
-      if (ret != GST_STATE_CHANGE_FAILURE) {
-        _power = true;
-        return 0;
-      } else {
+    return set_property("Exposure Time (us)", e) ? 0 : 1;
+  }
+
+  bool power()
+  {
+    return _node->get_parameter("power").as_bool();
+  }
+
+  int set_power(bool p)
+  {
+    return p ? power_on() : power_off();
+  }
+
+  int power_on()
+  {
+    if (power() == false) {
+      if (gst_element_set_state(_pipeline, GST_STATE_PLAYING) == GST_STATE_CHANGE_FAILURE) {
         return 1;
       }
-    } else {
-      return 0;
     }
+
+    return 0;
   }
 
-  int PowerOff()
+  int power_off()
   {
-    if (_power) {
-      auto ret = gst_element_set_state(_pipeline, GST_STATE_PAUSED);
-      if (ret != GST_STATE_CHANGE_FAILURE) {
-        _power = false;
-        return 0;
-      } else {
+    if (power()) {
+      if (gst_element_set_state(_pipeline, GST_STATE_PAUSED) == GST_STATE_CHANGE_FAILURE) {
         return 1;
       }
-    } else {
-      return 0;
     }
+
+    return 0;
   }
 
-  void _InitializeParameters()
+  void declare_parameters()
   {
-    _node->declare_parameter("exposure_time", _expo);
-    _node->declare_parameter("power", _power);
+    _node->declare_parameter("exposure_time", EXPOSURE);
+    _node->declare_parameter("power", false, ParameterDescriptor(), true);
   }
 
-  void _UpdateParameters()
-  {
-    _node->get_parameter("exposure_time", _expo);
-    _node->get_parameter("power", _power);
-  }
-
-  gboolean _SetProperty(const char * property, const char * value)
+  gboolean set_property(const char * property, const char * value)
   {
     gboolean ret = FALSE;
     GstElement * bin = gst_bin_get_by_name(GST_BIN(_pipeline), "source");
@@ -171,7 +198,7 @@ public:
     return ret;
   }
 
-  gboolean _SetProperty(const char * property, int value)
+  gboolean set_property(const char * property, int value)
   {
     gboolean ret = FALSE;
     GstElement * bin = gst_bin_get_by_name(GST_BIN(_pipeline), "source");
@@ -203,24 +230,23 @@ public:
 
 private:
   CameraTis * _node;
-
   GstElement * _pipeline;
-  int _expo = 1000;
-  bool _power = false;
-
   std::thread _thread;
+  OnSetParametersCallbackHandle::SharedPtr _handle;
 };
 
 CameraTis::CameraTis(const rclcpp::NodeOptions & options)
 : Node("camera_tis_node", options)
 {
-  _init = std::thread(&CameraTis::_Init, this);
+  _pubImage = this->create_publisher<Image>(_pubImageName, rclcpp::SensorDataQoS());
+  _impl = std::make_unique<_Impl>(this);
+
+  RCLCPP_INFO(this->get_logger(), "Initialized successfully");
 }
 
 CameraTis::~CameraTis()
 {
   try {
-    _init.join();
     _impl.reset();
     _pubImage.reset();
 
@@ -229,44 +255,6 @@ CameraTis::~CameraTis()
     RCLCPP_ERROR(this->get_logger(), "Exception in destructor: %s", e.what());
   } catch (...) {
     RCLCPP_ERROR(this->get_logger(), "Exception in destructor: unknown");
-  }
-}
-
-void CameraTis::_Init()
-{
-  try {
-    _pubImage = this->create_publisher<Image>(_pubImageName, rclcpp::SensorDataQoS());
-
-    _impl = std::make_unique<_Impl>(this);
-
-    _parCallbackHandle = this->add_on_set_parameters_callback(
-      [this](const std::vector<rclcpp::Parameter> & parameters) {
-        rcl_interfaces::msg::SetParametersResult result;
-        result.successful = true;
-        for (const auto & parameter : parameters) {
-          if (parameter.get_name() == "exposure_time") {
-            auto ret = this->_impl->_SetProperty("Exposure Time (us)", parameter.as_int());
-            if (ret != TRUE) {
-              result.successful = false;
-              result.reason = "Failed to set exposure time";
-            }
-          } else if (parameter.get_name() == "power") {
-            auto ret = this->_impl->Power(parameter.as_bool());
-            if (ret) {
-              result.successful = false;
-              result.reason = "Failed to set power";
-            }
-          }
-        }
-        return result;
-      });
-    RCLCPP_INFO(this->get_logger(), "Initialized successfully");
-  } catch (const std::exception & e) {
-    RCLCPP_ERROR(this->get_logger(), "Exception in initializer: %s", e.what());
-    rclcpp::shutdown();
-  } catch (...) {
-    RCLCPP_ERROR(this->get_logger(), "Exception in initializer: unknown");
-    rclcpp::shutdown();
   }
 }
 
