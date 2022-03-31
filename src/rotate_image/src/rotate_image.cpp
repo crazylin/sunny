@@ -135,7 +135,7 @@ private:
 
 int workers(const rclcpp::NodeOptions & options)
 {
-  for (const auto& p : options->parameter_overrides()) {
+  for (const auto& p : options.parameter_overrides()) {
     if (p->get_name() == "workers") {
       return p->as_int();
     }
