@@ -25,6 +25,7 @@ class App(tk.Tk):
             'delta_x': None,
             'delta_y': None,
             'ws': None,
+            'gap': None,
             'dev': None,
             'step': None,
             'length': None
@@ -155,7 +156,7 @@ class App(tk.Tk):
         menu_edit = tk.Menu(menubar)
         menu_edit.add_command(label='Exposure time...', command=self._cb_menu_exposure)
         menu_edit.add_command(label='Offset...', command=self._cb_menu_offset)
-        menu_edit.add_command(label='filter...', command=self._cb_menu_filter)
+        menu_edit.add_command(label='Filter...', command=self._cb_menu_filter)
         menu_help = tk.Menu(menubar)
 
         menubar.add_cascade(menu=menu_file, label='File')
@@ -243,14 +244,20 @@ class App(tk.Tk):
         else:
             self._msg('Service delta is not ready!', level='Warn')
 
-    def _cb_menu_filter_done(self, future, ws, dev, step, length):
+    def _cb_menu_filter_done(self, future, ws, gap, dev, step, length):
         try:
-            rws, rdev, rstep, rlength = future.result().results
+            rws, rgap, rdev, rstep, rlength = future.result().results
             if rws.successful:
                 self._params['ws'] = ws
                 self._msg(f'window size set to: {ws} (pixel)')
             else:
                 self._msg(f'{rws.reason}', level='Warn')
+
+            if rgap.successful:
+                self._params['gap'] = gap
+                self._msg(f'gap set to: {gap} (pixel)')
+            else:
+                self._msg(f'{rgap.reason}', level='Warn')
 
             if rdev.successful:
                 self._params['dev'] = dev
@@ -275,26 +282,29 @@ class App(tk.Tk):
 
     def _cb_menu_filter(self, *args):
         ws = self._params['ws']
+        gap = self._params['gap']
         dev = self._params['dev']
         step = self._params['step']
         length = self._params['length']
         ws = f'{ws}' if ws is not None else ''
+        gap = f'{gap}' if gap is not None else ''
         dev = f'{dev:.2f}' if dev is not None else ''
         step = f'{step:.2f}' if step is not None else ''
         length = f'{length}' if length is not None else ''
 
-        ws, dev, step, length = filterdialog(self, initialvalue=(ws, dev, step, length))
+        ws, gap, dev, step, length = filterdialog(self, initialvalue=(ws, gap, dev, step, length))
         if ws is None:
             return
         future = self.ros.filter_set({
             'window_size': ws,
+            'gap': gap,
             'deviate': dev,
             'step': step,
             'length': length
         })
         if future is not None:
             future.add_done_callback(
-                lambda f: self._cb_menu_filter_done(f, ws, dev, step, length)
+                lambda f: self._cb_menu_filter_done(f, ws, gap, dev, step, length)
             )
         else:
             self._msg('Service filter is not ready!', level='Warn')
@@ -503,8 +513,9 @@ class App(tk.Tk):
 
     def _filter_get_done(self, future):
         try:
-            ws, dev, step, length = future.result().values
+            ws, gap, dev, step, length = future.result().values
             self._params['ws'] = ws.integer_value
+            self._params['gap'] = gap.integer_value
             self._params['dev'] = dev.double_value
             self._params['step'] = step.double_value
             self._params['length'] = length.integer_value
@@ -532,7 +543,7 @@ class App(tk.Tk):
         else:
             self._msg('Service seam get parameters is not ready!', level='Warn')
 
-        if f := self.ros.filter_get(['window_size', 'deviate', 'step', 'length']):
+        if f := self.ros.filter_get(['window_size', 'gap', 'deviate', 'step', 'length']):
             f.add_done_callback(self._filter_get_done)
         else:
             self._msg('Service filter get parameters is not ready!', level='Warn')

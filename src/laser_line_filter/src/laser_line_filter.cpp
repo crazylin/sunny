@@ -80,6 +80,7 @@ private:
   {
     _node->declare_parameter("workers", 1);
     _node->declare_parameter("window_size", 10);
+    _node->declare_parameter("gap", 5);
     _node->declare_parameter("deviate", 5.);
     _node->declare_parameter("step", 2.);
     _node->declare_parameter("length", 30);
@@ -90,13 +91,14 @@ private:
     _node->get_parameter("workers", _workers);
   }
 
-  void _GetParameters(int & ws, double & dev, double & step, int & length)
+  void _GetParameters(int & ws, int & gap, double & dev, double & step, int & length)
   {
-    auto vp = _node->get_parameters({"window_size", "deviate", "step", "length"});
+    auto vp = _node->get_parameters({"window_size", "gap", "deviate", "step", "length"});
     ws = vp[0].as_int();
-    dev = vp[1].as_double();
-    step = vp[2].as_double();
-    length = vp[3].as_int();
+    gap = vp[1].as_int();
+    dev = vp[2].as_double();
+    step = vp[3].as_double();
+    length = vp[4].as_int();
   }
 
   void _Manager()
@@ -124,11 +126,11 @@ private:
         _points.pop_front();
         std::promise<PointCloud2::UniquePtr> prom;
         PushBackFuture(prom.get_future());
-        int ws, length;
+        int ws, gap, length;
         double dev, step;
-        _GetParameters(ws, dev, step, length);
+        _GetParameters(ws, gap, dev, step, length);
         lk.unlock();
-        auto msg = _Execute(std::move(ptr), ws, dev, step, length);
+        auto msg = _Execute(std::move(ptr), ws, gap, dev, step, length);
         prom.set_value(std::move(msg));
       } else {
         _points_con.wait(lk);
@@ -136,7 +138,7 @@ private:
     }
   }
 
-  PointCloud2::UniquePtr _Execute(PointCloud2::UniquePtr ptr, int ws, double dev, double step, int length)
+  PointCloud2::UniquePtr _Execute(PointCloud2::UniquePtr ptr, int ws, int gap, double dev, double step, int length)
   {
     auto num = static_cast<int>(ptr->width);
     if (ptr->header.frame_id == "-1" || num == 0) {
@@ -187,7 +189,7 @@ private:
             ++j;
             continue;
           }
-          if (abs(p[j] - p[f]) / (j - f) < step) { // step
+          if (j - f < gap && abs(p[j] - p[f]) / (j - f) < step) { // step
             f = j;
             ++j;
           }

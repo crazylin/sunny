@@ -57,11 +57,12 @@ def mydialog(app, *, initialvalue=('', '')):
     return dialog._x, dialog._y
 
 class FilterDialog(Dialog):
-    def __init__(self, parent, title, *, initialvalue=('', '', '', '')):
+    def __init__(self, parent, title, *, initialvalue=('', '', '', '', '')):
         self._ws = initialvalue[0]
-        self._dev = initialvalue[1]
-        self._step = initialvalue[2]
-        self._length = initialvalue[3]
+        self._gap = initialvalue[1]
+        self._dev = initialvalue[2]
+        self._step = initialvalue[3]
+        self._length = initialvalue[4]
         super().__init__(parent, title)
 
     def body(self, frame):
@@ -74,6 +75,16 @@ class FilterDialog(Dialog):
         self.ws_unit = tk.Label(ws, width=5, text="pixel")
         self.ws_unit.pack(side=tk.LEFT)
         ws.pack()
+
+        gap = tk.Frame(frame)
+        self.gap_label = tk.Label(gap, width=10, text="gap:")
+        self.gap_label.pack(side=tk.LEFT)
+        self.gap_box = tk.Entry(gap, width=15)
+        self.gap_box.insert(tk.END, str(self._gap))
+        self.gap_box.pack(side=tk.LEFT)
+        self.gap_unit = tk.Label(gap, width=5, text="pixel")
+        self.gap_unit.pack(side=tk.LEFT)
+        gap.pack()
 
         dev = tk.Frame(frame)
         self.dev_label = tk.Label(dev, width=10, text="deviate:")
@@ -110,6 +121,7 @@ class FilterDialog(Dialog):
     def ok_pressed(self):
         try:
             self._ws = int(self.ws_box.get())
+            self._gap = int(self.gap_box.get())
             self._dev = float(self.dev_box.get())
             self._step = float(self.step_box.get())
             self._length = int(self.length_box.get())
@@ -120,6 +132,7 @@ class FilterDialog(Dialog):
 
     def cancel_pressed(self):
         self._ws = None
+        self._gap = None
         self._dev = None
         self._step = None
         self._length = None
@@ -135,4 +148,4 @@ class FilterDialog(Dialog):
 
 def filterdialog(app, *, initialvalue=('', '', '', '')):
     dialog = FilterDialog(title="Filter", parent=app, initialvalue=initialvalue)
-    return dialog._ws, dialog._dev, dialog._step, dialog._length
+    return dialog._ws, dialog._gap, dialog._dev, dialog._step, dialog._length
