@@ -42,6 +42,7 @@ public:
       _threads.push_back(std::thread(&_Impl::_Worker, this));
     }
     _threads.push_back(std::thread(&_Impl::_Manager, this));
+
     RCLCPP_INFO(_node->get_logger(), "Employ %d workers successfully", _workers);
   }
 
@@ -77,12 +78,25 @@ public:
 private:
   void _InitializeParameters()
   {
-    _node->declare_parameter("workers", _workers);
+    _node->declare_parameter("workers", 1);
+    _node->declare_parameter("window_size", 10);
+    _node->declare_parameter("deviate", 5.);
+    _node->declare_parameter("step", 2.);
+    _node->declare_parameter("length", 30);
   }
 
   void _UpdateParameters()
   {
     _node->get_parameter("workers", _workers);
+  }
+
+  void _GetParameters(int & ws, double & dev, double & step, int & length)
+  {
+    auto vp = _node->get_parameters({"window_size", "deviate", "step", "length"});
+    ws = vp[0].as_int();
+    dev = vp[1].as_double();
+    step = vp[2].as_double();
+    length = vp[3].as_int();
   }
 
   void _Manager()
@@ -110,8 +124,11 @@ private:
         _points.pop_front();
         std::promise<PointCloud2::UniquePtr> prom;
         PushBackFuture(prom.get_future());
+        int ws, length;
+        double dev, step;
+        _GetParameters(ws, dev, step, length);
         lk.unlock();
-        auto msg = _Execute(std::move(ptr));
+        auto msg = _Execute(std::move(ptr), ws, dev, step, length);
         prom.set_value(std::move(msg));
       } else {
         _points_con.wait(lk);
@@ -119,7 +136,7 @@ private:
     }
   }
 
-  PointCloud2::UniquePtr _Execute(PointCloud2::UniquePtr ptr)
+  PointCloud2::UniquePtr _Execute(PointCloud2::UniquePtr ptr, int ws, double dev, double step, int length)
   {
     auto num = static_cast<int>(ptr->width);
     if (ptr->header.frame_id == "-1" || num == 0) {
@@ -129,14 +146,14 @@ private:
       buf.resize(num, -1);
       auto p = reinterpret_cast<float *>(ptr->data.data());
 
-      for (int i = 10; i < num - 10; ++i) { // window
+      for (int i = ws; i < num - ws; ++i) { // window
         if (p[i] < 0) {
           continue;
         }
 
         float sum = 0;
         int hit = 0;
-        for (auto j = -10; j <= 10; ++j) { // window
+        for (auto j = -ws; j <= ws; ++j) { // window
           if (p[i + j] < 0) {
             continue;
           }
@@ -151,7 +168,7 @@ private:
         if (p[i] < 0) {
           continue;
         }
-        if (abs(p[i] - buf[i]) > 5) { // diff
+        if (abs(p[i] - buf[i]) > dev) { // diff
           p[i] = -1;
         }
       }
@@ -170,7 +187,7 @@ private:
             ++j;
             continue;
           }
-          if (abs(p[j] - p[f]) / (j - f) < 2) { // step
+          if (abs(p[j] - p[f]) / (j - f) < step) { // step
             f = j;
             ++j;
           }
@@ -178,7 +195,7 @@ private:
             break;
           }
         }
-        if (f - i < 30) { // width
+        if (f - i < length) { // width
           for (auto k = i; k <= f; ++k) {
             p[k] = -1;
           }
@@ -222,6 +239,36 @@ LaserLineFilter::LaserLineFilter(const rclcpp::NodeOptions & options)
       _impl->PushBackPoint(ptr);
     }
   );
+
+  this->add_on_set_parameters_callback(
+   [this](const std::vector<rclcpp::Parameter> & parameters) {
+      rcl_interfaces::msg::SetParametersResult result;
+      result.successful = true;
+      for (const auto & parameter : parameters) {
+        if (parameter.get_name() == "window_size") {
+          if (parameter.as_int() <= 0) {
+            result.successful = false;
+            result.reason = "Failed to set window size";
+          }
+        } else if (parameter.get_name() == "deviate") {
+          if (parameter.as_double() <= 0) {
+            result.successful = false;
+            result.reason = "Failed to set deviate";
+          }
+        } else if (parameter.get_name() == "step") {
+          if (parameter.as_double() <= 0) {
+            result.successful = false;
+            result.reason = "Failed to set step";
+          }
+        } else if (parameter.get_name() == "length") {
+          if (parameter.as_int() <= 0) {
+            result.successful = false;
+            result.reason = "Failed to set length";
+          }
+        }
+      }
+      return result;
+    });
 
   RCLCPP_INFO(this->get_logger(), "Ininitialized successfully");
 }

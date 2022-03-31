@@ -239,7 +239,7 @@ void CameraTis::_Init()
 
     _impl = std::make_unique<_Impl>(this);
 
-    _parCallbackHandle = this->add_on_set_parameters_callback(
+    this->add_on_set_parameters_callback(
       [this](const std::vector<rclcpp::Parameter> & parameters) {
         rcl_interfaces::msg::SetParametersResult result;
         result.successful = true;

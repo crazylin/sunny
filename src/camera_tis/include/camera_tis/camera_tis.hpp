@@ -45,8 +45,6 @@ private:
   class _Impl;
   std::unique_ptr<_Impl> _impl;
 
-  OnSetParametersCallbackHandle::SharedPtr _parCallbackHandle;
-
   std::thread _init;
 };
 
