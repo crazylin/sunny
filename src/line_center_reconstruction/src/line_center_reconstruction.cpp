@@ -141,6 +141,11 @@ private:
       return msg;
     } else {
       auto src = _FromPointCloud2(ptr);
+      if (src.empty()) {
+        auto msg = std::make_unique<PointCloud2>();
+        msg->header = ptr->header;
+        return msg;
+      }
       std::vector<cv::Point2f> dst;
       dst.reserve(ptr->width);
       cv::perspectiveTransform(src, dst, _H);

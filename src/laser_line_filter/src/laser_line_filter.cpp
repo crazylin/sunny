@@ -121,7 +121,7 @@ private:
 
   PointCloud2::UniquePtr _Execute(PointCloud2::UniquePtr ptr)
   {
-    auto num = ptr->width;
+    auto num = static_cast<int>(ptr->width);
     if (ptr->header.frame_id == "-1" || num == 0) {
       return ptr;
     } else {
