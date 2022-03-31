@@ -253,6 +253,12 @@ LaserLineFilter::LaserLineFilter(const rclcpp::NodeOptions & options)
             result.reason = "Failed to set window size";
             return result;
           }
+        } else if (parameter.get_name() == "gap") {
+          if (parameter.as_int() <= 0) {
+            result.successful = false;
+            result.reason = "Failed to set gap";
+            return result;
+          }
         } else if (parameter.get_name() == "deviate") {
           if (parameter.as_double() <= 0) {
             result.successful = false;
