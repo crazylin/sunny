@@ -29,14 +29,10 @@ public:
   virtual ~GpioRaspberry();
 
 private:
-  void _InitializeParameters();
-  void _UpdateParameters();
-
-private:
   class _Impl;
   std::unique_ptr<_Impl> _impl;
 
-  OnSetParametersCallbackHandle::SharedPtr _parCallbackHandle;
+  OnSetParametersCallbackHandle::SharedPtr _handle;
 };
 
 }  // namespace gpio_raspberry

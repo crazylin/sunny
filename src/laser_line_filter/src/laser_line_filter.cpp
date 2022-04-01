@@ -19,6 +19,7 @@
 #include <future>
 #include <map>
 #include <memory>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -35,7 +36,7 @@ struct Params
   Params(LaserLineFilter * node)
   {
     const auto & vp = node->get_parameters(KEYS);
-    for ( const auto & p : vp) {
+    for (const auto & p : vp) {
       if (p.get_name() == "enable") {
         enable = p.as_bool();
       } else if (p.get_name() == "window_size") {

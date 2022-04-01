@@ -24,6 +24,8 @@
 namespace gpio_raspberry
 {
 
+using rcl_interfaces::msg::ParameterDescriptor;
+
 class GpioRaspberry::_Impl
 {
 public:
@@ -40,7 +42,7 @@ public:
   {
   }
 
-  int Laser(bool f)
+  int laser(bool f)
   {
     if (f) {
       return gpiod_line_set_value(_line_26.get(), 1);
@@ -58,20 +60,19 @@ private:
 GpioRaspberry::GpioRaspberry(const rclcpp::NodeOptions & options)
 : Node("gpio_raspberry_node", options), _impl(new _Impl)
 {
-  _InitializeParameters();
+  this->declare_parameter("laser", false, ParameterDescriptor(), true);
 
-  _UpdateParameters();
-
-  _parCallbackHandle = this->add_on_set_parameters_callback(
+  _handle = this->add_on_set_parameters_callback(
     [this](const std::vector<rclcpp::Parameter> & parameters) {
       rcl_interfaces::msg::SetParametersResult result;
       result.successful = true;
-      for (const auto & parameter : parameters) {
-        if (parameter.get_name() == "laser") {
-          auto ret = this->_impl->Laser(parameter.as_bool());
+      for (const auto & p : parameters) {
+        if (p.get_name() == "laser") {
+          auto ret = this->_impl->laser(p.as_bool());
           if (ret) {
             result.successful = false;
             result.reason = "Failed to set laser";
+            return result;
           }
         }
       }
@@ -90,16 +91,6 @@ GpioRaspberry::~GpioRaspberry()
   } catch (...) {
     RCLCPP_FATAL(this->get_logger(), "Exception in destructor: unknown");
   }
-}
-
-void GpioRaspberry::_InitializeParameters()
-{
-  this->declare_parameter("laser", false);
-}
-
-void GpioRaspberry::_UpdateParameters()
-{
-  // this->get_parameter("laser", _laser);
 }
 
 }  // namespace gpio_raspberry

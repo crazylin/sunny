@@ -19,6 +19,7 @@
 #include <future>
 #include <map>
 #include <memory>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -40,13 +41,13 @@ const std::map<int, double> SCALAR = {
   {7, 1. / 640.},
   {-1, 1. / 16.},
 };
-  
+
 struct Params
 {
   Params(LaserLineCenter * node)
   {
     const auto & vp = node->get_parameters(KEYS);
-    for ( const auto & p : vp) {
+    for (const auto & p : vp) {
       if (p.get_name() == "ksize") {
         ksize = p.as_int();
       } else if (p.get_name() == "threshold") {
