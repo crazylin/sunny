@@ -28,7 +28,7 @@ namespace laser_line_filter
 using sensor_msgs::msg::PointCloud2;
 using sensor_msgs::msg::PointField;
 
-const std::vector<std::string> KEYS = {"window_size", "gap", "deviate", "step", "length"};
+const std::vector<std::string> KEYS = {"enable", "window_size", "gap", "deviate", "step", "length"};
 
 struct Params
 {
@@ -36,7 +36,9 @@ struct Params
   {
     const auto & vp = node->get_parameters(KEYS);
     for ( const auto & p : vp) {
-      if (p.get_name() == "window_size") {
+      if (p.get_name() == "enable") {
+        enable = p.as_bool();
+      } else if (p.get_name() == "window_size") {
         ws = p.as_int();
       } else if (p.get_name() == "gap") {
         gap = p.as_int();
@@ -50,6 +52,7 @@ struct Params
     }
   }
 
+  bool enable;
   int ws;
   int gap;
   double dev;
@@ -63,7 +66,7 @@ public:
   explicit _Impl(LaserLineFilter * ptr, int w)
   : _node(ptr), _workers(w)
   {
-    declare_parameters()
+    declare_parameters();
     for (int i = 0; i < w; ++i) {
       _threads.push_back(std::thread(&_Impl::worker, this));
     }
@@ -83,6 +86,7 @@ public:
 
   void declare_parameters()
   {
+    _node->declare_parameter("enable", false);
     _node->declare_parameter("window_size", 10);
     _node->declare_parameter("gap", 5);
     _node->declare_parameter("deviate", 5.);
@@ -151,6 +155,10 @@ public:
 
   PointCloud2::UniquePtr execute(PointCloud2::UniquePtr ptr, const Params & pms)
   {
+    if (pms.enable == false) {
+      return ptr;
+    }
+
     auto num = static_cast<int>(ptr->width);
     if (ptr->header.frame_id == "-1" || num == 0) {
       return ptr;
