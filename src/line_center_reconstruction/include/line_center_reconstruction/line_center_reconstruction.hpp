@@ -30,19 +30,19 @@ public:
   explicit LineCenterReconstruction(const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
   virtual ~LineCenterReconstruction();
 
-  void Publish(sensor_msgs::msg::PointCloud2::UniquePtr & ptr)
+  void publish(sensor_msgs::msg::PointCloud2::UniquePtr & ptr)
   {
     _pub->publish(std::move(ptr));
   }
 
 private:
-  const char * _pubName = "~/pnts";
+  const char * _pub_name = "~/pnts";
   rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr _pub;
 
   class _Impl;
   std::unique_ptr<_Impl> _impl;
 
-  const char * _subName = "~/line";
+  const char * _sub_name = "~/line";
   rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr _sub;
 };
 
