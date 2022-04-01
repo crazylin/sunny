@@ -31,27 +31,19 @@ public:
   explicit Modbus(const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
   ~Modbus();
 
-public:
-  void GpioLaser(bool);
-  void CameraPower(bool);
+  void gpio_laser(bool);
+  void camera_power(bool);
 
-private:
-  void _Init();
-  void _InitializeParameters();
-  void _UpdateParameters();
-  void _Sub(sensor_msgs::msg::PointCloud2::UniquePtr ptr);
 
 private:
   class _Impl;
   std::unique_ptr<_Impl> _impl;
 
-  const char * _subName = "~/seam";
+  const char * _sub_name = "~/seam";
   rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr _sub;
 
   std::shared_ptr<rclcpp::AsyncParametersClient> _param_camera;
   std::shared_ptr<rclcpp::AsyncParametersClient> _param_gpio;
-
-  std::thread _init;
 };
 
 }  // namespace modbus

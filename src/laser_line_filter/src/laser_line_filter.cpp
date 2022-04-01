@@ -33,7 +33,7 @@ const std::vector<std::string> KEYS = {"enable", "window_size", "gap", "deviate"
 
 struct Params
 {
-  Params(LaserLineFilter * node)
+  explicit Params(LaserLineFilter * node)
   {
     const auto & vp = node->get_parameters(KEYS);
     for (const auto & p : vp) {
@@ -53,12 +53,12 @@ struct Params
     }
   }
 
-  bool enable;
-  int ws;
-  int gap;
-  double dev;
-  double step;
-  int length;
+  bool enable = false;
+  int ws = 10;
+  int gap = 5;
+  double dev = 5.;
+  double step = 2.;
+  int length = 30;
 };
 
 class LaserLineFilter::_Impl
@@ -73,11 +73,52 @@ public:
     }
     _threads.push_back(std::thread(&_Impl::manager, this));
 
+    _handle = _node->add_on_set_parameters_callback(
+    [this](const std::vector<rclcpp::Parameter> & vp) {
+      rcl_interfaces::msg::SetParametersResult result;
+      result.successful = true;
+      for (const auto & p : vp) {
+        if (p.get_name() == "window_size") {
+          if (p.as_int() <= 0) {
+            result.successful = false;
+            result.reason = "Failed to set window size";
+            return result;
+          }
+        } else if (p.get_name() == "gap") {
+          if (p.as_int() <= 0) {
+            result.successful = false;
+            result.reason = "Failed to set gap";
+            return result;
+          }
+        } else if (p.get_name() == "deviate") {
+          if (p.as_double() <= 0) {
+            result.successful = false;
+            result.reason = "Failed to set deviate";
+            return result;
+          }
+        } else if (p.get_name() == "step") {
+          if (p.as_double() <= 0) {
+            result.successful = false;
+            result.reason = "Failed to set step";
+            return result;
+          }
+        } else if (p.get_name() == "length") {
+          if (p.as_int() <= 0) {
+            result.successful = false;
+            result.reason = "Failed to set length";
+            return result;
+          }
+        }
+      }
+      return result;
+    });
+
     RCLCPP_INFO(_node->get_logger(), "Employ %d workers successfully", w);
   }
 
   ~_Impl()
   {
+    _handle.reset();
     _points_con.notify_all();
     _futures_con.notify_one();
     for (auto & t : _threads) {
@@ -242,6 +283,8 @@ private:
   std::deque<std::future<PointCloud2::UniquePtr>> _futures;
 
   std::vector<std::thread> _threads;
+
+  OnSetParametersCallbackHandle::SharedPtr _handle;
 };
 
 int workers(const rclcpp::NodeOptions & options)
@@ -269,46 +312,6 @@ LaserLineFilter::LaserLineFilter(const rclcpp::NodeOptions & options)
       _impl->push_back_point(ptr);
     }
   );
-
-  _handle = this->add_on_set_parameters_callback(
-    [this](const std::vector<rclcpp::Parameter> & parameters) {
-      rcl_interfaces::msg::SetParametersResult result;
-      result.successful = true;
-      for (const auto & parameter : parameters) {
-        if (parameter.get_name() == "window_size") {
-          if (parameter.as_int() <= 0) {
-            result.successful = false;
-            result.reason = "Failed to set window size";
-            return result;
-          }
-        } else if (parameter.get_name() == "gap") {
-          if (parameter.as_int() <= 0) {
-            result.successful = false;
-            result.reason = "Failed to set gap";
-            return result;
-          }
-        } else if (parameter.get_name() == "deviate") {
-          if (parameter.as_double() <= 0) {
-            result.successful = false;
-            result.reason = "Failed to set deviate";
-            return result;
-          }
-        } else if (parameter.get_name() == "step") {
-          if (parameter.as_double() <= 0) {
-            result.successful = false;
-            result.reason = "Failed to set step";
-            return result;
-          }
-        } else if (parameter.get_name() == "length") {
-          if (parameter.as_int() <= 0) {
-            result.successful = false;
-            result.reason = "Failed to set length";
-            return result;
-          }
-        }
-      }
-      return result;
-    });
 
   RCLCPP_INFO(this->get_logger(), "Ininitialized successfully");
 }

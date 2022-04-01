@@ -36,13 +36,13 @@ public:
   }
 
 private:
-  const char * _pubImageName = "~/image_rotated";
-  rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr _pubImage;
+  const char * _pub_name = "~/image_rotated";
+  rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr _pub;
 
   class _Impl;
   std::unique_ptr<_Impl> _impl;
 
-  const char * _subName = "~/image";
+  const char * _sub_name = "~/image";
   rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr _sub;
 };
 

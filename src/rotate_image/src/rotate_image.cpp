@@ -145,7 +145,7 @@ int workers(const rclcpp::NodeOptions & options)
 RotateImage::RotateImage(const rclcpp::NodeOptions & options)
 : Node("rotate_image_node", options)
 {
-  _pubImage = this->create_publisher<Image>(_pubImageName, rclcpp::SensorDataQoS());
+  _pub = this->create_publisher<Image>(_pub_name, rclcpp::SensorDataQoS());
 
   _impl = std::make_unique<_Impl>(this, workers(options));
 
@@ -166,7 +166,7 @@ RotateImage::~RotateImage()
   try {
     _sub.reset();
     _impl.reset();
-    _pubImage.reset();
+    _pub.reset();
 
     RCLCPP_INFO(this->get_logger(), "Destroyed successfully");
   } catch (const std::exception & e) {
