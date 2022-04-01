@@ -31,19 +31,19 @@ public:
   explicit LaserLineCenter(const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
   virtual ~LaserLineCenter();
 
-  void Publish(sensor_msgs::msg::PointCloud2::UniquePtr & ptr)
+  void publish(sensor_msgs::msg::PointCloud2::UniquePtr & ptr)
   {
     _pub->publish(std::move(ptr));
   }
 
 private:
-  const char * _pubName = "~/line";
+  const char * _pub_name = "~/line";
   rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr _pub;
 
   class _Impl;
   std::unique_ptr<_Impl> _impl;
 
-  const char * _subName = "~/image";
+  const char * _sub_name = "~/image";
   rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr _sub;
 };
 
