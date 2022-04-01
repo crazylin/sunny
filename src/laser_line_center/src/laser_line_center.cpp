@@ -68,8 +68,8 @@ struct Params
 class LaserLineCenter::_Impl
 {
 public:
-  explicit _Impl(LaserLineCenter * ptr, int w) : _workers(w)
-  : _node(ptr)
+  explicit _Impl(LaserLineCenter * ptr, int w)
+  : _node(ptr), _workers(w)
   {
     declare_parameters();
     for (int i = 0; i < w; ++i) {
@@ -165,7 +165,7 @@ public:
     std::vector<float> pnts;
     pnts.reserve(img.rows * 2);
 
-    cv::Sobel(img, buf, CV_16S, 1, 0, pms.ksize, SCALAR[pms.ksize]);
+    cv::Sobel(img, buf, CV_16S, 1, 0, pms.ksize, SCALAR.at(pms.ksize));
     for (decltype(img.rows) r = 0; r < img.rows; ++r) {
       auto pRow = buf.ptr<short>(r);  // NOLINT
       auto minmax = std::minmax_element(pRow, pRow + img.cols);
