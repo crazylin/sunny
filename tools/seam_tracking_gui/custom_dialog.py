@@ -67,7 +67,7 @@ class FilterDialog(Dialog):
 
     def body(self, frame):
         ws = tk.Frame(frame)
-        self.ws_label = tk.Label(ws, width=10, text="window size:")
+        self.ws_label = tk.Label(ws, width=10, text="window size:", anchor=tk.E)
         self.ws_label.pack(side=tk.LEFT)
         self.ws_box = tk.Entry(ws, width=15)
         self.ws_box.insert(tk.END, str(self._ws))
@@ -77,7 +77,7 @@ class FilterDialog(Dialog):
         ws.pack()
 
         gap = tk.Frame(frame)
-        self.gap_label = tk.Label(gap, width=10, text="gap:")
+        self.gap_label = tk.Label(gap, width=10, text="gap:", anchor=tk.E)
         self.gap_label.pack(side=tk.LEFT)
         self.gap_box = tk.Entry(gap, width=15)
         self.gap_box.insert(tk.END, str(self._gap))
@@ -87,7 +87,7 @@ class FilterDialog(Dialog):
         gap.pack()
 
         dev = tk.Frame(frame)
-        self.dev_label = tk.Label(dev, width=10, text="deviate:")
+        self.dev_label = tk.Label(dev, width=10, text="deviate:", anchor=tk.E)
         self.dev_label.pack(side=tk.LEFT)
         self.dev_box = tk.Entry(dev, width=15)
         self.dev_box.insert(tk.END, str(self._dev))
@@ -97,7 +97,7 @@ class FilterDialog(Dialog):
         dev.pack()
 
         step = tk.Frame(frame)
-        self.step_label = tk.Label(step, width=10, text="step:")
+        self.step_label = tk.Label(step, width=10, text="step:", anchor=tk.E)
         self.step_label.pack(side=tk.LEFT)
         self.step_box = tk.Entry(step, width=15)
         self.step_box.insert(tk.END, str(self._step))
@@ -107,7 +107,7 @@ class FilterDialog(Dialog):
         step.pack()
 
         length = tk.Frame(frame)
-        self.length_label = tk.Label(length, width=10, text="length:")
+        self.length_label = tk.Label(length, width=10, text="length:", anchor=tk.E)
         self.length_label.pack(side=tk.LEFT)
         self.length_box = tk.Entry(length, width=15)
         self.length_box.insert(tk.END, str(self._length))
