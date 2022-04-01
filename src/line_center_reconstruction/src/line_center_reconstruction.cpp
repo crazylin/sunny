@@ -66,7 +66,7 @@ public:
 
   void get_parameters()
   {
-    const auto & vp = node->get_parameters(KEYS);
+    const auto & vp = _node->get_parameters(KEYS);
     for ( const auto & p : vp) {
       if (p.get_name() == "camera_matrix") {
         _coef = cv::Mat(p.as_double_array(), true).reshape(1, 3);
@@ -134,7 +134,7 @@ public:
 
   PointCloud2::UniquePtr execute(PointCloud2::UniquePtr & ptr)
   {
-    if (ptr->header.frame_id == "-1" || ptr->data.empty) {
+    if (ptr->header.frame_id == "-1" || ptr->data.empty()) {
       auto msg = std::make_unique<PointCloud2>();
       msg->header = ptr->header;
       return msg;

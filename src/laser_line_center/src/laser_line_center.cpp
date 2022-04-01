@@ -242,9 +242,8 @@ public:
   }
 
 private:
-  int _workers;
-
   LaserLineCenter * _node;
+  int _workers;
 
   std::mutex _images_mut;
   std::condition_variable _images_con;
