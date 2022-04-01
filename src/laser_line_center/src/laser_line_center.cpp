@@ -31,6 +31,16 @@ using sensor_msgs::msg::Image;
 using sensor_msgs::msg::PointCloud2;
 using sensor_msgs::msg::PointField;
 
+const std::vector<std::string> KEYS = {"ksize", "threshold", "width_min", "width_max"};
+
+const std::map<int, double> SCALAR = {
+  {1, 1.},
+  {3, 1. / 4.},
+  {5, 1. / 48.},
+  {7, 1. / 640.},
+  {-1, 1. / 16.},
+};
+  
 struct Params
 {
   Params(LaserLineCenter * node)
@@ -49,21 +59,11 @@ struct Params
     }
   }
 
-  const static std::vector<std::string> KEYS = {"ksize", "threshold", "width_min", "width_max"};
-
-  const static std::map<int, double> SCALAR = {
-    {1, 1.},
-    {3, 1. / 4.},
-    {5, 1. / 48.},
-    {7, 1. / 640.},
-    {-1, 1. / 16.},
-  };
-
   int ksize;
   int threshold;
   int width_min;
   int width_max;
-}
+};
 
 class LaserLineCenter::_Impl
 {
@@ -165,7 +165,7 @@ public:
     std::vector<float> pnts;
     pnts.reserve(img.rows * 2);
 
-    cv::Sobel(img, buf, CV_16S, 1, 0, pms.ksize, Params::SCALAR[pms.ksize]);
+    cv::Sobel(img, buf, CV_16S, 1, 0, pms.ksize, SCALAR[pms.ksize]);
     for (decltype(img.rows) r = 0; r < img.rows; ++r) {
       auto pRow = buf.ptr<short>(r);  // NOLINT
       auto minmax = std::minmax_element(pRow, pRow + img.cols);
