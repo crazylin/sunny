@@ -101,6 +101,12 @@ public:
     gst_object_unref(_pipeline);
   }
 
+  void declare_parameters()
+  {
+    _node->declare_parameter("exposure_time", EXPOSURE);
+    _node->declare_parameter("power", false, ParameterDescriptor(), true);
+  }
+
   void spin()
   {
     GstElement * sink = gst_bin_get_by_name(GST_BIN(_pipeline), "sink");
@@ -179,12 +185,6 @@ public:
     return 0;
   }
 
-  void declare_parameters()
-  {
-    _node->declare_parameter("exposure_time", EXPOSURE);
-    _node->declare_parameter("power", false, ParameterDescriptor(), true);
-  }
-
   gboolean set_property(const char * property, const char * value)
   {
     gboolean ret = FALSE;
@@ -238,7 +238,7 @@ private:
 CameraTis::CameraTis(const rclcpp::NodeOptions & options)
 : Node("camera_tis_node", options)
 {
-  _pubImage = this->create_publisher<Image>(_pubImageName, rclcpp::SensorDataQoS());
+  _pub = this->create_publisher<Image>(_pub_name, rclcpp::SensorDataQoS());
   _impl = std::make_unique<_Impl>(this);
 
   RCLCPP_INFO(this->get_logger(), "Initialized successfully");
@@ -248,7 +248,7 @@ CameraTis::~CameraTis()
 {
   try {
     _impl.reset();
-    _pubImage.reset();
+    _pub.reset();
 
     RCLCPP_INFO(this->get_logger(), "Destroyed successfully");
   } catch (const std::exception & e) {

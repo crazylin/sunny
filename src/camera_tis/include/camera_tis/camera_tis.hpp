@@ -32,12 +32,12 @@ public:
 
   void publish(sensor_msgs::msg::Image::UniquePtr & ptr)
   {
-    _pubImage->publish(std::move(ptr));
+    _pub->publish(std::move(ptr));
   }
 
 private:
-  const char * _pubImageName = "~/image";
-  rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr _pubImage;
+  const char * _pub_name = "~/image";
+  rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr _pub;
 
   class _Impl;
   std::unique_ptr<_Impl> _impl;
