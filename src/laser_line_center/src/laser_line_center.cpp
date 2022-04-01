@@ -84,7 +84,7 @@ public:
       result.successful = true;
       for (const auto & p : vp) {
         if (p.get_name() == "ksize") {
-          k = p.as_int();
+          auto k = p.as_int();
           if (k != 1 && k != 3 && k != 5 && k != 7 && k != -1) {
             result.successful = false;
             result.reason = "Failed to set ksize [1, 3, 5, 7, -1]";
