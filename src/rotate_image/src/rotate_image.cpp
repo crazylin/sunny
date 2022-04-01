@@ -150,7 +150,7 @@ RotateImage::RotateImage(const rclcpp::NodeOptions & options)
   _impl = std::make_unique<_Impl>(this, workers(options));
 
   _sub = this->create_subscription<Image>(
-    _subName,
+    _sub_name,
     rclcpp::SensorDataQoS(),
     [this](Image::UniquePtr ptr)
     {
