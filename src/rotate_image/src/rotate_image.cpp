@@ -33,9 +33,8 @@ class RotateImage::_Impl
 {
 public:
   explicit _Impl(RotateImage * ptr, int w)
-  : _node(ptr)
+  : _node(ptr), _workers(w)
   {
-    _deque_size = w + 1;
     for (int i = 0; i < w; ++i) {
       _threads.push_back(std::thread(&_Impl::worker, this));
     }
@@ -58,7 +57,7 @@ public:
     std::unique_lock<std::mutex> lk(_images_mut);
     _images.emplace_back(std::move(ptr));
     auto s = static_cast<int>(_images.size());
-    if (s > _deque_size) {
+    if (s > _workers + 1) {
       _images.pop_front();
     }
     lk.unlock();
@@ -120,7 +119,7 @@ public:
 
 private:
   RotateImage * _node;
-  int _deque_size;
+  int _workers;
 
   std::mutex _images_mut;
   std::condition_variable _images_con;
