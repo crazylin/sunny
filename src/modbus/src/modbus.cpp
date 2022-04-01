@@ -32,7 +32,6 @@ extern "C"
 namespace modbus
 {
 
-using namespace std::chrono_literals;
 using sensor_msgs::msg::PointCloud2;
 
 class Modbus::_Impl
@@ -86,7 +85,7 @@ public:
     std::lock_guard<std::mutex> lock(_mutex);
 
     if (valid) {
-      const auto & vp = node->get_parameters({"delta_x", "delta_y"});
+      const auto & vp = _node->get_parameters({"delta_x", "delta_y"});
       _mb_mapping->tab_registers[2] = 255;
       _mb_mapping->tab_registers[3] = static_cast<uint16_t>(u * 100 + vp[0].as_int());
       _mb_mapping->tab_registers[4] = static_cast<uint16_t>(v * 100 + vp[1].as_int());
