@@ -28,22 +28,48 @@ namespace laser_line_filter
 using sensor_msgs::msg::PointCloud2;
 using sensor_msgs::msg::PointField;
 
+const std::vector<std::string> KEYS = {"window_size", "gap", "deviate", "step", "length"};
+
+struct Params
+{
+  Params(LaserLineFilter * node)
+  {
+    const auto & vp = node->get_parameters(KEYS);
+    for ( const auto & p : vp) {
+      if (p.get_name() == "window_size") {
+        ws = p.as_int();
+      } else if (p.get_name() == "gap") {
+        gap = p.as_int();
+      } else if (p.get_name() == "deviate") {
+        dev = p.as_double();
+      } else if (p.get_name() == "step") {
+        step = p.as_double();
+      } else if (p.get_name() == "length") {
+        length = p.as_int();
+      }
+    }
+  }
+
+  int ws;
+  int gap;
+  double dev;
+  double step;
+  int length;
+};
+
 class LaserLineFilter::_Impl
 {
 public:
-  explicit _Impl(LaserLineFilter * ptr)
-  : _node(ptr)
+  explicit _Impl(LaserLineFilter * ptr, int w)
+  : _node(ptr), _workers(w)
   {
-    _InitializeParameters();
-    _UpdateParameters();
-    _deque_size = _workers + 1;
-
-    for (int i = 0; i < _workers; ++i) {
-      _threads.push_back(std::thread(&_Impl::_Worker, this));
+    declare_parameters()
+    for (int i = 0; i < w; ++i) {
+      _threads.push_back(std::thread(&_Impl::worker, this));
     }
-    _threads.push_back(std::thread(&_Impl::_Manager, this));
+    _threads.push_back(std::thread(&_Impl::manager, this));
 
-    RCLCPP_INFO(_node->get_logger(), "Employ %d workers successfully", _workers);
+    RCLCPP_INFO(_node->get_logger(), "Employ %d workers successfully", w);
   }
 
   ~_Impl()
@@ -55,30 +81,8 @@ public:
     }
   }
 
-  void PushBackPoint(PointCloud2::UniquePtr & ptr)
+  void declare_parameters()
   {
-    std::unique_lock<std::mutex> lk(_points_mut);
-    _points.emplace_back(std::move(ptr));
-    auto s = static_cast<int>(_points.size());
-    if (s > _deque_size) {
-      _points.pop_front();
-    }
-    lk.unlock();
-    _points_con.notify_all();
-  }
-
-  void PushBackFuture(std::future<PointCloud2::UniquePtr> f)
-  {
-    std::unique_lock<std::mutex> lk(_futures_mut);
-    _futures.emplace_back(std::move(f));
-    lk.unlock();
-    _futures_con.notify_one();
-  }
-
-private:
-  void _InitializeParameters()
-  {
-    _node->declare_parameter("workers", 1);
     _node->declare_parameter("window_size", 10);
     _node->declare_parameter("gap", 5);
     _node->declare_parameter("deviate", 5.);
@@ -86,22 +90,27 @@ private:
     _node->declare_parameter("length", 30);
   }
 
-  void _UpdateParameters()
+  void push_back_point(PointCloud2::UniquePtr & ptr)
   {
-    _node->get_parameter("workers", _workers);
+    std::unique_lock<std::mutex> lk(_points_mut);
+    _points.emplace_back(std::move(ptr));
+    auto s = static_cast<int>(_points.size());
+    if (s > _workers + 1) {
+      _points.pop_front();
+    }
+    lk.unlock();
+    _points_con.notify_all();
   }
 
-  void _GetParameters(int & ws, int & gap, double & dev, double & step, int & length)
+  void push_back_future(std::future<PointCloud2::UniquePtr> f)
   {
-    auto vp = _node->get_parameters({"window_size", "gap", "deviate", "step", "length"});
-    ws = vp[0].as_int();
-    gap = vp[1].as_int();
-    dev = vp[2].as_double();
-    step = vp[3].as_double();
-    length = vp[4].as_int();
+    std::unique_lock<std::mutex> lk(_futures_mut);
+    _futures.emplace_back(std::move(f));
+    lk.unlock();
+    _futures_con.notify_one();
   }
 
-  void _Manager()
+  void manager()
   {
     while (rclcpp::ok()) {
       std::unique_lock<std::mutex> lk(_futures_mut);
@@ -110,14 +119,14 @@ private:
         _futures.pop_front();
         lk.unlock();
         auto ptr = f.get();
-        _node->Publish(ptr);
+        _node->publish(ptr);
       } else {
         _futures_con.wait(lk);
       }
     }
   }
 
-  void _Worker()
+  void worker()
   {
     while (rclcpp::ok()) {
       std::unique_lock<std::mutex> lk(_points_mut);
@@ -125,22 +134,22 @@ private:
         auto ptr = std::move(_points.front());
         _points.pop_front();
         std::promise<PointCloud2::UniquePtr> prom;
-        PushBackFuture(prom.get_future());
-        int ws, gap, length;
-        double dev, step;
-        _GetParameters(ws, gap, dev, step, length);
+        push_back_future(prom.get_future());
+        auto pms = Params(_node);
         lk.unlock();
-        auto msg = _Execute(std::move(ptr), ws, gap, dev, step, length);
-        prom.set_value(std::move(msg));
+        if (ptr->header.frame_id == "-1" || ptr->data.empty()) {
+          prom.set_value(std::move(ptr));
+        } else {
+          auto msg = execute(std::move(ptr), pms);
+          prom.set_value(std::move(msg));
+        }
       } else {
         _points_con.wait(lk);
       }
     }
   }
 
-  PointCloud2::UniquePtr _Execute(
-    PointCloud2::UniquePtr ptr,
-    int ws, int gap, double dev, double step, int length)
+  PointCloud2::UniquePtr execute(PointCloud2::UniquePtr ptr, const Params & pms)
   {
     auto num = static_cast<int>(ptr->width);
     if (ptr->header.frame_id == "-1" || num == 0) {
@@ -150,14 +159,14 @@ private:
       buf.resize(num, -1);
       auto p = reinterpret_cast<float *>(ptr->data.data());
 
-      for (int i = ws; i < num - ws; ++i) {
+      for (int i = pms.ws; i < num - pms.ws; ++i) {
         if (p[i] < 0) {
           continue;
         }
 
         float sum = 0;
         int hit = 0;
-        for (auto j = -ws; j <= ws; ++j) {
+        for (auto j = -pms.ws; j <= pms.ws; ++j) {
           if (p[i + j] < 0) {
             continue;
           }
@@ -172,7 +181,7 @@ private:
         if (p[i] < 0 || buf[i] < 0) {
           continue;
         }
-        if (abs(p[i] - buf[i]) > dev) {
+        if (abs(p[i] - buf[i]) > pms.dev) {
           p[i] = -1;
         }
       }
@@ -191,14 +200,14 @@ private:
             ++j;
             continue;
           }
-          if (j - f <= gap && abs(p[j] - p[f]) / (j - f) < step) {
+          if (j - f <= pms.gap && abs(p[j] - p[f]) / (j - f) < pms.step) {
             f = j;
             ++j;
           } else {
             break;
           }
         }
-        if (f - i < length) {
+        if (f - i < pms.length) {
           for (auto k = i; k <= f; ++k) {
             p[k] = -1;
           }
@@ -213,8 +222,7 @@ private:
 
 private:
   LaserLineFilter * _node;
-  int _workers = 1;
-  int _deque_size;
+  int _workers;
 
   std::mutex _points_mut;
   std::condition_variable _points_con;
@@ -227,23 +235,33 @@ private:
   std::vector<std::thread> _threads;
 };
 
+int workers(const rclcpp::NodeOptions & options)
+{
+  for (const auto & p : options.parameter_overrides()) {
+    if (p.get_name() == "workers") {
+      return p.as_int();
+    }
+  }
+  return 1;
+}
+
 LaserLineFilter::LaserLineFilter(const rclcpp::NodeOptions & options)
 : Node("laser_line_filter_node", options)
 {
-  _pub = this->create_publisher<PointCloud2>(_pubName, rclcpp::SensorDataQoS());
+  _pub = this->create_publisher<PointCloud2>(_pub_name, rclcpp::SensorDataQoS());
 
-  _impl = std::make_unique<_Impl>(this);
+  _impl = std::make_unique<_Impl>(this, workers(options));
 
   _sub = this->create_subscription<PointCloud2>(
-    _subName,
+    _sub_name,
     rclcpp::SensorDataQoS(),
     [this](PointCloud2::UniquePtr ptr)
     {
-      _impl->PushBackPoint(ptr);
+      _impl->push_back_point(ptr);
     }
   );
 
-  _parCallbackHandle = this->add_on_set_parameters_callback(
+  _handle = this->add_on_set_parameters_callback(
     [this](const std::vector<rclcpp::Parameter> & parameters) {
       rcl_interfaces::msg::SetParametersResult result;
       result.successful = true;
@@ -288,11 +306,17 @@ LaserLineFilter::LaserLineFilter(const rclcpp::NodeOptions & options)
 
 LaserLineFilter::~LaserLineFilter()
 {
-  _sub.reset();
-  _impl.reset();
-  _pub.reset();
+  try {
+    _sub.reset();
+    _impl.reset();
+    _pub.reset();
 
-  RCLCPP_INFO(this->get_logger(), "Destroyed successfully");
+    RCLCPP_INFO(this->get_logger(), "Destroyed successfully");
+  } catch (const std::exception & e) {
+    RCLCPP_ERROR(this->get_logger(), "Exception in destructor: %s", e.what());
+  } catch (...) {
+    RCLCPP_ERROR(this->get_logger(), "Exception in destructor: unknown");
+  }
 }
 
 }  // namespace laser_line_filter

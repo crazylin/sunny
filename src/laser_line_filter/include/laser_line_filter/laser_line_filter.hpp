@@ -30,22 +30,22 @@ public:
   explicit LaserLineFilter(const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
   virtual ~LaserLineFilter();
 
-  void Publish(sensor_msgs::msg::PointCloud2::UniquePtr & ptr)
+  void publish(sensor_msgs::msg::PointCloud2::UniquePtr & ptr)
   {
     _pub->publish(std::move(ptr));
   }
 
 private:
-  const char * _pubName = "~/line_filtered";
+  const char * _pub_name = "~/line_filtered";
   rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr _pub;
 
   class _Impl;
   std::unique_ptr<_Impl> _impl;
 
-  const char * _subName = "~/line";
+  const char * _sub_name = "~/line";
   rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr _sub;
 
-  OnSetParametersCallbackHandle::SharedPtr _parCallbackHandle;
+  OnSetParametersCallbackHandle::SharedPtr _handle;
 };
 
 }  // namespace laser_line_filter
