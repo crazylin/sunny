@@ -8,7 +8,7 @@ from ros_node import RosNode
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 from point_data import PointData
 from custom_figure import CustomFigure
-from custom_dialog import mydialog, filterdialog
+from custom_dialog import dialog_delta, dialog_filter
 from codes import Codes
 from datetime import datetime
 
@@ -24,6 +24,7 @@ class App(tk.Tk):
             'task': None,
             'delta_x': None,
             'delta_y': None,
+            'enable': False,
             'ws': None,
             'gap': None,
             'dev': None,
@@ -230,7 +231,7 @@ class App(tk.Tk):
         x = f'{x:.2f}' if x is not None else ''
         y = f'{y:.2f}' if y is not None else ''
 
-        dx, dy = mydialog(self, initialvalue=(x, y))
+        dx, dy = dialog_delta(self, initialvalue=(x, y))
         if dx is None:
             return
         future = self.ros.seam_set({
@@ -244,36 +245,48 @@ class App(tk.Tk):
         else:
             self._msg('Service delta is not ready!', level='Warn')
 
-    def _cb_menu_filter_done(self, future, ws, gap, dev, step, length):
+    def _cb_menu_filter_done(self, future, b, ws, gap, dev, step, length):
         try:
-            rws, rgap, rdev, rstep, rlength = future.result().results
+            rb, rws, rgap, rdev, rstep, rlength = future.result().results
+            if rb.successful:
+                if self._params['enable'] != b:
+                    self._params['enable'] = b
+                    self._msg(f'enable filter set to: {b}')
+            else:
+                self._msg(f'{rb.reason}', level='Warn')
+
             if rws.successful:
-                self._params['ws'] = ws
-                self._msg(f'window size set to: {ws} (pixel)')
+                if self._params['ws'] != ws:
+                    self._params['ws'] = ws
+                    self._msg(f'window size set to: {ws} (pixel)')
             else:
                 self._msg(f'{rws.reason}', level='Warn')
 
             if rgap.successful:
-                self._params['gap'] = gap
-                self._msg(f'gap set to: {gap} (pixel)')
+                if self._params['gap'] != gap:
+                    self._params['gap'] = gap
+                    self._msg(f'gap set to: {gap} (pixel)')
             else:
                 self._msg(f'{rgap.reason}', level='Warn')
 
             if rdev.successful:
-                self._params['dev'] = dev
-                self._msg(f'deviate set to: {dev:.2f} (pixel)')
+                if self._params['dev'] != dev:
+                    self._params['dev'] = dev
+                    self._msg(f'deviate set to: {dev:.2f} (pixel)')
             else:
                 self._msg(f'{rdev.reason}', level='Warn')
 
             if rstep.successful:
-                self._params['step'] = step
-                self._msg(f'step set to: {step:.2f} (pixel)')
+                if self._params['step'] != step:
+                    self._params['step'] = step
+                    self._msg(f'step set to: {step:.2f} (pixel)')
             else:
                 self._msg(f'{rstep.reason}', level='Warn')
 
             if rlength.successful:
-                self._params['length'] = length
-                self._msg(f'length set to: {length} (pixel)')
+                if self._params['length'] != length:
+                    self._params['length'] = length
+                    self._msg(f'length set to: {length} (pixel)')
             else:
                 self._msg(f'{rlength.reason}', level='Warn')
 
@@ -281,6 +294,7 @@ class App(tk.Tk):
             self._msg(f'{str(e)}', level='Error')
 
     def _cb_menu_filter(self, *args):
+        b = self._params['enable']
         ws = self._params['ws']
         gap = self._params['gap']
         dev = self._params['dev']
@@ -292,10 +306,11 @@ class App(tk.Tk):
         step = f'{step:.2f}' if step is not None else ''
         length = f'{length}' if length is not None else ''
 
-        ws, gap, dev, step, length = filterdialog(self, initialvalue=(ws, gap, dev, step, length))
-        if ws is None:
+        b, ws, gap, dev, step, length = dialog_filter(self, initialvalue=(b, ws, gap, dev, step, length))
+        if b is None:
             return
         future = self.ros.filter_set({
+            'enable': b,
             'window_size': ws,
             'gap': gap,
             'deviate': dev,
@@ -304,7 +319,7 @@ class App(tk.Tk):
         })
         if future is not None:
             future.add_done_callback(
-                lambda f: self._cb_menu_filter_done(f, ws, gap, dev, step, length)
+                lambda f: self._cb_menu_filter_done(f, b, ws, gap, dev, step, length)
             )
         else:
             self._msg('Service filter is not ready!', level='Warn')
@@ -513,7 +528,8 @@ class App(tk.Tk):
 
     def _filter_get_done(self, future):
         try:
-            ws, gap, dev, step, length = future.result().values
+            b, ws, gap, dev, step, length = future.result().values
+            self._params['enable'] = b.bool_value
             self._params['ws'] = ws.integer_value
             self._params['gap'] = gap.integer_value
             self._params['dev'] = dev.double_value
@@ -543,7 +559,7 @@ class App(tk.Tk):
         else:
             self._msg('Service seam get parameters is not ready!', level='Warn')
 
-        if f := self.ros.filter_get(['window_size', 'gap', 'deviate', 'step', 'length']):
+        if f := self.ros.filter_get(['enable', 'window_size', 'gap', 'deviate', 'step', 'length']):
             f.add_done_callback(self._filter_get_done)
         else:
             self._msg('Service filter get parameters is not ready!', level='Warn')
