@@ -93,10 +93,8 @@ class App(tk.Tk):
         frame.columnconfigure(0, weight=1)
 
         self.bind('<<RosSubPnts>>', self.fig.update_pnts)
-        # to be replaced by update_idletasks
         self.bind('<<RosSubPnts>>', lambda e: canvas.draw_idle(), add='+')
         self.bind('<<RosSubSeam>>', self.fig.update_seam)
-        # to be replaced by update_idletasks
         self.bind('<<RosSubSeam>>', lambda e: canvas.draw_idle(), add='+')
         return frame
 
@@ -283,7 +281,6 @@ class App(tk.Tk):
             self._msg('Button [Camera on] clicked')
             future = self.ros.set_params('camera_tis_node', {'power': True})
             if future is not None:
-                # self.btn_power.state(['pressed'])
                 future.add_done_callback(
                     lambda f: self._cb_set_params_done(f, {'camera_tis_node': {'power': True}}))
             else:
@@ -292,7 +289,6 @@ class App(tk.Tk):
             self._msg('Button [Camera off] clicked')
             future = self.ros.set_params('camera_tis_node', {'power': False})
             if future is not None:
-                # self.btn_power.state(['!pressed'])
                 future.add_done_callback(
                     lambda f: self._cb_set_params_done(f, {'camera_tis_node': {'power': False}}))
             else:
@@ -311,7 +307,6 @@ class App(tk.Tk):
             self._msg('Button [Laser off] clicked')
             future = self.ros.set_params('gpio_raspberry_node', {'laser': False})
             if future is not None:
-                # self.btn_laser.state(['!pressed'])
                 future.add_done_callback(
                     lambda f: self._cb_set_params_done(f, {'gpio_raspberry_node': {'laser': False}}))
             else:

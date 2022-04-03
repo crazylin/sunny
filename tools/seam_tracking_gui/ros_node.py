@@ -71,18 +71,6 @@ class RosNode(Node):
         self._create_client('get_codes', GetCodes, '/seam_tracking_node/get_codes')
         self._create_client('set_codes', SetCodes, '/seam_tracking_node/set_codes')
 
-        # self._create_client('camera_get', GetParameters, '/camera_tis_node/get_parameters')
-        # self._create_client('camera_set', SetParameters, '/camera_tis_node/set_parameters')
-
-        # self._create_client('gpio_get', GetParameters, '/gpio_raspberry_node/get_parameters')
-        # self._create_client('gpio_set', SetParameters, '/gpio_raspberry_node/set_parameters')
-
-        # self._create_client('seam_get', GetParameters, '/seam_tracking_node/get_parameters')
-        # self._create_client('seam_set', SetParameters, '/seam_tracking_node/set_parameters')
-
-        # self._create_client('filter_get', GetParameters, '/laser_line_filter_node/get_parameters')
-        # self._create_client('filter_set', SetParameters, '/laser_line_filter_node/set_parameters')
-
     def sub_pnts(self, cb):
         qos = qos_profile_sensor_data
         qos.depth = 1
@@ -147,30 +135,6 @@ class RosNode(Node):
         else:
             return None
 
-    # def camera_get(self, params: list):
-    #     return self._get_params('camera_get', params)
-
-    # def camera_set(self, d: dict):
-    #     return self._set_params('camera_set', d)
-
-    # def gpio_get(self, params: list):
-    #     return self._get_params('gpio_get', params)
-
-    # def gpio_set(self, d: dict):
-    #     return self._set_params('gpio_set', d)
-
-    # def seam_get(self, params: list):
-    #     return self._get_params('seam_get', params)
-
-    # def seam_set(self, d: dict):
-    #     return self._set_params('seam_set', d)
-
-    # def filter_get(self, params: list):
-    #     return self._get_params('filter_get', params)
-
-    # def filter_set(self, d: dict):
-    #     return self._set_params('filter_set', d)
-
     def get_params(self, name: str, params: list):
         cli = self._cli_get[name]
         if cli.service_is_ready():
@@ -190,33 +154,6 @@ class RosNode(Node):
             return cli.call_async(request)
         else:
             return None
-
-    # def _get_params(self, name: str, params: list):
-    #     cli = self._cli[name]
-    #     if cli.service_is_ready():
-    #         request = GetParameters.Request()
-    #         request.names = params
-    #         return cli.call_async(request)
-    #     else:
-    #         return None
-
-    # def _set_params(self, name: str, d: dict):
-    #     cli = self._cli[name]
-    #     if cli.service_is_ready():
-    #         request = SetParameters.Request()
-    #         for k, v in d.items():
-    #             if type(v) is int:
-    #                 value = ParameterValue(type=ParameterType.PARAMETER_INTEGER, integer_value=v)
-    #             elif type(v) is float:
-    #                 value = ParameterValue(type=ParameterType.PARAMETER_DOUBLE, double_value=v)
-    #             elif type(v) is bool:
-    #                 value = ParameterValue(type=ParameterType.PARAMETER_BOOL, bool_value=v)
-    #             else:
-    #                 continue
-    #             request.parameters.append(Parameter(name=k, value=value))
-    #         return cli.call_async(request)
-    #     else:
-    #         return None
 
     def _create_subscription(self, sub_name, *args, **kwargs):
         if sub_name in self._sub:
