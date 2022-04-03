@@ -8,31 +8,80 @@ from shared_interfaces.srv import SetCodes
 from rcl_interfaces.srv import GetParameters, SetParameters
 from rcl_interfaces.msg import Parameter, ParameterType, ParameterValue, Log
 
+def pvalue(p: ParameterValue):
+    if p.type == ParameterType.PARAMETER_NOT_SET:
+        return None
+    elif p.type == ParameterType.PARAMETER_BOOL:
+        return p.bool_value
+    elif p.type == ParameterType.PARAMETER_DOUBLE:
+        return p.double_value
+    elif p.type == ParameterType.PARAMETER_INTEGER:
+        return p.integer_value
+    elif p.type == ParameterType.PARAMETER_STRING:
+        return p.string_value
+    elif p.type == ParameterType.PARAMETER_BOOL_ARRAY:
+        return p.bool_array_value
+    elif p.type == ParameterType.PARAMETER_DOUBLE_ARRAY:
+        return p.double_array_value
+    elif p.type == ParameterType.PARAMETER_INTEGER_ARRAY:
+        return p.integer_array_value
+    elif p.type == ParameterType.PARAMETER_STRING_ARRAY:
+        return p.string_array_value
+    else:
+        return None
+
+def rvalue(v):
+    if type(v) is int:
+        return ParameterValue(type=ParameterType.PARAMETER_INTEGER, integer_value=v)
+    elif type(v) is float:
+        return ParameterValue(type=ParameterType.PARAMETER_DOUBLE, double_value=v)
+    elif type(v) is bool:
+        return ParameterValue(type=ParameterType.PARAMETER_BOOL, bool_value=v)
+    elif type(v) is str:
+        return ParameterValue(type=ParameterType.PARAMETER_STRING, string_value=v)
+    elif type(v) is list:
+        if type(v[0]) is int:
+            return ParameterValue(type=ParameterType.PARAMETER_INTEGER_ARRAY, integer_array_value=v)
+        elif type(v[0]) is float:
+            return ParameterValue(type=ParameterType.PARAMETER_DOUBLE_ARRAY, double_array_value=v)
+        elif type(v[0]) is bool:
+            return ParameterValue(type=ParameterType.PARAMETER_BOOL_ARRAY, bool_array_value=v)
+        elif type(v[0]) is str:
+            return ParameterValue(type=ParameterType.PARAMETER_STRING_ARRAY, string_array_value=v)
+    else:
+        return None
+
 class RosNode(Node):
     """Ros node."""
 
-    def __init__(self):
+    def __init__(self, params: dict):
         super().__init__('seam_tracking_gui')
 
         self._sub = {}
         self._cli = {}
+        self._cli_get = {}
+        self._cli_set = {}
+
+        for k in params:
+            self._cli_get[k] = self.create_client(GetParameters, f'/{k}/get_parameters')
+            self._cli_set[k] = self.create_client(SetParameters, f'/{k}/set_parameters')
 
         self._create_client('get_code', GetCode, '/seam_tracking_node/get_code')
         self._create_client('set_code', SetCode, '/seam_tracking_node/set_code')
         self._create_client('get_codes', GetCodes, '/seam_tracking_node/get_codes')
         self._create_client('set_codes', SetCodes, '/seam_tracking_node/set_codes')
 
-        self._create_client('camera_get', GetParameters, '/camera_tis_node/get_parameters')
-        self._create_client('camera_set', SetParameters, '/camera_tis_node/set_parameters')
+        # self._create_client('camera_get', GetParameters, '/camera_tis_node/get_parameters')
+        # self._create_client('camera_set', SetParameters, '/camera_tis_node/set_parameters')
 
-        self._create_client('gpio_get', GetParameters, '/gpio_raspberry_node/get_parameters')
-        self._create_client('gpio_set', SetParameters, '/gpio_raspberry_node/set_parameters')
+        # self._create_client('gpio_get', GetParameters, '/gpio_raspberry_node/get_parameters')
+        # self._create_client('gpio_set', SetParameters, '/gpio_raspberry_node/set_parameters')
 
-        self._create_client('seam_get', GetParameters, '/seam_tracking_node/get_parameters')
-        self._create_client('seam_set', SetParameters, '/seam_tracking_node/set_parameters')
+        # self._create_client('seam_get', GetParameters, '/seam_tracking_node/get_parameters')
+        # self._create_client('seam_set', SetParameters, '/seam_tracking_node/set_parameters')
 
-        self._create_client('filter_get', GetParameters, '/laser_line_filter_node/get_parameters')
-        self._create_client('filter_set', SetParameters, '/laser_line_filter_node/set_parameters')
+        # self._create_client('filter_get', GetParameters, '/laser_line_filter_node/get_parameters')
+        # self._create_client('filter_set', SetParameters, '/laser_line_filter_node/set_parameters')
 
     def sub_pnts(self, cb):
         qos = qos_profile_sensor_data
@@ -98,32 +147,32 @@ class RosNode(Node):
         else:
             return None
 
-    def camera_get(self, params: list):
-        return self._get_params('camera_get', params)
+    # def camera_get(self, params: list):
+    #     return self._get_params('camera_get', params)
 
-    def camera_set(self, d: dict):
-        return self._set_params('camera_set', d)
+    # def camera_set(self, d: dict):
+    #     return self._set_params('camera_set', d)
 
-    def gpio_get(self, params: list):
-        return self._get_params('gpio_get', params)
+    # def gpio_get(self, params: list):
+    #     return self._get_params('gpio_get', params)
 
-    def gpio_set(self, d: dict):
-        return self._set_params('gpio_set', d)
+    # def gpio_set(self, d: dict):
+    #     return self._set_params('gpio_set', d)
 
-    def seam_get(self, params: list):
-        return self._get_params('seam_get', params)
+    # def seam_get(self, params: list):
+    #     return self._get_params('seam_get', params)
 
-    def seam_set(self, d: dict):
-        return self._set_params('seam_set', d)
+    # def seam_set(self, d: dict):
+    #     return self._set_params('seam_set', d)
 
-    def filter_get(self, params: list):
-        return self._get_params('filter_get', params)
+    # def filter_get(self, params: list):
+    #     return self._get_params('filter_get', params)
 
-    def filter_set(self, d: dict):
-        return self._set_params('filter_set', d)
+    # def filter_set(self, d: dict):
+    #     return self._set_params('filter_set', d)
 
-    def _get_params(self, name: str, params: list):
-        cli = self._cli[name]
+    def get_params(self, name: str, params: list):
+        cli = self._cli_get[name]
         if cli.service_is_ready():
             request = GetParameters.Request()
             request.names = params
@@ -131,23 +180,43 @@ class RosNode(Node):
         else:
             return None
 
-    def _set_params(self, name: str, d: dict):
-        cli = self._cli[name]
+    def set_params(self, name: str, d: dict):
+        cli = self._cli_set[name]
         if cli.service_is_ready():
             request = SetParameters.Request()
             for k, v in d.items():
-                if type(v) is int:
-                    value = ParameterValue(type=ParameterType.PARAMETER_INTEGER, integer_value=v)
-                elif type(v) is float:
-                    value = ParameterValue(type=ParameterType.PARAMETER_DOUBLE, double_value=v)
-                elif type(v) is bool:
-                    value = ParameterValue(type=ParameterType.PARAMETER_BOOL, bool_value=v)
-                else:
-                    continue
+                value = rvalue(v)
                 request.parameters.append(Parameter(name=k, value=value))
             return cli.call_async(request)
         else:
             return None
+
+    # def _get_params(self, name: str, params: list):
+    #     cli = self._cli[name]
+    #     if cli.service_is_ready():
+    #         request = GetParameters.Request()
+    #         request.names = params
+    #         return cli.call_async(request)
+    #     else:
+    #         return None
+
+    # def _set_params(self, name: str, d: dict):
+    #     cli = self._cli[name]
+    #     if cli.service_is_ready():
+    #         request = SetParameters.Request()
+    #         for k, v in d.items():
+    #             if type(v) is int:
+    #                 value = ParameterValue(type=ParameterType.PARAMETER_INTEGER, integer_value=v)
+    #             elif type(v) is float:
+    #                 value = ParameterValue(type=ParameterType.PARAMETER_DOUBLE, double_value=v)
+    #             elif type(v) is bool:
+    #                 value = ParameterValue(type=ParameterType.PARAMETER_BOOL, bool_value=v)
+    #             else:
+    #                 continue
+    #             request.parameters.append(Parameter(name=k, value=value))
+    #         return cli.call_async(request)
+    #     else:
+    #         return None
 
     def _create_subscription(self, sub_name, *args, **kwargs):
         if sub_name in self._sub:

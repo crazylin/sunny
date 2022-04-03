@@ -2,9 +2,10 @@
 from tkinter.simpledialog import Dialog
 
 class DialogDelta(Dialog):
-    def __init__(self, parent, title, *, initialvalue=('', '')):
-        self._x = initialvalue[0]
-        self._y = initialvalue[1]
+    def __init__(self, parent, title, *, initialvalue: dict):
+        self._ok = True
+        self._x = initialvalue['delta_x']
+        self._y = initialvalue['delta_y']
         super().__init__(parent, title)
 
     def body(self, frame):
@@ -12,7 +13,7 @@ class DialogDelta(Dialog):
         self.x_label = tk.Label(x, width=10, text='Offset x:')
         self.x_label.pack(side=tk.LEFT)
         self.x_box = tk.Entry(x, width=15)
-        self.x_box.insert(tk.END, str(self._x))
+        self.x_box.insert(tk.END, str(self._x) if self._x is not None else '')
         self.x_box.pack(side=tk.LEFT)
         self.x_unit = tk.Label(x, width=5, text='mm')
         self.x_unit.pack(side=tk.LEFT)
@@ -22,7 +23,7 @@ class DialogDelta(Dialog):
         self.y_label = tk.Label(y, width=10, text='Offset y:')
         self.y_label.pack(side=tk.LEFT)
         self.y_box = tk.Entry(y, width=15)
-        self.y_box.insert(tk.END, str(self._y))
+        self.y_box.insert(tk.END, str(self._y) if self._y is not None else '')
         self.y_box.pack(side=tk.LEFT)
         self.y_unit = tk.Label(y, width=5, text='mm')
         self.y_unit.pack(side=tk.LEFT)
@@ -40,8 +41,7 @@ class DialogDelta(Dialog):
             self.destroy()
 
     def cancel_pressed(self):
-        self._x = None
-        self._y = None
+        self._ok = False
         self.destroy()
 
     def buttonbox(self):
@@ -52,18 +52,19 @@ class DialogDelta(Dialog):
         self.bind('<Return>', lambda event: self.ok_pressed())
         self.bind('<Escape>', lambda event: self.cancel_pressed())
 
-def dialog_delta(app, *, initialvalue=('', '')):
+def dialog_delta(app, *, initialvalue: dict):
     d = DialogDelta(title='Offset', parent=app, initialvalue=initialvalue)
-    return d._x, d._y
+    return {'delta_x': d._x, 'delta_y': d._y} if d._ok else None
 
 class DialogFilter(Dialog):
-    def __init__(self, parent, title, *, initialvalue=(False, '', '', '', '', '')):
-        self._b = initialvalue[0]
-        self._ws = initialvalue[1]
-        self._gap = initialvalue[2]
-        self._dev = initialvalue[3]
-        self._step = initialvalue[4]
-        self._length = initialvalue[5]
+    def __init__(self, parent, title, *, initialvalue: dict):
+        self._ok = True
+        self._b = initialvalue['enable']
+        self._ws = initialvalue['window_size']
+        self._gap = initialvalue['gap']
+        self._dev = initialvalue['deviate']
+        self._step = initialvalue['step']
+        self._length = initialvalue['length']
         super().__init__(parent, title)
 
     def body(self, frame):
@@ -71,7 +72,7 @@ class DialogFilter(Dialog):
         self.ws_label = tk.Label(ws, width=10, text='window size:', anchor=tk.E)
         self.ws_label.pack(side=tk.LEFT)
         self.ws_box = tk.Entry(ws, width=15)
-        self.ws_box.insert(tk.END, str(self._ws))
+        self.ws_box.insert(tk.END, str(self._ws) if self._ws is not None else '')
         self.ws_box.pack(side=tk.LEFT)
         self.ws_unit = tk.Label(ws, width=5, text='pixel')
         self.ws_unit.pack(side=tk.LEFT)
@@ -81,7 +82,7 @@ class DialogFilter(Dialog):
         self.gap_label = tk.Label(gap, width=10, text='gap:', anchor=tk.E)
         self.gap_label.pack(side=tk.LEFT)
         self.gap_box = tk.Entry(gap, width=15)
-        self.gap_box.insert(tk.END, str(self._gap))
+        self.gap_box.insert(tk.END, str(self._gap) if self._gap is not None else '')
         self.gap_box.pack(side=tk.LEFT)
         self.gap_unit = tk.Label(gap, width=5, text='pixel')
         self.gap_unit.pack(side=tk.LEFT)
@@ -91,7 +92,7 @@ class DialogFilter(Dialog):
         self.dev_label = tk.Label(dev, width=10, text='deviate:', anchor=tk.E)
         self.dev_label.pack(side=tk.LEFT)
         self.dev_box = tk.Entry(dev, width=15)
-        self.dev_box.insert(tk.END, str(self._dev))
+        self.dev_box.insert(tk.END, str(self._dev) if self._dev is not None else '')
         self.dev_box.pack(side=tk.LEFT)
         self.dev_unit = tk.Label(dev, width=5, text='pixel')
         self.dev_unit.pack(side=tk.LEFT)
@@ -101,7 +102,7 @@ class DialogFilter(Dialog):
         self.step_label = tk.Label(step, width=10, text='step:', anchor=tk.E)
         self.step_label.pack(side=tk.LEFT)
         self.step_box = tk.Entry(step, width=15)
-        self.step_box.insert(tk.END, str(self._step))
+        self.step_box.insert(tk.END, str(self._step) if self._step is not None else '')
         self.step_box.pack(side=tk.LEFT)
         self.step_unit = tk.Label(step, width=5, text='pixel')
         self.step_unit.pack(side=tk.LEFT)
@@ -111,7 +112,7 @@ class DialogFilter(Dialog):
         self.length_label = tk.Label(length, width=10, text='length:', anchor=tk.E)
         self.length_label.pack(side=tk.LEFT)
         self.length_box = tk.Entry(length, width=15)
-        self.length_box.insert(tk.END, str(self._length))
+        self.length_box.insert(tk.END, str(self._length) if self._length is not None else '')
         self.length_box.pack(side=tk.LEFT)
         self.length_unit = tk.Label(length, width=5, text='pixel')
         self.length_unit.pack(side=tk.LEFT)
@@ -138,12 +139,7 @@ class DialogFilter(Dialog):
             self.destroy()
 
     def cancel_pressed(self):
-        self._b = None
-        self._ws = None
-        self._gap = None
-        self._dev = None
-        self._step = None
-        self._length = None
+        self._ok = False
         self.destroy()
 
     def buttonbox(self):
@@ -168,6 +164,13 @@ class DialogFilter(Dialog):
             self.step_box.configure(state=['disabled'])
             self.length_box.configure(state=['disabled'])
 
-def dialog_filter(app, *, initialvalue=('', '', '', '')):
+def dialog_filter(app, *, initialvalue: dict):
     d = DialogFilter(title='Filter', parent=app, initialvalue=initialvalue)
-    return d._b, d._ws, d._gap, d._dev, d._step, d._length
+    return {
+        'enable': d._b,
+        'window_size': d._ws,
+        'gap': d._gap,
+        'deviate': d._dev,
+        'step': d._step,
+        'length': d._length
+        } if d._ok else None

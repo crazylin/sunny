@@ -86,7 +86,7 @@ def fn(x: list, y: list, u: list, v: list):
             self._pos += 1
 
     def goto(self, *, id: int):
-        if 0 < id < len(self):
+        if id is not None and 0 < id < len(self):
             self._pos = id
 
     def is_begin(self):

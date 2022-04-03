@@ -4,9 +4,8 @@ from threading import Thread
 
 from tkinter import ttk, simpledialog, messagebox, filedialog
 from tkinter.scrolledtext import ScrolledText
-from ros_node import RosNode
+from ros_node import RosNode, pvalue
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
-from point_data import PointData
 from custom_figure import CustomFigure
 from custom_dialog import dialog_delta, dialog_filter
 from codes import Codes
@@ -18,26 +17,30 @@ class App(tk.Tk):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._params = {
-            'exposure_time': None,
-            'power': False,
-            'laser': False,
-            'task': None,
-            'delta_x': None,
-            'delta_y': None,
-            'enable': False,
-            'ws': None,
-            'gap': None,
-            'dev': None,
-            'step': None,
-            'length': None
+            'camera_tis_node': {'exposure_time': None, 'power': False},
+            'gpio_raspberry_node': {'laser': False},
+            'seam_tracking_node': {'task': None, 'delta_x': None, 'delta_y': None},
+            'laser_line_filter_node': {
+                'enable': False,
+                'window_size': None,
+                'gap': None,
+                'deviate': None,
+                'step': None,
+                'length': None
+            }
+        }
+
+        self._params_cb = {
+            'camera_tis_node': {'power': self._params_cb_power},
+            'gpio_raspberry_node': {'laser': self._params_cb_laser},
+            'seam_tracking_node': {'task': self._params_cb_task},
+            'laser_line_filter_node': {}
         }
 
         self.title('Seam Tracking GUI')
         self.option_add('*tearOff', False)
         self.protocol("WM_DELETE_WINDOW", self.__exit)
 
-        self.pnts_data = PointData()
-        self.seam_data = PointData()
         self.codes = Codes()
 
         self._init_menu()
@@ -56,7 +59,7 @@ class App(tk.Tk):
         self.columnconfigure(0, weight=1)
         self.columnconfigure(1, weight=3)
 
-        self.ros = RosNode()
+        self.ros = RosNode(self._params)
         self.ros.sub_pnts(self._ros_cb_pnts)
         self.ros.sub_seam(self._ros_cb_seam)
         self.ros.sub_log(self._ros_cb_log)
@@ -66,6 +69,8 @@ class App(tk.Tk):
 
         self._refresh()
 
+        self._update_codes()
+
     def __exit(self):
         self.ros.destroy_node()
         self.destroy()
@@ -73,9 +78,9 @@ class App(tk.Tk):
     def _init_plot(self):
         frame = ttk.Frame(self)
 
-        fig = CustomFigure()
+        self.fig = CustomFigure()
 
-        canvas = FigureCanvasTkAgg(fig, master=frame)
+        canvas = FigureCanvasTkAgg(self.fig, master=frame)
 
         tool = ttk.Frame(frame)
         NavigationToolbar2Tk(canvas, tool)
@@ -87,9 +92,11 @@ class App(tk.Tk):
         frame.rowconfigure(0, weight=1)
         frame.columnconfigure(0, weight=1)
 
-        self.bind('<<RosSubPnts>>', lambda e: fig.update_pnts(self.pnts_data))
+        self.bind('<<RosSubPnts>>', self.fig.update_pnts)
+        # to be replaced by update_idletasks
         self.bind('<<RosSubPnts>>', lambda e: canvas.draw_idle(), add='+')
-        self.bind('<<RosSubSeam>>', lambda e: fig.update_seam(self.seam_data))
+        self.bind('<<RosSubSeam>>', self.fig.update_seam)
+        # to be replaced by update_idletasks
         self.bind('<<RosSubSeam>>', lambda e: canvas.draw_idle(), add='+')
         return frame
 
@@ -165,11 +172,11 @@ class App(tk.Tk):
         menubar.add_cascade(menu=menu_help, label='Help')
 
     def _ros_cb_pnts(self, msg):
-        self.pnts_data.from_msg(msg)
+        self.fig.msg_to_pnts(msg)
         self.event_generate('<<RosSubPnts>>', when='tail')
 
     def _ros_cb_seam(self, msg):
-        self.seam_data.from_msg(msg)
+        self.fig.msg_to_seam(msg)
         self.event_generate('<<RosSubSeam>>', when='tail')
 
     def _ros_cb_log(self, msg):
@@ -185,264 +192,144 @@ class App(tk.Tk):
             level = 'Fatal'
         self._msg(msg.name + ': ' + msg.msg, level=level)
 
-    def _cb_menu_exposure_done(self, future, exposure):
+    def _cb_set_params_done(self, future, dd: dict):
         try:
-            res, = future.result().results
-            if res.successful:
-                self._params['exposure_time'] = exposure
-                self._msg(f'Exposure time set to: {exposure} (us)')
-            else:
-                self._msg(f'{res.reason}', level='Warn')
+            (n, d), = dd.items()
+            res = future.result().results
+            for r, k in zip(res, d):
+                if r.successful:
+                    if self._params[n][k] != d[k]:
+                        self._params[n][k] = d[k]
+                        if (cb := self._params_cb[n].get(k)) is not None:
+                            cb(d[k])
+                        self._msg(f'[{n}] [{k}] set to: {d[k]}')
+                else:
+                    self._msg(f'[{n}] [{k}] failed: {r.reason}', level='Warn')
+        except Exception as e:
+            self._msg(f'{str(e)}', level='Error')
+
+    def _cb_get_params_done(self, future, dl: dict):
+        try:
+            (n, l), = dl.items()
+            values = future.result().values
+            for p, k in zip(values, l):
+                v = pvalue(p)
+                if self._params[n][k] != v:
+                    self._params[n][k] = v
+                    if (cb := self._params_cb[n].get(k)) is not None:
+                        cb(v)
+                    self._msg(f'[{n}] [{k}] set to: {v}')
         except Exception as e:
             self._msg(f'{str(e)}', level='Error')
 
     def _cb_menu_exposure(self, *args):
-        v = self._params['exposure_time']
+        v = self._params['camera_tis_node']['exposure_time']
         v = str(v) if v is not None else ''
-        exposure = simpledialog.askinteger('Exposure time', 'Input exposure time:', initialvalue=v)
-        if exposure is None:
+        exp = simpledialog.askinteger('Exposure time', 'Input exposure time:', initialvalue=v)
+        if exp is None:
             return
-        future = self.ros.camera_set({'exposure_time': exposure})
+        d = {'exposure_time': exp}
+        future = self.ros.set_params('camera_tis_node', d)
         if future is not None:
             future.add_done_callback(
-                lambda f: self._cb_menu_exposure_done(f, exposure)
-            )
+                lambda f: self._cb_set_params_done(f, {'camera_tis_node': d}))
         else:
-            self._msg('Service exposure_time is not ready!', level='Warn')
-
-    def _cb_menu_offset_done(self, future, dx, dy):
-        try:
-            rx, ry = future.result().results
-            if rx.successful:
-                self._params['delta_x'] = dx
-                self._msg(f'Offset x set to: {dx:.2f} (mm)')
-            else:
-                self._msg(f'{rx.reason}', level='Warn')
-            if ry.successful:
-                self._params['delta_y'] = dy
-                self._msg(f'Offset y set to: {dy:.2f} (mm)')
-            else:
-                self._msg(f'{ry.reason}', level='Warn')
-        except Exception as e:
-            self._msg(f'{str(e)}', level='Error')
+            self._msg('Service [camera_tis_node] is not ready!', level='Warn')
 
     def _cb_menu_offset(self, *args):
-        x, y = self._params['delta_x'], self._params['delta_y']
-        x = f'{x:.2f}' if x is not None else ''
-        y = f'{y:.2f}' if y is not None else ''
-
-        dx, dy = dialog_delta(self, initialvalue=(x, y))
-        if dx is None:
+        d = dialog_delta(self, initialvalue=self._params['seam_tracking_node'])
+        if d is None:
             return
-        future = self.ros.seam_set({
-            'delta_x': dx,
-            'delta_y': dy
-        })
+        future = self.ros.set_params('seam_tracking_node', d)
         if future is not None:
             future.add_done_callback(
-                lambda f: self._cb_menu_offset_done(f, dx, dy)
-            )
+                lambda f: self._cb_set_params_done(f, {'seam_tracking_node': d}))
         else:
-            self._msg('Service delta is not ready!', level='Warn')
-
-    def _cb_menu_filter_done(self, future, b, ws, gap, dev, step, length):
-        try:
-            rb, rws, rgap, rdev, rstep, rlength = future.result().results
-            if rb.successful:
-                if self._params['enable'] != b:
-                    self._params['enable'] = b
-                    self._msg(f'enable filter set to: {b}')
-            else:
-                self._msg(f'{rb.reason}', level='Warn')
-
-            if rws.successful:
-                if self._params['ws'] != ws:
-                    self._params['ws'] = ws
-                    self._msg(f'window size set to: {ws} (pixel)')
-            else:
-                self._msg(f'{rws.reason}', level='Warn')
-
-            if rgap.successful:
-                if self._params['gap'] != gap:
-                    self._params['gap'] = gap
-                    self._msg(f'gap set to: {gap} (pixel)')
-            else:
-                self._msg(f'{rgap.reason}', level='Warn')
-
-            if rdev.successful:
-                if self._params['dev'] != dev:
-                    self._params['dev'] = dev
-                    self._msg(f'deviate set to: {dev:.2f} (pixel)')
-            else:
-                self._msg(f'{rdev.reason}', level='Warn')
-
-            if rstep.successful:
-                if self._params['step'] != step:
-                    self._params['step'] = step
-                    self._msg(f'step set to: {step:.2f} (pixel)')
-            else:
-                self._msg(f'{rstep.reason}', level='Warn')
-
-            if rlength.successful:
-                if self._params['length'] != length:
-                    self._params['length'] = length
-                    self._msg(f'length set to: {length} (pixel)')
-            else:
-                self._msg(f'{rlength.reason}', level='Warn')
-
-        except Exception as e:
-            self._msg(f'{str(e)}', level='Error')
+            self._msg('Service [seam_tracking_node] is not ready!', level='Warn')
 
     def _cb_menu_filter(self, *args):
-        b = self._params['enable']
-        ws = self._params['ws']
-        gap = self._params['gap']
-        dev = self._params['dev']
-        step = self._params['step']
-        length = self._params['length']
-        ws = f'{ws}' if ws is not None else ''
-        gap = f'{gap}' if gap is not None else ''
-        dev = f'{dev:.2f}' if dev is not None else ''
-        step = f'{step:.2f}' if step is not None else ''
-        length = f'{length}' if length is not None else ''
-
-        b, ws, gap, dev, step, length = dialog_filter(self, initialvalue=(b, ws, gap, dev, step, length))
-        if b is None:
+        d = dialog_filter(self, initialvalue=self._params['laser_line_filter_node'])
+        if d is None:
             return
-        future = self.ros.filter_set({
-            'enable': b,
-            'window_size': ws,
-            'gap': gap,
-            'deviate': dev,
-            'step': step,
-            'length': length
-        })
+        future = self.ros.set_params('laser_line_filter_node', d)
         if future is not None:
             future.add_done_callback(
-                lambda f: self._cb_menu_filter_done(f, b, ws, gap, dev, step, length)
-            )
+                lambda f: self._cb_set_params_done(f, {'laser_line_filter_node': d}))
         else:
-            self._msg('Service filter is not ready!', level='Warn')
+            self._msg('Service [laser_line_filter_node] is not ready!', level='Warn')
 
-    def _cb_btn_laser(self, *args):
-        if self.btn_laser['text'] == 'Laser on':
-            self._msg('Button [Laser on] clicked')
-            future = self.ros.gpio_set({'laser': True})
-            if future is not None:
-                self.btn_laser.state(['pressed'])
-                future.add_done_callback(self._cb_btn_laser_on_done)
-            else:
-                self._msg('Service gpio set parameters is not ready!', level='Warn')
+    def _params_cb_power(self, b: bool):
+        if b:
+            self.btn_power['text'] = 'Camera off'
+            self.btn_power.state(['pressed'])
         else:
-            self._msg('Button [Laser off] clicked')
-            future = self.ros.gpio_set({'laser': False})
-            if future is not None:
-                self.btn_laser.state(['!pressed'])
-                future.add_done_callback(self._cb_btn_laser_off_done)
-            else:
-                self._msg('Service gpio set parameters is not ready!', level='Warn')
-    
-    def _cb_btn_laser_on_done(self, future):
-        try:
-            res, = future.result().results
-            if res.successful:
-                self._params['laser'] = True
-                self.btn_laser['text'] = 'Laser off'
-                self._msg(f'Laser set to: on')
-            else:
-                self._msg(f'{res.reason}', level='Warn')
-                self.btn_laser.state(['!pressed'])
-        except Exception as e:
-            self._msg(f'{str(e)}', level='Error')
+            self.btn_power['text'] = 'Camera on'
+            self.btn_power.state(['!pressed'])
+
+    def _params_cb_laser(self, b: bool):
+        if b:
+            self.btn_laser['text'] = 'Laser off'
+            self.btn_laser.state(['pressed'])
+        else:
+            self.btn_laser['text'] = 'Laser on'
             self.btn_laser.state(['!pressed'])
 
-    def _cb_btn_laser_off_done(self, future):
-        try:
-            res, = future.result().results
-            if res.successful:
-                self._params['laser'] = False
-                self.btn_laser['text'] = 'Laser on'
-                self._msg(f'Laser set to: off')
-            else:
-                self._msg(f'{res.reason}', level='Warn')
-                self.btn_laser.state(['pressed'])
-        except Exception as e:
-            self._msg(f'{str(e)}', level='Error')
-            self.btn_laser.state(['pressed'])
+    def _params_cb_task(self, task: int):
+        self.codes.goto(id=task)
+        self._update_codes()
 
     def _cb_btn_power(self, *args):
         if self.btn_power['text'] == 'Camera on':
             self._msg('Button [Camera on] clicked')
-            future = self.ros.camera_set({'power': True})
+            future = self.ros.set_params('camera_tis_node', {'power': True})
             if future is not None:
-                self.btn_power.state(['pressed'])
-                future.add_done_callback(self._cb_btn_power_on_done)
+                # self.btn_power.state(['pressed'])
+                future.add_done_callback(
+                    lambda f: self._cb_set_params_done(f, {'camera_tis_node': {'power': True}}))
             else:
-                self._msg('Service camera set parameters is not ready!', level='Warn')
+                self._msg('Service [camera_tis_node] is not ready!', level='Warn')
         else:
             self._msg('Button [Camera off] clicked')
-            future = self.ros.camera_set({'power': False})
+            future = self.ros.set_params('camera_tis_node', {'power': False})
             if future is not None:
-                self.btn_power.state(['!pressed'])
-                future.add_done_callback(self._cb_btn_power_off_done)
+                # self.btn_power.state(['!pressed'])
+                future.add_done_callback(
+                    lambda f: self._cb_set_params_done(f, {'camera_tis_node': {'power': False}}))
             else:
-                self._msg('Service camera set parameters is not ready!', level='Warn')
-    
-    def _cb_btn_power_on_done(self, future):
-        try:
-            res, = future.result().results
-            if res.successful:
-                self._params['power'] = True
-                self.btn_power['text'] = 'Camera off'
-                self._msg(f'Camera set to: on')
-            else:
-                self._msg(f'{res.reason}', level='Warn')
-                self.btn_power.state(['!pressed'])
-        except Exception as e:
-            self._msg(f'{str(e)}', level='Error')
-            self.btn_power.state(['!pressed'])
+                self._msg('Service [camera_tis_node] is not ready!', level='Warn')
 
-    def _cb_btn_power_off_done(self, future):
-        try:
-            res, = future.result().results
-            if res.successful:
-                self._params['power'] = False
-                self.btn_power['text'] = 'Camera on'
-                self._msg(f'Camera set to: off')
+    def _cb_btn_laser(self, *args):
+        if self.btn_laser['text'] == 'Laser on':
+            self._msg('Button [Laser on] clicked')
+            future = self.ros.set_params('gpio_raspberry_node', {'laser': True})
+            if future is not None:
+                future.add_done_callback(
+                    lambda f: self._cb_set_params_done(f, {'gpio_raspberry_node': {'laser': True}}))
             else:
-                self._msg(f'{res.reason}', level='Warn')
-                self.btn_power.state(['pressed'])
-        except Exception as e:
-            self._msg(f'{str(e)}', level='Error')
-            self.btn_power.state(['pressed'])
-
-    def _cb_btn_task_done(self, future, task):
-        try:
-            res, = future.result().results
-            if res.successful:
-                self._params['task'] = task
-                self.codes.goto(id=task)
-                self._update_codes()
-                self._msg(f'Task set to: {task}')
+                self._msg('Service [gpio_raspberry_node] is not ready!', level='Warn')
+        else:
+            self._msg('Button [Laser off] clicked')
+            future = self.ros.set_params('gpio_raspberry_node', {'laser': False})
+            if future is not None:
+                # self.btn_laser.state(['!pressed'])
+                future.add_done_callback(
+                    lambda f: self._cb_set_params_done(f, {'gpio_raspberry_node': {'laser': False}}))
             else:
-                self._msg(f'{res.reason}', level='Warn')
-        except Exception as e:
-            self._msg(f'{str(e)}', level='Error')
+                self._msg('Service [gpio_raspberry_node] is not ready!', level='Warn')
 
     def _cb_btn_task(self, *args):
         self._msg('Button [Task] clicked')
-        v = self._params['task']
+        v = self._params['seam_tracking_node']['task']
         v = str(v) if v is not None else ''
         task = simpledialog.askinteger('Task', 'Input task ID:', initialvalue=v)
         if task is None:
             return
-        future = self.ros.seam_set({'task': task})
+        future = self.ros.set_params('seam_tracking_node', {'task': task})
         if future is not None:
             future.add_done_callback(
-                lambda f: self._cb_btn_task_done(f, task)
-            )
+                lambda f: self._cb_set_params_done(f, {'seam_tracking_node': {'task': task}}))
         else:
-            self._msg('Service seam set parameters is not ready!', level='Warn')
+            self._msg('Service [seam_tracking_node] is not ready!', level='Warn')
 
     def _cb_btn_backup(self, *args):
         self._msg('Button [Backup] clicked')
@@ -472,97 +359,6 @@ class App(tk.Tk):
                 self._msg('Upload done!')
             except Exception as e:
                 self._msg(f'{str(e)}', level='Error')
-
-    def _get_codes_done(self, future):
-        try:
-            res = future.result()
-            if res.success:
-                self.codes.loads(res.codes)
-                self.codes.goto(id=self._params['task'])
-                self._update_codes()
-            else:
-                self._msg(f'{res.message}', level='Warn')
-        except Exception as e:
-            self._msg(f'{str(e)}', level='Error')
-
-    def _camera_get_done(self, future):
-        try:
-            power, exposure = future.result().values
-            self._params['exposure_time'] = exposure.integer_value
-            if power.bool_value:
-                self._params['power'] = True
-                self.btn_power['text'] = 'Camera off'
-                self.btn_power.state(['pressed'])
-            else:
-                self._params['power'] = False
-                self.btn_power['text'] = 'Camera on'
-                self.btn_power.state(['!pressed'])
-        except Exception as e:
-            self._msg(f'{str(e)}', level='Error')
-
-    def _gpio_get_done(self, future):
-        try:
-            laser, = future.result().values
-            if laser.bool_value:
-                self._params['laser'] = True
-                self.btn_laser['text'] = 'Laser off'
-                self.btn_laser.state(['pressed'])
-            else:
-                self._params['laser'] = False
-                self.btn_laser['text'] = 'Laser on'
-                self.btn_laser.state(['!pressed'])
-        except Exception as e:
-            self._msg(f'{str(e)}', level='Error')
-
-    def _seam_get_done(self, future):
-        try:
-            task, delta_x, delta_y = future.result().values
-            task = task.integer_value
-            self._params['task'] = task
-            self._params['delta_x'] = delta_x.double_value
-            self._params['delta_y'] = delta_y.double_value
-            self.codes.goto(id=task)
-            self._update_codes()
-        except Exception as e:
-            self._msg(f'{str(e)}', level='Error')
-
-    def _filter_get_done(self, future):
-        try:
-            b, ws, gap, dev, step, length = future.result().values
-            self._params['enable'] = b.bool_value
-            self._params['ws'] = ws.integer_value
-            self._params['gap'] = gap.integer_value
-            self._params['dev'] = dev.double_value
-            self._params['step'] = step.double_value
-            self._params['length'] = length.integer_value
-        except Exception as e:
-            self._msg(f'{str(e)}', level='Error')
-
-    def _refresh(self):
-        if f := self.ros.get_codes():
-            f.add_done_callback(self._get_codes_done)
-        else:
-            self._msg('Service seam get codes is not ready!', level='Warn')
-
-        if f := self.ros.camera_get(['power', 'exposure_time']):
-            f.add_done_callback(self._camera_get_done)
-        else:
-            self._msg('Service camera get parameters is not ready!', level='Warn')
-
-        if f := self.ros.gpio_get(['laser']):
-            f.add_done_callback(self._gpio_get_done)
-        else:
-            self._msg('Service gpio get parameters is not ready!', level='Warn')
-
-        if f := self.ros.seam_get(['task', 'delta_x', 'delta_y']):
-            f.add_done_callback(self._seam_get_done)
-        else:
-            self._msg('Service seam get parameters is not ready!', level='Warn')
-
-        if f := self.ros.filter_get(['enable', 'window_size', 'gap', 'deviate', 'step', 'length']):
-            f.add_done_callback(self._filter_get_done)
-        else:
-            self._msg('Service filter get parameters is not ready!', level='Warn')
 
     def _cb_btn_refresh(self, *args):
         self._msg('Button [Refresh] clicked')
@@ -617,7 +413,7 @@ class App(tk.Tk):
         if future is not None:
             future.add_done_callback(self._cb_btn_commit_done)
         else:
-            self._msg('Service seam set codes is not ready!', level='Warn')
+            self._msg('Service [seam_tracking_node] is not ready!', level='Warn')
 
     def _cb_btn_commit_done(self, future):
         try:
@@ -629,12 +425,38 @@ class App(tk.Tk):
         except Exception as e:
             self._msg(f'{str(e)}', level='Error')
 
+    def _get_codes_done(self, future):
+        try:
+            res = future.result()
+            if res.success:
+                self.codes.loads(res.codes)
+                self.codes.goto(id=self._params['seam_tracking_node']['task'])
+                self._update_codes()
+            else:
+                self._msg(f'{res.message}', level='Warn')
+        except Exception as e:
+            self._msg(f'{str(e)}', level='Error')
+
+    def _refresh(self):
+        if f := self.ros.get_codes():
+            f.add_done_callback(self._get_codes_done)
+        else:
+            self._msg('Service [seam_tracking_node] is not ready!', level='Warn')
+
+        for n, d in self._params.items():
+            f = self.ros.get_params(n, d.keys())
+            if f is not None:
+                f.add_done_callback(
+                    lambda f, n=n, d=d: self._cb_get_params_done(f, {n: d.keys()}))
+            else:
+                self._msg(f'Service [{n}] is not ready!', level='Warn')
+
     def _update_codes(self):
         pos = self.codes.pos()
         if pos is None:
             self.btn_task['text'] = 'Task:     '
         else:
-            if pos == self._params['task']:
+            if pos == self._params['seam_tracking_node']['task']:
                 self.btn_task['text'] = f'Task: {pos:>2}*'
             else:
                 self.btn_task['text'] = f'Task: {pos:>2} '
