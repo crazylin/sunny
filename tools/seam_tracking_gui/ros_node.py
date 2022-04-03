@@ -8,7 +8,7 @@ from shared_interfaces.srv import SetCodes
 from rcl_interfaces.srv import GetParameters, SetParameters
 from rcl_interfaces.msg import Parameter, ParameterType, ParameterValue, Log
 
-def pvalue(p: ParameterValue):
+def from_parameter_value(p: ParameterValue):
     if p.type == ParameterType.PARAMETER_NOT_SET:
         return None
     elif p.type == ParameterType.PARAMETER_BOOL:
@@ -30,7 +30,7 @@ def pvalue(p: ParameterValue):
     else:
         return None
 
-def rvalue(v):
+def to_parameter_value(v):
     if type(v) is int:
         return ParameterValue(type=ParameterType.PARAMETER_INTEGER, integer_value=v)
     elif type(v) is float:
@@ -149,7 +149,7 @@ class RosNode(Node):
         if cli.service_is_ready():
             request = SetParameters.Request()
             for k, v in d.items():
-                value = rvalue(v)
+                value = to_parameter_value(v)
                 request.parameters.append(Parameter(name=k, value=value))
             return cli.call_async(request)
         else:

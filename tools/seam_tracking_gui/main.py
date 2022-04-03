@@ -4,7 +4,7 @@ from threading import Thread
 
 from tkinter import ttk, simpledialog, messagebox, filedialog
 from tkinter.scrolledtext import ScrolledText
-from ros_node import RosNode, pvalue
+from ros_node import RosNode, from_parameter_value
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 from custom_figure import CustomFigure
 from custom_dialog import dialog_delta, dialog_filter
@@ -211,7 +211,7 @@ class App(tk.Tk):
             (n, l), = dl.items()
             values = future.result().values
             for p, k in zip(values, l):
-                v = pvalue(p)
+                v = from_parameter_value(p)
                 if self._params[n][k] != v:
                     self._params[n][k] = v
                     if (cb := self._params_cb[n].get(k)) is not None:
