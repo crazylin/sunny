@@ -29,22 +29,22 @@ def from_parameter_value(p: ParameterValue):
         return None
 
 def to_parameter_value(v):
-    if type(v) is int:
+    if isinstance(v, int):
         return ParameterValue(type=ParameterType.PARAMETER_INTEGER, integer_value=v)
-    elif type(v) is float:
+    elif isinstance(v, float):
         return ParameterValue(type=ParameterType.PARAMETER_DOUBLE, double_value=v)
-    elif type(v) is bool:
+    elif isinstance(v, bool):
         return ParameterValue(type=ParameterType.PARAMETER_BOOL, bool_value=v)
-    elif type(v) is str:
+    elif isinstance(v, str):
         return ParameterValue(type=ParameterType.PARAMETER_STRING, string_value=v)
-    elif type(v) is list:
-        if type(v[0]) is int:
+    elif isinstance(v, list):
+        if isinstance(v[0], int):
             return ParameterValue(type=ParameterType.PARAMETER_INTEGER_ARRAY, integer_array_value=v)
-        elif type(v[0]) is float:
+        elif isinstance(v[0], float):
             return ParameterValue(type=ParameterType.PARAMETER_DOUBLE_ARRAY, double_array_value=v)
-        elif type(v[0]) is bool:
+        elif isinstance(v[0], bool):
             return ParameterValue(type=ParameterType.PARAMETER_BOOL_ARRAY, bool_array_value=v)
-        elif type(v[0]) is str:
+        elif isinstance(v[0], str):
             return ParameterValue(type=ParameterType.PARAMETER_STRING_ARRAY, string_array_value=v)
     else:
         return None
@@ -95,20 +95,20 @@ class RosNode(Node):
             cb,
             10)
 
-    def get_code(self, *, id: int = -1):
+    def get_code(self, index: int):
         cli = self._cli['get_code']
         if cli.service_is_ready():
             request = GetCode.Request()
-            request.index = id
+            request.index = index
             return cli.call_async(request)
         else:
             return None
 
-    def set_code(self, code, *, id: int = -1):
+    def set_code(self, index: int, code: str):
         cli = self._cli['set_code']
         if cli.service_is_ready():
             request = SetCode.Request()
-            request.index = id
+            request.index = index
             request.code = code
             return cli.call_async(request)
         else:
@@ -134,20 +134,20 @@ class RosNode(Node):
         else:
             return None
 
-    def _create_subscription(self, sub_name, *args, **kwargs):
+    def _create_subscription(self, sub_name: str, *args, **kwargs):
         if sub_name in self._sub:
             self.destroy_subscription(self._sub[sub_name])
         self._sub[sub_name] = self.create_subscription(*args, **kwargs)
 
-    def _create_client(self, cli_name, *args, **kwargs):
+    def _create_client(self, cli_name: str, *args, **kwargs):
         if cli_name in self._cli:
             self.destroy_client(self._cli[cli_name])
         self._cli[cli_name] = self.create_client(*args, **kwargs)
 
-    def _remove_subscription(self, sub_name):
+    def _remove_subscription(self, sub_name: str):
         if sub_name in self._sub:
             del self._sub[sub_name]
 
-    def _remove_client(self, cli_name):
+    def _remove_client(self, cli_name: str):
         if cli_name in self._cli:
             del self._cli[cli_name]

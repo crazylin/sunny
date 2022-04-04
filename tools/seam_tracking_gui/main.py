@@ -152,7 +152,6 @@ class App(tk.Tk):
         frame.columnconfigure(2, weight=1)
         frame.columnconfigure(3, weight=1)
 
-        self.bind('<<UpdateCode>>', lambda e: self.texts.replace(1.0, "end", self.codes.code()))
         return frame
 
     def _init_menu(self):
