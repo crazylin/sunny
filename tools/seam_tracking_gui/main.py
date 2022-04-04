@@ -9,7 +9,6 @@ from ros_node import RosNode, from_parameter_value
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 from custom_figure import CustomFigure
 from custom_dialog import dialog_delta, dialog_filter
-# from codes import Codes
 from datetime import datetime
 
 class App(tk.Tk):
@@ -18,10 +17,12 @@ class App(tk.Tk):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._lock = Lock()
+        self._task = 0
+
         self._params = {
             'camera_tis_node': {'exposure_time': 1000, 'power': False},
             'gpio_raspberry_node': {'laser': False},
-            'seam_tracking_node': {'codes': [], 'task': 0, 'delta_x': 0., 'delta_y': 0.},
+            'seam_tracking_node': {'codes': [], 'task': -1, 'delta_x': 0., 'delta_y': 0.},
             'laser_line_filter_node': {
                 'enable': False,
                 'window_size': 10,
@@ -42,9 +43,6 @@ class App(tk.Tk):
         self.title('Seam Tracking GUI')
         self.option_add('*tearOff', False)
         self.protocol("WM_DELETE_WINDOW", self.__exit)
-
-        # self.codes = Codes()
-        self._task = None
 
         self._init_menu()
 
@@ -317,20 +315,28 @@ class App(tk.Tk):
 
     def _cb_btn_task(self, *args):
         self._msg('Button [Task] clicked')
+        if self._code_modified():
+            yes = messagebox.askyesno('Question', message='Code modified, leave anyway?')
+            if not yes:
+                return
         v = self._params['seam_tracking_node']['task']
-        v = str(v) if v is not None else ''
+        v = str(v + 1) if v >= 0 else ''
         task = simpledialog.askinteger('Task', 'Input task ID:', initialvalue=v)
         if task is None:
             return
-        future = self.ros.set_params('seam_tracking_node', {'task': task})
+        future = self.ros.set_params('seam_tracking_node', {'task': task - 1})
         if future is not None:
             future.add_done_callback(
-                lambda f: self._cb_set_params_done(f, {'seam_tracking_node': {'task': task}}))
+                lambda f: self._cb_set_params_done(f, {'seam_tracking_node': {'task': task - 1}}))
         else:
             self._msg('Service [seam_tracking_node] is not ready!', level='Warn')
 
     def _cb_btn_backup(self, *args):
         self._msg('Button [Backup] clicked')
+        if self._code_modified():
+            yes = messagebox.askyesno('Question', message='Code modified, leave anyway?')
+            if not yes:
+                return
         codes = self._params['seam_tracking_node']['codes']
         filename = filedialog.asksaveasfilename(
             title='Backup codes',
@@ -349,6 +355,10 @@ class App(tk.Tk):
 
     def _cb_btn_upload(self, *args):
         self._msg('Button [Upload] clicked')
+        if self._code_modified():
+            yes = messagebox.askyesno('Question', message='Code modified, leave anyway?')
+            if not yes:
+                return
         codes = self._params['seam_tracking_node']['codes']
         filename = filedialog.askopenfilename(
             title='Upload codes',
@@ -394,6 +404,10 @@ class App(tk.Tk):
 
     def _cb_btn_append(self, *args):
         self._msg('Button [Append] clicked')
+        if self._code_modified():
+            yes = messagebox.askyesno('Question', message='Code modified, leave anyway?')
+            if not yes:
+                return
         codes = self._params['seam_tracking_node']['codes']
         codes.append('def fn(d):\n    return None')
         self._task = len(codes) - 1
@@ -412,6 +426,10 @@ class App(tk.Tk):
 
     def _cb_btn_commit(self, *args):
         self._msg('Button [Commit] clicked')
+        if self._code_modified():
+            yes = messagebox.askyesno('Question', message='Code modified, leave anyway?')
+            if not yes:
+                return
         codes = self._params['seam_tracking_node']['codes']
         future = self.ros.set_params('seam_tracking_node', {'codes': codes})
         if future is not None:
@@ -420,34 +438,7 @@ class App(tk.Tk):
         else:
             self._msg('Service [seam_tracking_node] is not ready!', level='Warn')
 
-    # def _cb_btn_commit_done(self, future):
-    #     try:
-    #         res = future.result()
-    #         if res.success:
-    #             self._msg('Commit done!')
-    #         else:
-    #             self._msg(f'{res.message}', level='Warn')
-    #     except Exception as e:
-    #         self._msg(f'{str(e)}', level='Error')
-
-    # def _get_codes_done(self, future):
-    #     try:
-    #         res = future.result()
-    #         if res.success:
-    #             self.codes.loads(res.codes)
-    #             self.codes.goto(id=self._params['seam_tracking_node']['task'])
-    #             self._update_codes()
-    #         else:
-    #             self._msg(f'{res.message}', level='Warn')
-    #     except Exception as e:
-    #         self._msg(f'{str(e)}', level='Error')
-
     def _refresh(self):
-        # if f := self.ros.get_codes():
-        #     f.add_done_callback(self._get_codes_done)
-        # else:
-        #     self._msg('Service [seam_tracking_node] is not ready!', level='Warn')
-
         for n, d in self._params.items():
             f = self.ros.get_params(n, d.keys())
             if f is not None:
@@ -473,9 +464,9 @@ class App(tk.Tk):
             elif self._task < 0:
                 self._task = 0
             if self._task == self._params['seam_tracking_node']['task']:
-                self.btn_task['text'] = f'Task: {self._task:>2}*'
+                self.btn_task['text'] = f'Task({len(codes)}): {self._task + 1:>2}*'
             else:
-                self.btn_task['text'] = f'Task: {self._task:>2} '
+                self.btn_task['text'] = f'Task({len(codes)}): {self._task + 1:>2} '
             if self._task == 0:
                 self.btn_previous.state(['disabled'])
             else:
@@ -489,38 +480,9 @@ class App(tk.Tk):
             self.btn_commit.state(['!disabled'])
             self.texts.replace(1.0, "end", codes[self._task])
 
-
-        #     self.btn_task['text'] = 'Task:     '
-        # else:
-        #     if pos == self._params['seam_tracking_node']['task']:
-        #         self.btn_task['text'] = f'Task: {pos:>2}*'
-        #     else:
-        #         self.btn_task['text'] = f'Task: {pos:>2} '
-
-        # if self.codes.is_valid():
-        #     self.btn_delete.state(['!disabled'])
-        #     self.btn_modify.state(['!disabled'])
-        #     self.btn_commit.state(['!disabled'])
-        # else:
-        #     self.btn_delete.state(['disabled'])
-        #     self.btn_modify.state(['disabled'])
-        #     self.btn_commit.state(['disabled'])
-
-        # if self.codes.is_begin():
-        #     self.btn_previous.state(['disabled'])
-        # else:
-        #     self.btn_previous.state(['!disabled'])
-
-        # if self.codes.is_end():
-        #     self.btn_next.state(['disabled'])
-        # else:
-        #     self.btn_next.state(['!disabled'])
-
-        # self.event_generate('<<UpdateCode>>', when='tail')
-
     def _code_modified(self):
         codes = self._params['seam_tracking_node']['codes']
-        if codes[self._task].rstrip() == self.texts.get('1.0', 'end').rstrip():
+        if len(codes) == 0 or codes[self._task].rstrip() == self.texts.get('1.0', 'end').rstrip():
             return False
         else:
             return True
