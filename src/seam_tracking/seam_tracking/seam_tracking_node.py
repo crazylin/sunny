@@ -8,8 +8,6 @@ from std_srvs.srv import Trigger
 from sensor_msgs.msg import PointCloud2
 from shared_interfaces.srv import GetCode
 from shared_interfaces.srv import SetCode
-from shared_interfaces.srv import GetCodes
-from shared_interfaces.srv import SetCodes
 
 from .codes import Codes
 import ros2_numpy as rnp
@@ -19,25 +17,28 @@ class SeamTracking(Node):
 
     def __init__(self):
         Node.__init__(self, 'seam_tracking_node')
+
         self.declare_parameter('task', 0)
-        p = self.get_parameter('task')
-        self.codes = Codes(os.path.join(os.path.dirname(__file__), 'codes.json'))
+        self._task = self.get_parameter('task').value
+
+        self.declare_parameter('codes', [''], ignore_override=True)
+        self._file = os.path.join(os.path.dirname(__file__), 'codes.json')
+        self._codes = Codes()
         try:
-            self.codes.load()
+            self._codes.load(self._file)
+            self._codes.reload(self._task)
         except Exception as e:
             self.get_logger().error(str(e))
-        try:
-            self.codes.reload(id=p.value)
-        except Exception as e:
-            self.get_logger().error(str(e))
+        finally:
+            self.set_parameters([Parameter('codes', Parameter.Type.STRING_ARRAY, self._codes)])
 
         self.declare_parameter('delta_x', 0.)
-        self.delta_x = self.get_parameter('delta_x').value
+        self._delta_x = self.get_parameter('delta_x').value
 
         self.declare_parameter('delta_y', 0.)
-        self.delta_y = self.get_parameter('delta_y').value
+        self._delta_y = self.get_parameter('delta_y').value
 
-        self.error = ''
+        self._error = ''
 
         self.pub = self.create_publisher(
             PointCloud2,
@@ -57,14 +58,6 @@ class SeamTracking(Node):
             SetCode,
             '~/set_code',
             self._cb_set_code)
-        self.srv_get_codes = self.create_service(
-            GetCodes,
-            '~/get_codes',
-            self._cb_get_codes)
-        self.srv_set_codes = self.create_service(
-            SetCodes,
-            '~/set_codes',
-            self._cb_set_codes)
 
         self.srv_dump_codes = self.create_service(
             Trigger,
@@ -75,31 +68,37 @@ class SeamTracking(Node):
             '~/load_codes',
             self._cb_load_codes)
 
-        self.add_on_set_parameters_callback(self._cb_parameters)
+        self.add_on_set_parameters_callback(self._on_set_parameters)
         self.get_logger().info('Initialized successfully')
 
     def __del__(self):
         self.get_logger().info('Destroyed successfully')
 
-    def _cb_parameters(self, params):
+    def _on_set_parameters(self, params):
         result = SetParametersResult()
         result.successful = True
         for p in params:
             if p.name == 'task':
                 try:
-                    self.codes.reload(id=p.value)
+                    self._task = p.value
+                    self._codes.reload(self._task)
+                except Exception as e:
+                    self.get_logger().error(str(e))
+            elif p.name == 'codes':
+                try:
+                    self._codes[:] = p.value
+                    self._codes.reload(self._task)
                 except Exception as e:
                     self.get_logger().error(str(e))
             elif p.name == 'delta_x':
-                self.delta_x = p.value
+                self._delta_x = p.value
             elif p.name == 'delta_y':
-                self.delta_y = p.value
+                self._delta_y = p.value
         return result
 
     def _cb_get_code(self, request, response):
         try:
-            id = None if request.index < 0 else request.index
-            response.code = self.codes.get_code(id=id)
+            response.code = self._codes[request.index]
         except Exception as e:
             response.success = False
             response.message = str(e)
@@ -109,28 +108,7 @@ class SeamTracking(Node):
 
     def _cb_set_code(self, request, response):
         try:
-            id = None if request.index < 0 else request.index
-            self.codes.set_code(request.code, id=id)
-        except Exception as e:
-            response.success = False
-            response.message = str(e)
-        else:
-            response.success = True
-        return response
-
-    def _cb_get_codes(self, request, response):
-        try:
-            response.codes = self.codes.get_codes()
-        except Exception as e:
-            response.success = False
-            response.message = str(e)
-        else:
-            response.success = True
-        return response
-
-    def _cb_set_codes(self, request, response):
-        try:
-            self.codes.set_codes(request.codes)
+            self._codes[request.index] = request.code
         except Exception as e:
             response.success = False
             response.message = str(e)
@@ -140,7 +118,7 @@ class SeamTracking(Node):
 
     def _cb_dump_codes(self, request, response):
         try:
-            self.codes.dump()
+            self._codes.dump(self._file)
         except Exception as e:
             response.success = False
             response.message = str(e)
@@ -150,7 +128,7 @@ class SeamTracking(Node):
 
     def _cb_load_codes(self, request, response):
         try:
-            self.codes.load()
+            self._codes.load(self._file)
         except Exception as e:
             response.success = False
             response.message = str(e)
@@ -164,17 +142,16 @@ class SeamTracking(Node):
         if len(msg.data):
             try:
                 d = rnp.numpify(msg)
-                r = self.codes(d)
+                r = self._codes(d)
                 if r is not None and len(r):
-                    r['x'][0] += self.delta_x
-                    r['y'][0] += self.delta_y
+                    r['x'][0] += self._delta_x
+                    r['y'][0] += self._delta_y
                     ret = rnp.msgify(PointCloud2, r)
                     ret.header = msg.header
             except Exception as e:
-                if self.error != str(e):
+                if self._error != str(e):
                     self.get_logger().error(str(e))
-                    self.error = str(e)
-
+                    self._error = str(e)
         self.pub.publish(ret)
 
 def main(args=None):

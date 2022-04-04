@@ -24,9 +24,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   msg/Float64Array.msg
   msg/RollPitchYaw.msg
   srv/SetCode.srv
-  srv/SetCodes.srv
   srv/GetCode.srv
-  srv/GetCodes.srv
   DEPENDENCIES std_msgs
 )
 

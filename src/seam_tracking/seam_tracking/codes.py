@@ -1,7 +1,15 @@
 import json
-from threading import Lock
+from functools import wraps
+from threading import RLock
 
-class Code():
+def _lock(f):
+    @wraps(f)
+    def wrapper(self, *args, **kwargs):
+        with self._lock:
+            return f(self, *args, **kwargs)
+    return wrapper
+
+class _Code():
 
     def __init__(self):
         self._scope = {}
@@ -15,63 +23,49 @@ class Code():
 
 class Codes(list):
 
-    def __init__(self, file: str):
-        self._lock = Lock()
-        self._code = Code()
-        self._file = file
-        self._pos = None
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._lock = RLock()
+        self._code = _Code()
 
+    @_lock
+    def __getitem__(self, *args, **kwargs):
+        return super().__getitem__(*args, **kwargs)
+
+    @_lock
+    def __setitem__(self, *args, **kwargs):
+        return super().__setitem__(*args, **kwargs)
+
+    @_lock
+    def __delitem__(self, *args, **kwargs):
+        return super().__delitem__(*args, **kwargs)
+
+    @_lock
+    def __len__(self, *args, **kwargs):
+        return super().__len__(*args, **kwargs)
+
+    @_lock
     def __call__(self, *args, **kwargs):
-        with self._lock:
-            return self._code(*args, **kwargs)
+        return self._code(*args, **kwargs)
 
-    def load(self):
-        with self._lock:
-            with open(self._file) as fp:
-                self[:] = json.load(fp)
+    @_lock
+    def load(self, file: str):
+        with open(file) as fp:
+            self[:] = json.load(fp)
 
+    @_lock
     def loads(self, s: str):
-        with self._lock:
-            self[:] = json.loads(s)
+        self[:] = json.loads(s)
 
-    def dump(self):
-        with self._lock, open(self._file) as fp:
+    @_lock
+    def dump(self, file: str):
+        with open(file) as fp:
             json.dump(self, fp)
 
+    @_lock
     def dumps(self):
-        with self._lock:
-            return json.dumps(self)
+        return json.dumps(self)
 
-    def reload(self, *, id: int = None):
-        with self._lock:
-            self._pos = id if id is not None else self._pos
-            self._code.reload(self[self._pos])
-
-    def get_code(self, *, id: int = None):
-        with self._lock:
-            if id is None:
-                return self[self._pos]
-            else:
-                return self[id]
-
-    def set_code(self, s: str, *, id: int = None):
-        with self._lock:
-            if id is None:
-                self[self._pos] = s
-            else:
-                self[id] = s
-
-    def get_codes(self):
-        with self._lock:
-            return json.dumps(self)
-
-    def set_codes(self, s: str):
-        with self._lock:
-            self[:] = json.loads(s)
-            with open(self._file, 'w') as fp:
-                fp.write(s)
-            self._code.reload(self[self._pos])
-
-    def pos(self):
-        with self._lock:
-            return self._pos
+    @_lock
+    def reload(self, id: int):
+        self._code.reload(self[id])

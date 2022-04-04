@@ -3,8 +3,6 @@ from rclpy.qos import qos_profile_sensor_data
 from sensor_msgs.msg import PointCloud2
 from shared_interfaces.srv import GetCode
 from shared_interfaces.srv import SetCode
-from shared_interfaces.srv import GetCodes
-from shared_interfaces.srv import SetCodes
 from rcl_interfaces.srv import GetParameters, SetParameters
 from rcl_interfaces.msg import Parameter, ParameterType, ParameterValue, Log
 
@@ -68,8 +66,6 @@ class RosNode(Node):
 
         self._create_client('get_code', GetCode, '/seam_tracking_node/get_code')
         self._create_client('set_code', SetCode, '/seam_tracking_node/set_code')
-        self._create_client('get_codes', GetCodes, '/seam_tracking_node/get_codes')
-        self._create_client('set_codes', SetCodes, '/seam_tracking_node/set_codes')
 
     def sub_pnts(self, cb):
         qos = qos_profile_sensor_data
@@ -114,23 +110,6 @@ class RosNode(Node):
             request = SetCode.Request()
             request.index = id
             request.code = code
-            return cli.call_async(request)
-        else:
-            return None
-
-    def get_codes(self):
-        cli = self._cli['get_codes']
-        if cli.service_is_ready():
-            request = GetCodes.Request()
-            return cli.call_async(request)
-        else:
-            return None
-
-    def set_codes(self, codes: str):
-        cli = self._cli['set_codes']
-        if cli.service_is_ready():
-            request = SetCodes.Request()
-            request.codes = codes
             return cli.call_async(request)
         else:
             return None
