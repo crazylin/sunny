@@ -2,7 +2,7 @@ import rclpy
 import json
 import tkinter as tk
 from threading import Thread
-
+from threading import Lock
 from tkinter import ttk, simpledialog, messagebox, filedialog
 from tkinter.scrolledtext import ScrolledText
 from ros_node import RosNode, from_parameter_value
@@ -17,6 +17,7 @@ class App(tk.Tk):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self._lock = Lock()
         self._params = {
             'camera_tis_node': {'exposure_time': 1000, 'power': False},
             'gpio_raspberry_node': {'laser': False},
@@ -198,10 +199,10 @@ class App(tk.Tk):
             res = future.result().results
             for r, k in zip(res, d):
                 if r.successful:
+                    if (cb := self._params_cb[n].get(k)) is not None:
+                        cb(d[k])
                     if self._params[n][k] != d[k]:
                         self._params[n][k] = d[k]
-                        if (cb := self._params_cb[n].get(k)) is not None:
-                            cb(d[k])
                         self._msg(f'[{n}] [{k}] set to: {d[k]}')
                 else:
                     self._msg(f'[{n}] [{k}] failed: {r.reason}', level='Warn')
@@ -214,10 +215,10 @@ class App(tk.Tk):
             values = future.result().values
             for p, k in zip(values, l):
                 v = from_parameter_value(p)
+                if (cb := self._params_cb[n].get(k)) is not None:
+                    cb(v)
                 if self._params[n][k] != v:
                     self._params[n][k] = v
-                    if (cb := self._params_cb[n].get(k)) is not None:
-                        cb(v)
                     self._msg(f'[{n}] [{k}] set to: {v}')
         except Exception as e:
             self._msg(f'{str(e)}', level='Error')
@@ -379,7 +380,7 @@ class App(tk.Tk):
             yes = messagebox.askyesno('Question', message='Code modified, leave anyway?')
             if not yes:
                 return
-        self._task += 1
+        self._task -= 1
         self._update_codes()
 
     def _cb_btn_next(self, *args):
@@ -525,10 +526,11 @@ class App(tk.Tk):
             return True
 
     def _msg(self, s: str, *, level = 'Info'):
-        n = datetime.now()
-        t = n.strftime("%m/%d/%Y %H:%M:%S")
-        s = f'[{t}] [{level:^10}]  {s}\n'
-        self.status.insert('1.0', s[:80])
+        with self._lock:
+            n = datetime.now()
+            t = n.strftime("%m/%d/%Y %H:%M:%S")
+            s = f'[{t}] [{level:^10}]  {s}\n'
+            self.status.insert('1.0', s)
 
 if __name__ == '__main__':
     rclpy.init()
