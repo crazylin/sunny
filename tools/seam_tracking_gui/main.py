@@ -8,7 +8,7 @@ from tkinter.scrolledtext import ScrolledText
 from ros_node import RosNode, from_parameter_value
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 from custom_figure import CustomFigure
-from custom_dialog import dialog_delta, dialog_filter
+from custom_dialog import dialog_delta, dialog_center, dialog_filter
 from datetime import datetime
 
 class App(tk.Tk):
@@ -23,14 +23,18 @@ class App(tk.Tk):
             'camera_tis_node': {'exposure_time': 1000, 'power': False},
             'gpio_raspberry_node': {'laser': False},
             'seam_tracking_node': {'codes': [], 'task': -1, 'delta_x': 0., 'delta_y': 0.},
+            'laser_line_center_node': {
+                'ksize': 5,
+                'threshold': 35,
+                'width_min': 1,
+                'width_max': 30},
             'laser_line_filter_node': {
                 'enable': False,
                 'window_size': 10,
                 'gap': 5,
                 'deviate': 5.,
                 'step': 2.,
-                'length': 30
-            }
+                'length': 30}
         }
 
         self._params_cb = {
@@ -163,7 +167,9 @@ class App(tk.Tk):
         menu_edit = tk.Menu(menubar)
         menu_edit.add_command(label='Exposure time...', command=self._cb_menu_exposure)
         menu_edit.add_command(label='Offset...', command=self._cb_menu_offset)
+        menu_edit.add_command(label='Center...', command=self._cb_menu_center)
         menu_edit.add_command(label='Filter...', command=self._cb_menu_filter)
+        
         menu_help = tk.Menu(menubar)
 
         menubar.add_cascade(menu=menu_file, label='File')
@@ -256,6 +262,17 @@ class App(tk.Tk):
                 lambda f: self._cb_set_params_done(f, {'laser_line_filter_node': d}))
         else:
             self._msg('Service [laser_line_filter_node] is not ready!', level='Warn')
+
+    def _cb_menu_center(self, *args):
+        d = dialog_center(self, initialvalue=self._params['laser_line_center_node'])
+        if d is None:
+            return
+        future = self.ros.set_params('laser_line_center_node', d)
+        if future is not None:
+            future.add_done_callback(
+                lambda f: self._cb_set_params_done(f, {'laser_line_center_node': d}))
+        else:
+            self._msg('Service [laser_line_center_node] is not ready!', level='Warn')
 
     def _params_cb_power(self, b: bool):
         if b:

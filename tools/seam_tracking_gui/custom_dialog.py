@@ -165,7 +165,7 @@ class DialogFilter(Dialog):
             self.length_box.configure(state=['disabled'])
 
 def dialog_filter(app, *, initialvalue: dict):
-    d = DialogFilter(title='Filter', parent=app, initialvalue=initialvalue)
+    d = DialogFilter(title='Laser line filter', parent=app, initialvalue=initialvalue)
     return {
         'enable': d._b,
         'window_size': d._ws,
@@ -173,4 +173,88 @@ def dialog_filter(app, *, initialvalue: dict):
         'deviate': d._dev,
         'step': d._step,
         'length': d._length
+        } if d._ok else None
+
+class DialogCenter(Dialog):
+    def __init__(self, parent, title, *, initialvalue: dict):
+        self._ok = True
+        self._ksize = initialvalue['ksize']
+        self._threshold = initialvalue['threshold']
+        self._wmin = initialvalue['width_min']
+        self._wmax = initialvalue['width_max']
+        super().__init__(parent, title)
+
+    def body(self, frame):
+        ksize = tk.Frame(frame)
+        self.ksize_label = tk.Label(ksize, width=10, text='ksize:', anchor=tk.E)
+        self.ksize_label.pack(side=tk.LEFT)
+        self.ksize_box = tk.Entry(ksize, width=15)
+        self.ksize_box.insert(tk.END, str(self._ksize) if self._ksize is not None else '')
+        self.ksize_box.pack(side=tk.LEFT)
+        self.ksize_unit = tk.Label(ksize, width=15, text='[1, 3, 5, 7, -1]', anchor=tk.W)
+        self.ksize_unit.pack(side=tk.LEFT)
+        ksize.pack()
+
+        threshold = tk.Frame(frame)
+        self.threshold_label = tk.Label(threshold, width=10, text='threshold:', anchor=tk.E)
+        self.threshold_label.pack(side=tk.LEFT)
+        self.threshold_box = tk.Entry(threshold, width=15)
+        self.threshold_box.insert(tk.END, str(self._threshold) if self._threshold is not None else '')
+        self.threshold_box.pack(side=tk.LEFT)
+        self.threshold_unit = tk.Label(threshold, width=15, text='0~255', anchor=tk.W)
+        self.threshold_unit.pack(side=tk.LEFT)
+        threshold.pack()
+
+        wmin = tk.Frame(frame)
+        self.wmin_label = tk.Label(wmin, width=10, text='width min:', anchor=tk.E)
+        self.wmin_label.pack(side=tk.LEFT)
+        self.wmin_box = tk.Entry(wmin, width=15)
+        self.wmin_box.insert(tk.END, str(self._wmin) if self._wmin is not None else '')
+        self.wmin_box.pack(side=tk.LEFT)
+        self.wmin_unit = tk.Label(wmin, width=15, text='pixel', anchor=tk.W)
+        self.wmin_unit.pack(side=tk.LEFT)
+        wmin.pack()
+
+        wmax = tk.Frame(frame)
+        self.wmax_label = tk.Label(wmax, width=10, text='width max:', anchor=tk.E)
+        self.wmax_label.pack(side=tk.LEFT)
+        self.wmax_box = tk.Entry(wmax, width=15)
+        self.wmax_box.insert(tk.END, str(self._wmax) if self._wmax is not None else '')
+        self.wmax_box.pack(side=tk.LEFT)
+        self.wmax_unit = tk.Label(wmax, width=15, text='pixel', anchor=tk.W)
+        self.wmax_unit.pack(side=tk.LEFT)
+        wmax.pack()
+
+        return frame
+
+    def ok_pressed(self):
+        try:
+            self._ksize = int(self.ksize_box.get())
+            self._threshold = int(self.threshold_box.get())
+            self._wmin = int(self.wmin_box.get())
+            self._wmax = int(self.wmax_box.get())
+        except Exception as e:
+            pass
+        else:
+            self.destroy()
+
+    def cancel_pressed(self):
+        self._ok = False
+        self.destroy()
+
+    def buttonbox(self):
+        self.ok_button = tk.Button(self, text='OK', width=5, command=self.ok_pressed)
+        self.ok_button.pack(side='left')
+        cancel_button = tk.Button(self, text='Cancel', width=5, command=self.cancel_pressed)
+        cancel_button.pack(side='right')
+        self.bind('<Return>', lambda event: self.ok_pressed())
+        self.bind('<Escape>', lambda event: self.cancel_pressed())
+
+def dialog_center(app, *, initialvalue: dict):
+    d = DialogCenter(title='Laser line center', parent=app, initialvalue=initialvalue)
+    return {
+        'ksize': d._ksize,
+        'threshold': d._threshold,
+        'width_min': d._wmin,
+        'width_max': d._wmax
         } if d._ok else None
