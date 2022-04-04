@@ -160,9 +160,10 @@ class App(tk.Tk):
         self['menu'] = menubar
 
         menu_file = tk.Menu(menubar)
-        menu_file.add_command(label='New')
-        menu_file.add_command(label='Open...')
-        menu_file.add_command(label='Close')
+        menu_file.add_command(label='New', command=lambda: self.btn_append.invoke())
+        menu_file.add_command(label='Open...', command=lambda: self.btn_upload.invoke())
+        menu_file.add_command(label='Save...', command=lambda: self.btn_backup.invoke())
+        menu_file.add_command(label='Close', command=self.__exit)
 
         menu_edit = tk.Menu(menubar)
         menu_edit.add_command(label='Exposure time...', command=self._cb_menu_exposure)
