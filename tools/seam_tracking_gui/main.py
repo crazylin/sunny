@@ -8,7 +8,7 @@ from tkinter.scrolledtext import ScrolledText
 from ros_node import RosNode, from_parameter_value
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 from custom_figure import CustomFigure
-from custom_dialog import dialog_delta, dialog_center, dialog_filter
+from custom_dialog import dialog_delta, dialog_center, dialog_line_filter, dialog_seam_filter
 from datetime import datetime
 
 class App(tk.Tk):
@@ -22,7 +22,16 @@ class App(tk.Tk):
         self._params = {
             'camera_tis_node': {'exposure_time': 1000, 'power': False},
             'gpio_raspberry_node': {'laser': False},
-            'seam_tracking_node': {'codes': [], 'task': -1, 'delta_x': 0., 'delta_y': 0.},
+            'seam_tracking_node': {
+                'codes': [],
+                'task': -1,
+                'delta_x': 0.,
+                'delta_y': 0.,
+                'enable': False,
+                'window_size': 10,
+                'gap': 2,
+                'step': 2.,
+                'length': 5},
             'laser_line_center_node': {
                 'ksize': 5,
                 'threshold': 35,
@@ -168,7 +177,8 @@ class App(tk.Tk):
         menu_edit.add_command(label='Exposure time...', command=self._cb_menu_exposure)
         menu_edit.add_command(label='Offset...', command=self._cb_menu_offset)
         menu_edit.add_command(label='Center...', command=self._cb_menu_center)
-        menu_edit.add_command(label='Filter...', command=self._cb_menu_filter)
+        menu_edit.add_command(label='Line filter...', command=self._cb_menu_line_filter)
+        menu_edit.add_command(label='Seam filter...', command=self._cb_menu_seam_filter)
         
         menu_help = tk.Menu(menubar)
 
@@ -252,17 +262,6 @@ class App(tk.Tk):
         else:
             self._msg('Service [seam_tracking_node] is not ready!', level='Warn')
 
-    def _cb_menu_filter(self, *args):
-        d = dialog_filter(self, initialvalue=self._params['laser_line_filter_node'])
-        if d is None:
-            return
-        future = self.ros.set_params('laser_line_filter_node', d)
-        if future is not None:
-            future.add_done_callback(
-                lambda f: self._cb_set_params_done(f, {'laser_line_filter_node': d}))
-        else:
-            self._msg('Service [laser_line_filter_node] is not ready!', level='Warn')
-
     def _cb_menu_center(self, *args):
         d = dialog_center(self, initialvalue=self._params['laser_line_center_node'])
         if d is None:
@@ -273,6 +272,28 @@ class App(tk.Tk):
                 lambda f: self._cb_set_params_done(f, {'laser_line_center_node': d}))
         else:
             self._msg('Service [laser_line_center_node] is not ready!', level='Warn')
+
+    def _cb_menu_line_filter(self, *args):
+        d = dialog_line_filter(self, initialvalue=self._params['laser_line_filter_node'])
+        if d is None:
+            return
+        future = self.ros.set_params('laser_line_filter_node', d)
+        if future is not None:
+            future.add_done_callback(
+                lambda f: self._cb_set_params_done(f, {'laser_line_filter_node': d}))
+        else:
+            self._msg('Service [laser_line_filter_node] is not ready!', level='Warn')
+
+    def _cb_menu_seam_filter(self, *args):
+        d = dialog_seam_filter(self, initialvalue=self._params['seam_tracking_node'])
+        if d is None:
+            return
+        future = self.ros.set_params('seam_tracking_node', d)
+        if future is not None:
+            future.add_done_callback(
+                lambda f: self._cb_set_params_done(f, {'seam_tracking_node': d}))
+        else:
+            self._msg('Service [seam_tracking_node] is not ready!', level='Warn')
 
     def _params_cb_power(self, b: bool):
         if b:

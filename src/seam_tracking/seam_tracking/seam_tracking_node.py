@@ -1,6 +1,7 @@
 import os
 import rclpy
 
+from collections import deque
 from rclpy.node import Node
 from rclpy.parameter import Parameter
 from rcl_interfaces.msg import SetParametersResult
@@ -17,6 +18,23 @@ class SeamTracking(Node):
 
     def __init__(self):
         Node.__init__(self, 'seam_tracking_node')
+        self._dtype = [('x', np.float32), ('y', np.float32)]
+        self._deq = deque()
+
+        self.declare_parameter('window_size', 10)
+        self._ws = self.get_parameter('window_size').value
+
+        self.declare_parameter('gap', 2)
+        self._gap = self.get_parameter('gap').value
+
+        self.declare_parameter('step', 2.)
+        self._step = self.get_parameter('step').value
+
+        self.declare_parameter('length', 5)
+        self._length = self.get_parameter('length').value
+
+        self.declare_parameter('enable', False)
+        self._enable = self.get_parameter('enable').value
 
         self.declare_parameter('task', 0)
         self._task = self.get_parameter('task').value
@@ -94,6 +112,16 @@ class SeamTracking(Node):
                 self._delta_x = p.value
             elif p.name == 'delta_y':
                 self._delta_y = p.value
+            elif p.name == 'window_size':
+                self._ws = p.value
+            elif p.name == 'gap':
+                self._gap = p.value
+            elif p.name == 'step':
+                self._step = p.value
+            elif p.name == 'length':
+                self._length = p.value
+            elif p.name == 'enable':
+                self._enable = p.value
         return result
 
     def _cb_get_code(self, request, response):
@@ -143,16 +171,44 @@ class SeamTracking(Node):
             try:
                 d = rnp.numpify(msg)
                 r = self._codes(d)
-                if r is not None and len(r):
-                    r['x'][0] += self._delta_x
-                    r['y'][0] += self._delta_y
-                    ret = rnp.msgify(PointCloud2, r)
+                f = self._filter(r)
+                if f is not None:
+                    ret = rnp.msgify(PointCloud2, np.array([(f[0], f[1])], dtype=self._dtype))
                     ret.header = msg.header
             except Exception as e:
                 if self._error != str(e):
                     self.get_logger().error(str(e))
                     self._error = str(e)
         self.pub.publish(ret)
+
+    def _filter(self, r):
+        self._deq.appendleft(r)
+        while len(self._deq) > self._ws:
+            self._deq.pop()
+
+        if not self._enable or r is None:
+            return r
+
+        i = 0
+        j = 1
+        while j < len(self._deq):
+            if j - i > self._gap or i >= self._length:
+                break
+            if self._deq[j] is None:
+                j += 1
+                continue
+            du = abs(self._deq[j][0] - self._deq[i][0]) / (j - i)
+            dv = abs(self._deq[j][1] - self._deq[i][1]) / (j - i)
+            if du > self._step or dv > self._step:
+                j += 1
+                continue
+            i = j
+            j += 1
+
+        if i >= self._length:
+            return r
+        else:
+            return None
 
 def main(args=None):
     rclpy.init(args=args)
