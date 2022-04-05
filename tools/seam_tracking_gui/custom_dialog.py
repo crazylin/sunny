@@ -123,16 +123,19 @@ class DialogLineFilter(Dialog):
         enable_btn = tk.Checkbutton(frame, width=10, text='Enable filter', variable=self.enable, command=self.toggle)
         enable_btn.pack(side=tk.RIGHT)
 
+        self.toggle()
+
         return frame
 
     def ok_pressed(self):
         try:
             self._b = self.enable.get()
-            self._ws = int(self.ws_box.get())
-            self._gap = int(self.gap_box.get())
-            self._dev = float(self.dev_box.get())
-            self._step = float(self.step_box.get())
-            self._length = int(self.length_box.get())
+            if self._b:
+                self._ws = int(self.ws_box.get())
+                self._gap = int(self.gap_box.get())
+                self._dev = float(self.dev_box.get())
+                self._step = float(self.step_box.get())
+                self._length = int(self.length_box.get())
         except Exception as e:
             pass
         else:
@@ -315,15 +318,18 @@ class DialogSeamFilter(Dialog):
         enable_btn = tk.Checkbutton(frame, width=10, text='Enable filter', variable=self.enable, command=self.toggle)
         enable_btn.pack(side=tk.RIGHT)
 
+        self.toggle()
+
         return frame
 
     def ok_pressed(self):
         try:
             self._b = self.enable.get()
-            self._ws = int(self.ws_box.get())
-            self._gap = int(self.gap_box.get())
-            self._step = float(self.step_box.get())
-            self._length = int(self.length_box.get())
+            if self._b:
+                self._ws = int(self.ws_box.get())
+                self._gap = int(self.gap_box.get())
+                self._step = float(self.step_box.get())
+                self._length = int(self.length_box.get())
         except Exception as e:
             pass
         else:
