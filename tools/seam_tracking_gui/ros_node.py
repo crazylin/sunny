@@ -29,22 +29,22 @@ def from_parameter_value(p: ParameterValue):
         return None
 
 def to_parameter_value(v):
-    if isinstance(v, int):
+    if type(v) is int:
         return ParameterValue(type=ParameterType.PARAMETER_INTEGER, integer_value=v)
-    elif isinstance(v, float):
+    elif type(v) is float:
         return ParameterValue(type=ParameterType.PARAMETER_DOUBLE, double_value=v)
-    elif isinstance(v, bool):
+    elif type(v) is bool:
         return ParameterValue(type=ParameterType.PARAMETER_BOOL, bool_value=v)
-    elif isinstance(v, str):
+    elif type(v) is str:
         return ParameterValue(type=ParameterType.PARAMETER_STRING, string_value=v)
-    elif isinstance(v, list):
-        if isinstance(v[0], int):
+    elif type(v) is list:
+        if type(v[0]) is int:
             return ParameterValue(type=ParameterType.PARAMETER_INTEGER_ARRAY, integer_array_value=v)
-        elif isinstance(v[0], float):
+        elif type(v[0]) is float:
             return ParameterValue(type=ParameterType.PARAMETER_DOUBLE_ARRAY, double_array_value=v)
-        elif isinstance(v[0], bool):
+        elif type(v[0]) is bool:
             return ParameterValue(type=ParameterType.PARAMETER_BOOL_ARRAY, bool_array_value=v)
-        elif isinstance(v[0], str):
+        elif type(v[0]) is str:
             return ParameterValue(type=ParameterType.PARAMETER_STRING_ARRAY, string_array_value=v)
     else:
         return None
