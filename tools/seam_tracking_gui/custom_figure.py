@@ -1,5 +1,5 @@
 ﻿from matplotlib.figure import Figure
-from point_data import PointData
+from point_data import PntsData, SeamData
 
 class CustomFigure(Figure):
     """A figure with a text watermark."""
@@ -7,8 +7,8 @@ class CustomFigure(Figure):
     def __init__(self):
         super().__init__()
 
-        self.pnts_data = PointData()
-        self.seam_data = PointData()
+        self.pnts_data = PntsData()
+        self.seam_data = SeamData(30)
 
         bx = [-20, 33, 110, 152, -20]
         by = [400, -12, -12, 400, 400]
@@ -42,7 +42,7 @@ class CustomFigure(Figure):
             self._xxyy.set_text(f"X:\nY:")
 
     def update_pnts(self, *args):
-        x, y, *t = self.pnts_data.get()
+        x, y = self.pnts_data.get()
         self._pnts.set_data(x[:], y[:])
 
     def msg_to_seam(self, msg):
