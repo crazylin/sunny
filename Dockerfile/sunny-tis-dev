@@ -1,0 +1,31 @@
+# Build enviroments
+FROM zhuoqiw/ros-opencv:4.5.2 AS OPENCV
+
+FROM zhuoqiw/ros-tis:0.14.0
+
+# Install dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+  nano \
+  libgpiod-dev \
+  libmodbus-dev \
+  && rm -rf /var/lib/apt/lists/*
+
+# Install OpenCV
+COPY --from=OPENCV /opt/OpenCV /opt/OpenCV
+
+# Update ldconfig
+RUN echo "/opt/OpenCV/lib" > /etc/ld.so.conf.d/OpenCV.conf \
+  && ldconfig
+
+ARG USERNAME=ros
+ARG USER_UID=1000
+ARG USER_GID=$USER_UID
+
+# Create a non-root user
+RUN groupadd --gid $USER_GID $USERNAME \
+  && useradd -s /bin/bash --uid $USER_UID --gid $USER_GID -m $USERNAME \
+  && echo "source /opt/ros/${ROS_DISTRO}/setup.bash" >> /home/$USERNAME/.bashrc
+
+WORKDIR /home/$USERNAME
+
+USER $USERNAME
