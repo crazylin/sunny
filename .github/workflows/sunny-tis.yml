@@ -60,4 +60,3 @@ jobs:
           tags: zhuoqiw/sunny-tis-dev:latest
           cache-from: type=registry,ref=zhuoqiw/sunny-tis-dev:latest
           cache-to: type=inline
-          
