@@ -23,7 +23,7 @@
 #     && apt-get -y install --no-install-recommends <your-package-list-here>
 
 # Build enviroments
-FROM zhuoqiw/ros-opencv:4.5.2 AS opencv
+FROM zhuoqiw/ros-opencv:4.5.5 AS opencv
 
 FROM zhuoqiw/ros-tis:0.14.0 AS tiscamera
 
