@@ -32,7 +32,7 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: zhuoqiw/sunny-build
-  test:
+  dev:
     name: Test image
     needs: build
     runs-on: ubuntu-latest
