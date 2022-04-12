@@ -61,8 +61,7 @@ COPY ./src /workspace/sunny/src
 
 WORKDIR /workspace/sunny
 
-RUN source /opt/ros/galactic/setup.bash \
-    && colcon build \
+RUN /ros_entrypoint.sh colcon build \
     --cmake-args -DCMAKE_BUILD_TYPE=Release \
     --packages-up-to pipeline_tis \
     && rm -rf build log
