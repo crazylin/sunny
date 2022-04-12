@@ -37,7 +37,7 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     gpiod \
     libmodbus5 \
     /tiscamera.deb \
-    && rm -rf /var/lib/apt/lists/* /tiscamera.lib
+    && rm -rf /var/lib/apt/lists/* /tiscamera.deb
 
 RUN echo "/opt/opencv/lib" >> /etc/ld.so.conf.d/opencv.conf \
     && ldconfig
@@ -68,9 +68,13 @@ RUN /ros_entrypoint.sh colcon build \
 
 FROM runtime AS deploy
 
-RUN echo "source /workspace/sunny/install/local_setup.bash" >> /root/.bashrc
-
 COPY --from=CI /workspace/sunny/install /workspace/sunny/install
 COPY ./ros_entrypoint.sh /workspace/sunny/ros_entrypoint.sh
 
+RUN echo "source /workspace/sunny/install/local_setup.bash" >> /root/.bashrc
+
 ENTRYPOINT ["/workspace/sunny/ros_entrypoint.sh"]
+# If CMD is defined from the base image,
+# setting ENTRYPOINT will reset CMD to an empty value.
+# In this scenario, CMD must be defined in the current image to have a value.
+CMD ["bash"]
