@@ -69,6 +69,8 @@ RUN /ros_entrypoint.sh colcon build \
 FROM runtime AS deploy
 
 COPY --from=CI /workspace/sunny/install /workspace/sunny/install
-COPY ./ros_entrypoint.sh /ros_entrypoint.sh
+# COPY ./ros_entrypoint.sh /ros_entrypoint.sh
 
 RUN sed -i '$c source /workspace/sunny/install/setup.bash' /root/.bashrc
+
+RUN sed -i '/source/c source /workspace/sunny/install/setup.bash' /ros_entrypoint.sh
