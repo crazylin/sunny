@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-dev=${lsusb | grep 'The Imaging Source'}
+dev=$(lsusb | grep 'The Imaging Source')
 vid=${dev:23:4}
 pid=${dev:28:2}
 
