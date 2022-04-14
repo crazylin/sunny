@@ -85,6 +85,7 @@ COPY ./tools /workspace/sunny/tools
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     && apt-get -y install --no-install-recommends \
     python3-tk \
+    python3-pil.imagetk \
     python3-pip \
     && rm -rf /var/lib/apt/lists/*
 
