@@ -50,6 +50,7 @@ class App(tk.Tk):
             'camera_tis_node': {'power': self._params_cb_power},
             'gpio_raspberry_node': {'laser': self._params_cb_laser},
             'seam_tracking_node': {'task': self._params_cb_task},
+            'laser_line_center_node': {},
             'laser_line_filter_node': {}
         }
 
