@@ -27,16 +27,25 @@ FROM zhuoqiw/ros-opencv:4.5.5 AS opencv
 
 FROM zhuoqiw/ros-tis:0.14.0 AS tiscamera
 
-FROM osrf/ros:galactic-desktop AS dev
+FROM ros:galactic AS runtime
 
-COPY --from=opencv /opt/opencv /opt/opencv
 COPY --from=tiscamera /tiscamera.deb /tiscamera.deb
+COPY --from=opencv /opt/opencv /opt/opencv
 COPY ./tools/ros2_numpy /usr/lib/python3/dist-packages/ros2_numpy
 
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     && apt-get -y install --no-install-recommends \
+    gpiod \
+    libmodbus5 \
     /tiscamera.deb \
     && rm -rf /var/lib/apt/lists/* /tiscamera.deb
+
+RUN echo "/opt/opencv/lib" >> /etc/ld.so.conf.d/opencv.conf \
+    && ldconfig
+
+RUN echo "source /opt/ros/galactic/setup.bash" >> /root/.bashrc
+
+FROM runtime AS dev
 
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     && apt-get -y install --no-install-recommends \
@@ -50,11 +59,6 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     libgirepository1.0-dev \
     && rm -rf /var/lib/apt/lists/*
 
-RUN echo "/opt/opencv/lib" >> /etc/ld.so.conf.d/opencv.conf \
-    && ldconfig
-
-RUN echo "source /opt/ros/galactic/setup.bash" >> /root/.bashrc
-
 FROM dev AS build
 
 COPY ./src /workspace/sunny/src
@@ -66,30 +70,18 @@ RUN /ros_entrypoint.sh colcon build \
     --packages-up-to pipeline_tis \
     && rm -rf build log
 
-FROM ros:galactic AS deploy
+FROM runtime AS deploy
 
-COPY --from=opencv /opt/opencv /opt/opencv
-COPY --from=tiscamera /tiscamera.deb /tiscamera.deb
-COPY ./tools/ros2_numpy /usr/lib/python3/dist-packages/ros2_numpy
 COPY --from=build /workspace/sunny/install /workspace/sunny/install
 
-RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
-    && apt-get -y install --no-install-recommends \
-    gpiod \
-    libmodbus5 \
-    /tiscamera.deb \
-    && rm -rf /var/lib/apt/lists/* /tiscamera.deb
+RUN sed -i '$c source /workspace/sunny/install/setup.bash' /root/.bashrc
 
-RUN echo "/opt/opencv/lib" >> /etc/ld.so.conf.d/opencv.conf \
-    && ldconfig
-
-RUN echo "source /workspace/sunny/install/setup.bash" >> /root/.bashrc
 RUN sed -i '/source/c source /workspace/sunny/install/setup.bash' /ros_entrypoint.sh
 
 FROM osrf/ros:galactic-desktop AS desktop
 
-COPY ./tools/ros2_numpy /usr/lib/python3/dist-packages/ros2_numpy
 COPY ./tools/seam_tracking_gui /workspace/sunny/tools/seam_tracking_gui
+COPY ./tools/ros2_numpy /usr/lib/python3/dist-packages/ros2_numpy
 
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     && apt-get -y install --no-install-recommends \
