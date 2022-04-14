@@ -80,7 +80,8 @@ RUN sed -i '/source/c source /workspace/sunny/install/setup.bash' /ros_entrypoin
 
 FROM osrf/ros:galactic-desktop AS desktop
 
-COPY ./tools /workspace/sunny/tools
+COPY ./tools/seam_tracking_gui /workspace/sunny/tools/seam_tracking_gui
+COPY ./src/ros2_numpy /workspace/sunny/tools/seam_tracking_gui/ros2_numpy
 
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     && apt-get -y install --no-install-recommends \
