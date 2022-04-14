@@ -38,6 +38,17 @@
             "type": "shell",
             "command": "rm -rf build install log",
             "problemMatcher": []
+        },
+        {
+            "label": "test GUI",
+            "detail": "Test GUI use ros2 galactic desktop",
+            "type": "shell",
+            "command": "docker run --rm --network=host --env=DISPLAY -v /tmp/.X11-unix -v $(pwd)/tools/seam_tracking_gui:/gui zhuoqiw/sunny-tis:desktop /gui/main.py",
+            "problemMatcher": [],
+            "group": {
+                "kind": "test",
+                "isDefault": false
+            }
         }
     ],
     "inputs": [
