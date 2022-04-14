@@ -2,13 +2,13 @@
 // https://github.com/microsoft/vscode-dev-containers/tree/v0.231.5/containers/cpp
 {
 	"name": "ROS",
-	// "build": {
-	// 	"dockerfile": "Dockerfile",
-	// 	// Update 'VARIANT' to pick an Debian / Ubuntu OS version: debian-11, debian-10, debian-9, ubuntu-21.04, ubuntu-20.04, ubuntu-18.04
-	// 	// Use Debian 11, Debian 9, Ubuntu 18.04 or Ubuntu 21.04 on local arm64/Apple Silicon
-	// 	// "args": { "VARIANT": "ubuntu-20.04" }
-	// },
-	"image": "zhuoqiw/sunny-tis:dev",
+	"build": {
+		"dockerfile": "Dockerfile",
+		// Update 'VARIANT' to pick an Debian / Ubuntu OS version: debian-11, debian-10, debian-9, ubuntu-21.04, ubuntu-20.04, ubuntu-18.04
+		// Use Debian 11, Debian 9, Ubuntu 18.04 or Ubuntu 21.04 on local arm64/Apple Silicon
+		"args": { "USERNAME": "ros" }
+	},
+	// "image": "zhuoqiw/sunny-tis:dev",
 	"runArgs": ["--cap-add=SYS_PTRACE", "--security-opt", "seccomp=unconfined", "--network=host"],
 
 	// Set *default* container specific settings.json values on container create.
@@ -29,5 +29,5 @@
 	// "postCreateCommand": "gcc -v",
 
 	// Comment out to connect as root instead. More info: https://aka.ms/vscode-remote/containers/non-root.
-	// "remoteUser": "ros"
+	"remoteUser": "ros"
 }
