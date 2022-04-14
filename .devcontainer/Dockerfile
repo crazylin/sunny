@@ -27,10 +27,47 @@ FROM zhuoqiw/ros-opencv:4.5.5 AS opencv
 
 FROM zhuoqiw/ros-tis:0.14.0 AS tiscamera
 
-FROM ros:galactic AS runtime
+FROM osrf/ros:galactic-desktop AS dev
 
-COPY --from=tiscamera /tiscamera.deb /tiscamera.deb
 COPY --from=opencv /opt/opencv /opt/opencv
+COPY --from=tiscamera /tiscamera.deb /tiscamera.deb
+COPY ./tools/ros2_numpy /usr/lib/python3/dist-packages/ros2_numpy
+
+RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
+    && apt-get -y install --no-install-recommends \
+    python3-tk \
+    python3-pil \
+    python3-matplotlib \
+    libgpiod-dev \
+    libmodbus-dev \
+    libgstreamer1.0-dev \
+    libgstreamer-plugins-base1.0-dev \
+    libgirepository1.0-dev \
+    /tiscamera.deb \
+    && rm -rf /var/lib/apt/lists/* /tiscamera.deb
+
+RUN echo "/opt/opencv/lib" >> /etc/ld.so.conf.d/opencv.conf \
+    && ldconfig
+
+RUN echo "source /opt/ros/galactic/setup.bash" >> /root/.bashrc
+
+FROM dev AS build
+
+COPY ./src /workspace/sunny/src
+
+WORKDIR /workspace/sunny
+
+RUN /ros_entrypoint.sh colcon build \
+    --cmake-args -DCMAKE_BUILD_TYPE=Release \
+    --packages-up-to pipeline_tis \
+    && rm -rf build log
+
+FROM ros:galactic AS deploy
+
+COPY --from=opencv /opt/opencv /opt/opencv
+COPY --from=tiscamera /tiscamera.deb /tiscamera.deb
+COPY ./tools/ros2_numpy /usr/lib/python3/dist-packages/ros2_numpy
+COPY --from=build /workspace/sunny/install /workspace/sunny/install
 
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     && apt-get -y install --no-install-recommends \
@@ -42,56 +79,20 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
 RUN echo "/opt/opencv/lib" >> /etc/ld.so.conf.d/opencv.conf \
     && ldconfig
 
-RUN echo "source /opt/ros/galactic/setup.bash" >> /root/.bashrc
-
-FROM runtime AS dev
-
-RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
-    && apt-get -y install --no-install-recommends \
-    python3-pip \
-    libgpiod-dev \
-    libmodbus-dev \
-    libgstreamer1.0-dev \
-    libgstreamer-plugins-base1.0-dev \
-    libgirepository1.0-dev \
-    && rm -rf /var/lib/apt/lists/*
-
-RUN python3 -m pip install -U pip \
-    && python3 -m pip install -U matplotlib
-
-FROM dev AS CI
-
-COPY ./src /workspace/sunny/src
-
-WORKDIR /workspace/sunny
-
-RUN /ros_entrypoint.sh colcon build \
-    --cmake-args -DCMAKE_BUILD_TYPE=Release \
-    --packages-up-to pipeline_tis \
-    && rm -rf build log
-
-FROM runtime AS deploy
-
-COPY --from=CI /workspace/sunny/install /workspace/sunny/install
-
-RUN sed -i '$c source /workspace/sunny/install/setup.bash' /root/.bashrc
-
+RUN echo "source /workspace/sunny/install/setup.bash" >> /root/.bashrc
 RUN sed -i '/source/c source /workspace/sunny/install/setup.bash' /ros_entrypoint.sh
 
 FROM osrf/ros:galactic-desktop AS desktop
 
+COPY ./tools/ros2_numpy /usr/lib/python3/dist-packages/ros2_numpy
 COPY ./tools/seam_tracking_gui /workspace/sunny/tools/seam_tracking_gui
-COPY ./src/ros2_numpy/ros2_numpy /workspace/sunny/tools/seam_tracking_gui/ros2_numpy
 
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     && apt-get -y install --no-install-recommends \
     python3-tk \
-    python3-pil.imagetk \
-    python3-pip \
+    python3-pil \
+    python3-matplotlib \
     && rm -rf /var/lib/apt/lists/*
-
-RUN python3 -m pip install -U pip \
-    && python3 -m pip install -U matplotlib
 
 WORKDIR /workspace/sunny/tools/seam_tracking_gui
 

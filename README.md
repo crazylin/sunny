@@ -28,7 +28,7 @@
 1. Clone this repository itself: `git clone https://github.com/zhuoqiw/sunny.git`
 1. CD into local repository and start vscode: `code .`
 1. Install Remote-Containers extension
-1. In Menu->View->Command Palette, find Remote-Container: Opern Folder in Container...
+1. In Menu->View->Command Palette, find Remote-Container: Open Folder in Container...
 1. Follow the instructions
 
 ## Prepare embedded system

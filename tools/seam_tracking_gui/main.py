@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import rclpy
 import json
 import tkinter as tk
@@ -49,9 +51,7 @@ class App(tk.Tk):
         self._params_cb = {
             'camera_tis_node': {'power': self._params_cb_power},
             'gpio_raspberry_node': {'laser': self._params_cb_laser},
-            'seam_tracking_node': {'task': self._params_cb_task},
-            'laser_line_center_node': {},
-            'laser_line_filter_node': {}
+            'seam_tracking_node': {'task': self._params_cb_task}
         }
 
         self.title('Seam Tracking GUI')
@@ -214,8 +214,8 @@ class App(tk.Tk):
             res = future.result().results
             for r, k in zip(res, d):
                 if r.successful:
-                    if (cb := self._params_cb[n].get(k)) is not None:
-                        cb(d[k])
+                    if n in self._params_cb and k in self._params_cb[n]:
+                        self._params_cb[n][k](d[k])
                     if self._params[n][k] != d[k]:
                         self._params[n][k] = d[k]
                         self._msg(f'[{n}] [{k}] set to: {d[k]}')
@@ -230,8 +230,8 @@ class App(tk.Tk):
             values = future.result().values
             for p, k in zip(values, l):
                 v = from_parameter_value(p)
-                if (cb := self._params_cb[n].get(k)) is not None:
-                    cb(v)
+                if n in self._params_cb and k in self._params_cb[n]:
+                    self._params_cb[n][k](v)
                 if self._params[n][k] != v:
                     self._params[n][k] = v
                     self._msg(f'[{n}] [{k}] set to: {v}')

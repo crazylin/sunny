@@ -7,8 +7,8 @@ from rclpy.parameter import Parameter
 from rcl_interfaces.msg import SetParametersResult
 from std_srvs.srv import Trigger
 from sensor_msgs.msg import PointCloud2
-from shared_interfaces.srv import GetCode
-from shared_interfaces.srv import SetCode
+# from shared_interfaces.srv import GetCode
+# from shared_interfaces.srv import SetCode
 
 from .codes import Codes
 import ros2_numpy as rnp
@@ -68,14 +68,14 @@ class SeamTracking(Node):
             self._cb_sub,
             rclpy.qos.qos_profile_sensor_data)
 
-        self.srv_get_code = self.create_service(
-            GetCode,
-            '~/get_code',
-            self._cb_get_code)
-        self.srv_set_code = self.create_service(
-            SetCode,
-            '~/set_code',
-            self._cb_set_code)
+        # self.srv_get_code = self.create_service(
+        #     GetCode,
+        #     '~/get_code',
+        #     self._cb_get_code)
+        # self.srv_set_code = self.create_service(
+        #     SetCode,
+        #     '~/set_code',
+        #     self._cb_set_code)
 
         self.srv_dump_codes = self.create_service(
             Trigger,
