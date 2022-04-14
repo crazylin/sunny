@@ -35,6 +35,11 @@ COPY ./tools/ros2_numpy /usr/lib/python3/dist-packages/ros2_numpy
 
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     && apt-get -y install --no-install-recommends \
+    /tiscamera.deb \
+    && rm -rf /var/lib/apt/lists/* /tiscamera.deb
+
+RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
+    && apt-get -y install --no-install-recommends \
     python3-tk \
     python3-pil \
     python3-matplotlib \
@@ -43,8 +48,7 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     libgstreamer1.0-dev \
     libgstreamer-plugins-base1.0-dev \
     libgirepository1.0-dev \
-    /tiscamera.deb \
-    && rm -rf /var/lib/apt/lists/* /tiscamera.deb
+    && rm -rf /var/lib/apt/lists/*
 
 RUN echo "/opt/opencv/lib" >> /etc/ld.so.conf.d/opencv.conf \
     && ldconfig
