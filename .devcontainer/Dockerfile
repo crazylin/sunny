@@ -48,12 +48,16 @@ FROM runtime AS dev
 
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     && apt-get -y install --no-install-recommends \
+    python3-pip \
     libgpiod-dev \
     libmodbus-dev \
     libgstreamer1.0-dev \
     libgstreamer-plugins-base1.0-dev \
     libgirepository1.0-dev \
     && rm -rf /var/lib/apt/lists/*
+
+RUN python3 -m pip install -U pip \
+    && python3 -m pip install -U matplotlib
 
 FROM dev AS CI
 
@@ -73,3 +77,19 @@ COPY --from=CI /workspace/sunny/install /workspace/sunny/install
 RUN sed -i '$c source /workspace/sunny/install/setup.bash' /root/.bashrc
 
 RUN sed -i '/source/c source /workspace/sunny/install/setup.bash' /ros_entrypoint.sh
+
+FROM osrf/ros:galactic-desktop AS desktop
+
+COPY ./tools /workspace/sunny/tools
+
+RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
+    && apt-get -y install --no-install-recommends \
+    python3-pip \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN python3 -m pip install -U pip \
+    && python3 -m pip install -U matplotlib
+
+WORKDIR /workspace/sunny/tools/seam_tracking_gui
+
+CMD [ "python3", "main.py" ]

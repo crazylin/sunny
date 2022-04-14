@@ -5,7 +5,7 @@
             "includePath": [
                 "${workspaceFolder}/**",
                 "/opt/ros/galactic/include",
-                "/opt/OpenCV/include/opencv4"
+                "/opt/opencv/include/opencv4"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/gcc",

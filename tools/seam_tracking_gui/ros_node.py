@@ -1,8 +1,8 @@
 ﻿from rclpy.node import Node
 from rclpy.qos import qos_profile_sensor_data
 from sensor_msgs.msg import PointCloud2
-from shared_interfaces.srv import GetCode
-from shared_interfaces.srv import SetCode
+# from shared_interfaces.srv import GetCode
+# from shared_interfaces.srv import SetCode
 from rcl_interfaces.srv import GetParameters, SetParameters
 from rcl_interfaces.msg import Parameter, ParameterType, ParameterValue, Log
 
@@ -64,8 +64,8 @@ class RosNode(Node):
             self._cli_get[k] = self.create_client(GetParameters, f'/{k}/get_parameters')
             self._cli_set[k] = self.create_client(SetParameters, f'/{k}/set_parameters')
 
-        self._create_client('get_code', GetCode, '/seam_tracking_node/get_code')
-        self._create_client('set_code', SetCode, '/seam_tracking_node/set_code')
+        # self._create_client('get_code', GetCode, '/seam_tracking_node/get_code')
+        # self._create_client('set_code', SetCode, '/seam_tracking_node/set_code')
 
     def sub_pnts(self, cb):
         qos = qos_profile_sensor_data
@@ -95,24 +95,24 @@ class RosNode(Node):
             cb,
             10)
 
-    def get_code(self, index: int):
-        cli = self._cli['get_code']
-        if cli.service_is_ready():
-            request = GetCode.Request()
-            request.index = index
-            return cli.call_async(request)
-        else:
-            return None
+    # def get_code(self, index: int):
+    #     cli = self._cli['get_code']
+    #     if cli.service_is_ready():
+    #         request = GetCode.Request()
+    #         request.index = index
+    #         return cli.call_async(request)
+    #     else:
+    #         return None
 
-    def set_code(self, index: int, code: str):
-        cli = self._cli['set_code']
-        if cli.service_is_ready():
-            request = SetCode.Request()
-            request.index = index
-            request.code = code
-            return cli.call_async(request)
-        else:
-            return None
+    # def set_code(self, index: int, code: str):
+    #     cli = self._cli['set_code']
+    #     if cli.service_is_ready():
+    #         request = SetCode.Request()
+    #         request.index = index
+    #         request.code = code
+    #         return cli.call_async(request)
+    #     else:
+    #         return None
 
     def get_params(self, name: str, params: list):
         cli = self._cli_get[name]

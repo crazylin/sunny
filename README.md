@@ -1,5 +1,12 @@
 # sunny
 
+## Development requirements
+
+- Ubuntu 20.04 desktop
+- Docker CE/EE 18.06+ and Docker Compose 1.21+.
+- Visual Studio Code
+- Visual Studio Code extension: Remote - Containers (ms-vscode-remote.remote-containers)
+
 ## System requirements
 
 - Raspberry Pi 4 Model B (4GB or 8GB)
