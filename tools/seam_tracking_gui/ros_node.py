@@ -1,5 +1,6 @@
 ﻿from rclpy.node import Node
 from rclpy.qos import qos_profile_sensor_data
+from std_msgs.msg import String
 from sensor_msgs.msg import PointCloud2
 # from shared_interfaces.srv import GetCode
 # from shared_interfaces.srv import SetCode
@@ -55,6 +56,7 @@ class RosNode(Node):
     def __init__(self, params: dict):
         super().__init__('seam_tracking_gui')
 
+        self._pub = {}
         self._sub = {}
         self._cli = {}
         self._cli_get = {}
@@ -64,8 +66,14 @@ class RosNode(Node):
             self._cli_get[k] = self.create_client(GetParameters, f'/{k}/get_parameters')
             self._cli_set[k] = self.create_client(SetParameters, f'/{k}/set_parameters')
 
+        self._create_publisher('config', String, '/config_tis_node/config', 10)
         # self._create_client('get_code', GetCode, '/seam_tracking_node/get_code')
         # self._create_client('set_code', SetCode, '/seam_tracking_node/set_code')
+
+    def preserve_config(self, msg: str):
+        s = String()
+        s.data = msg
+        self._pub['config'].publish(s)
 
     def sub_pnts(self, cb):
         qos = qos_profile_sensor_data
@@ -134,6 +142,11 @@ class RosNode(Node):
         else:
             return None
 
+    def _create_publisher(self, pub_name: str, *args, **kwargs):
+        if pub_name in self._pub:
+            self.destroy_publisher(self._pub[pub_name])
+        self._pub[pub_name] = self.create_publisher(*args, **kwargs)
+
     def _create_subscription(self, sub_name: str, *args, **kwargs):
         if sub_name in self._sub:
             self.destroy_subscription(self._sub[sub_name])
@@ -143,6 +156,10 @@ class RosNode(Node):
         if cli_name in self._cli:
             self.destroy_client(self._cli[cli_name])
         self._cli[cli_name] = self.create_client(*args, **kwargs)
+
+    def _remove_publisher(self, pub_name: str):
+        if pub_name in self._pub:
+            del self._pub[pub_name]
 
     def _remove_subscription(self, sub_name: str):
         if sub_name in self._sub:

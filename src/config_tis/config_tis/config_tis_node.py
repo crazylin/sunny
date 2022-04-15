@@ -26,7 +26,7 @@ class ConfigTis(Node):
 
     def _cb_sub(self, msg: String):
         with open(self._file, 'w') as fp:
-            fp.write(msg)
+            fp.write(msg.data)
 
 def main(args=None):
     rclpy.init(args=args)

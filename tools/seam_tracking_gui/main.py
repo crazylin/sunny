@@ -2,6 +2,7 @@
 
 import rclpy
 import json
+import yaml
 import tkinter as tk
 from threading import Thread
 from threading import Lock
@@ -180,6 +181,7 @@ class App(tk.Tk):
         menu_edit.add_command(label='Center...', command=self._cb_menu_center)
         menu_edit.add_command(label='Line filter...', command=self._cb_menu_line_filter)
         menu_edit.add_command(label='Seam filter...', command=self._cb_menu_seam_filter)
+        menu_edit.add_command(label='Preserve config', command=self._cb_menu_preserve_config)
         
         menu_help = tk.Menu(menubar)
 
@@ -296,6 +298,10 @@ class App(tk.Tk):
         else:
             self._msg('Service [seam_tracking_node] is not ready!', level='Warn')
 
+    def _cb_menu_preserve_config(self, *args):
+        msg = yaml.dump(self._params)
+        self.ros.preserve_config(msg)
+
     def _params_cb_power(self, b: bool):
         if b:
             self.btn_power['text'] = 'Camera off'
@@ -381,11 +387,16 @@ class App(tk.Tk):
             title='Backup codes',
             initialfile='codes.json',
             defaultextension='json',
-            filetypes=[('JSON JavaScript Object Notation', '.json')])
+            filetypes=[('JSON JavaScript Object Notation', '.json'), ("YAML Ain't Markup Language", '.yaml .yml')])
         if filename:
             try:
                 fp = open(filename, 'w')
-                json.dump(codes, fp)
+                if filename.endswith('.json'):
+                    json.dump(codes, fp)
+                elif filename.endswith(('.yaml', '.yml')):
+                    yaml.dump(codes, fp)
+                else:
+                    raise TypeError('Only JSON or YAML files are supported')
                 self._msg('Backup done!')
             except Exception as e:
                 self._msg(f'{str(e)}', level='Error')
@@ -403,11 +414,16 @@ class App(tk.Tk):
             title='Upload codes',
             initialfile='codes.json',
             defaultextension='json',
-            filetypes=[('JSON JavaScript Object Notation', '.json')])
+            filetypes=[('JSON JavaScript Object Notation', '.json'), ("YAML Ain't Markup Language", '.yaml .yml')])
         if filename:
             try:
                 fp = open(filename)
-                codes[:] = json.load(fp)
+                if filename.endswith('.json'):
+                    codes[:] = json.load(fp)
+                elif filename.endswith(('.yaml', '.yml')):
+                    codes[:] = yaml.load(fp)
+                else:
+                    raise TypeError('Only JSON or YAML files are supported')
                 self._update_codes()
                 self._msg('Upload done!')
             except Exception as e:
