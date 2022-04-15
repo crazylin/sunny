@@ -34,7 +34,6 @@ public:
   void gpio_laser(bool);
   void camera_power(bool);
 
-
 private:
   class _Impl;
   std::unique_ptr<_Impl> _impl;

@@ -79,39 +79,39 @@ public:
     _threads.push_back(std::thread(&_Impl::manager, this));
 
     _handle = _node->add_on_set_parameters_callback(
-    [this](const std::vector<rclcpp::Parameter> & vp) {
-      rcl_interfaces::msg::SetParametersResult result;
-      result.successful = true;
-      for (const auto & p : vp) {
-        if (p.get_name() == "ksize") {
-          auto k = p.as_int();
-          if (k != 1 && k != 3 && k != 5 && k != 7 && k != -1) {
-            result.successful = false;
-            result.reason = "Failed to set ksize [1, 3, 5, 7, -1]";
-            return result;
-          }
-        } else if (p.get_name() == "threshold") {
-          if (p.as_int() <= 0) {
-            result.successful = false;
-            result.reason = "Failed to set threshold";
-            return result;
-          }
-        } else if (p.get_name() == "width_min") {
-          if (p.as_int() <= 0) {
-            result.successful = false;
-            result.reason = "Failed to set width_min";
-            return result;
-          }
-        } else if (p.get_name() == "width_max") {
-          if (p.as_int() <= 0) {
-            result.successful = false;
-            result.reason = "Failed to set width_max";
-            return result;
+      [this](const std::vector<rclcpp::Parameter> & vp) {
+        rcl_interfaces::msg::SetParametersResult result;
+        result.successful = true;
+        for (const auto & p : vp) {
+          if (p.get_name() == "ksize") {
+            auto k = p.as_int();
+            if (k != 1 && k != 3 && k != 5 && k != 7 && k != -1) {
+              result.successful = false;
+              result.reason = "Failed to set ksize [1, 3, 5, 7, -1]";
+              return result;
+            }
+          } else if (p.get_name() == "threshold") {
+            if (p.as_int() <= 0) {
+              result.successful = false;
+              result.reason = "Failed to set threshold";
+              return result;
+            }
+          } else if (p.get_name() == "width_min") {
+            if (p.as_int() <= 0) {
+              result.successful = false;
+              result.reason = "Failed to set width_min";
+              return result;
+            }
+          } else if (p.get_name() == "width_max") {
+            if (p.as_int() <= 0) {
+              result.successful = false;
+              result.reason = "Failed to set width_max";
+              return result;
+            }
           }
         }
-      }
-      return result;
-    });
+        return result;
+      });
 
     RCLCPP_INFO(_node->get_logger(), "Employ %d workers successfully", w);
   }

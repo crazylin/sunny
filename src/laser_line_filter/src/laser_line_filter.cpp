@@ -74,44 +74,44 @@ public:
     _threads.push_back(std::thread(&_Impl::manager, this));
 
     _handle = _node->add_on_set_parameters_callback(
-    [this](const std::vector<rclcpp::Parameter> & vp) {
-      rcl_interfaces::msg::SetParametersResult result;
-      result.successful = true;
-      for (const auto & p : vp) {
-        if (p.get_name() == "window_size") {
-          if (p.as_int() <= 0) {
-            result.successful = false;
-            result.reason = "Failed to set window size";
-            return result;
-          }
-        } else if (p.get_name() == "gap") {
-          if (p.as_int() <= 0) {
-            result.successful = false;
-            result.reason = "Failed to set gap";
-            return result;
-          }
-        } else if (p.get_name() == "deviate") {
-          if (p.as_double() <= 0) {
-            result.successful = false;
-            result.reason = "Failed to set deviate";
-            return result;
-          }
-        } else if (p.get_name() == "step") {
-          if (p.as_double() <= 0) {
-            result.successful = false;
-            result.reason = "Failed to set step";
-            return result;
-          }
-        } else if (p.get_name() == "length") {
-          if (p.as_int() <= 0) {
-            result.successful = false;
-            result.reason = "Failed to set length";
-            return result;
+      [this](const std::vector<rclcpp::Parameter> & vp) {
+        rcl_interfaces::msg::SetParametersResult result;
+        result.successful = true;
+        for (const auto & p : vp) {
+          if (p.get_name() == "window_size") {
+            if (p.as_int() <= 0) {
+              result.successful = false;
+              result.reason = "Failed to set window size";
+              return result;
+            }
+          } else if (p.get_name() == "gap") {
+            if (p.as_int() <= 0) {
+              result.successful = false;
+              result.reason = "Failed to set gap";
+              return result;
+            }
+          } else if (p.get_name() == "deviate") {
+            if (p.as_double() <= 0) {
+              result.successful = false;
+              result.reason = "Failed to set deviate";
+              return result;
+            }
+          } else if (p.get_name() == "step") {
+            if (p.as_double() <= 0) {
+              result.successful = false;
+              result.reason = "Failed to set step";
+              return result;
+            }
+          } else if (p.get_name() == "length") {
+            if (p.as_int() <= 0) {
+              result.successful = false;
+              result.reason = "Failed to set length";
+              return result;
+            }
           }
         }
-      }
-      return result;
-    });
+        return result;
+      });
 
     RCLCPP_INFO(_node->get_logger(), "Employ %d workers successfully", w);
   }

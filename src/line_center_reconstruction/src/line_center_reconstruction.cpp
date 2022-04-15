@@ -19,6 +19,7 @@
 #include <future>
 #include <map>
 #include <memory>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -67,7 +68,7 @@ public:
   void get_parameters()
   {
     const auto & vp = _node->get_parameters(KEYS);
-    for ( const auto & p : vp) {
+    for (const auto & p : vp) {
       if (p.get_name() == "camera_matrix") {
         _coef = cv::Mat(p.as_double_array(), true).reshape(1, 3);
       } else if (p.get_name() == "distort_coeffs") {
