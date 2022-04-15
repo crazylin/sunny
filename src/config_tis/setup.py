@@ -1,6 +1,6 @@
 from setuptools import setup
 
-package_name = 'seam_tracking'
+package_name = 'config_tis'
 
 setup(
     name=package_name,
@@ -9,7 +9,7 @@ setup(
     data_files=[
         ('share/ament_index/resource_index/packages', ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
-        ('share/' + package_name + '/config', ['config/params.yaml']),
+        ('share/' + package_name + '/config', ['config/.params.yaml', 'config/params.yaml']),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -20,7 +20,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'seam_tracking_node = seam_tracking.seam_tracking_node:main',
+            'config_tis_node = config_tis.config_tis_node:main',
         ],
     },
 )

@@ -1,4 +1,4 @@
-import json
+# import json
 from functools import wraps
 from threading import RLock
 
@@ -48,23 +48,23 @@ class Codes(list):
     def __call__(self, *args, **kwargs):
         return self._code(*args, **kwargs)
 
-    @_lock
-    def load(self, file: str):
-        with open(file) as fp:
-            self[:] = json.load(fp)
+    # @_lock
+    # def load(self, file: str):
+    #     with open(file) as fp:
+    #         self[:] = json.load(fp)
 
-    @_lock
-    def loads(self, s: str):
-        self[:] = json.loads(s)
+    # @_lock
+    # def loads(self, s: str):
+    #     self[:] = json.loads(s)
 
-    @_lock
-    def dump(self, file: str):
-        with open(file) as fp:
-            json.dump(self, fp)
+    # @_lock
+    # def dump(self, file: str):
+    #     with open(file) as fp:
+    #         json.dump(self, fp)
 
-    @_lock
-    def dumps(self):
-        return json.dumps(self)
+    # @_lock
+    # def dumps(self):
+    #     return json.dumps(self)
 
     @_lock
     def reload(self, id: int):

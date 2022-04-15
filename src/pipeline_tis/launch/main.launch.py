@@ -14,6 +14,7 @@
 
 import os
 import yaml
+from config_tis.config_tis import config_tis_node
 import launch
 from ament_index_python.packages import get_package_share_directory
 from launch_ros.descriptions import ComposableNode
@@ -23,87 +24,60 @@ from launch_ros.actions import Node
 
 def generate_launch_description():
     """Generate launch description with a component."""
-    configFile = os.path.join(
-        get_package_share_directory('camera_tis'),
+    config = os.path.join(
+        get_package_share_directory('config_tis'),
         'config',
-        'params.yaml')
+        '.params.yaml')
+    with open(config, 'r') as file:
+        params = yaml.safe_load(file)
 
-    with open(configFile, 'r') as file:
-        handle = yaml.safe_load(file)
-        configParams = handle['camera_tis_node']['ros__parameters']
+    try:
+        configNew = os.path.join(
+            get_package_share_directory('config_tis'),
+            'config',
+            'params.yaml')
+        with open(configNew, 'r') as file:
+            paramsNew = yaml.safe_load(file)
+        params.update(paramsNew)
+    except Exception:
+        pass
 
     camera_tis_node = ComposableNode(
         package='camera_tis',
         plugin='camera_tis::CameraTis',
-        parameters=[configParams],
+        parameters=[params['camera_tis_node']],
         extra_arguments=[{'use_intra_process_comms': True}])
 
-    configFile = os.path.join(
-        get_package_share_directory('rotate_image'),
-        'config',
-        'params.yaml')
-
-    with open(configFile, 'r') as file:
-        handle = yaml.safe_load(file)
-        configParams = handle['rotate_image_node']['ros__parameters']
-        configParams['workers'] = 2
-
+    params['rotate_image_node']['workers'] = 2
     rotate_image_node = ComposableNode(
         package='rotate_image',
         plugin='rotate_image::RotateImage',
         remappings=[('~/image', '/camera_tis_node/image')],
-        parameters=[configParams],
+        parameters=[params['rotate_image_node']],
         extra_arguments=[{'use_intra_process_comms': True}])
 
-    configFile = os.path.join(
-        get_package_share_directory('laser_line_center'),
-        'config',
-        'params.yaml')
-
-    with open(configFile, 'r') as file:
-        handle = yaml.safe_load(file)
-        configParams = handle['laser_line_center_node']['ros__parameters']
-        configParams['workers'] = 4
-
+    params['laser_line_center_node']['workers'] = 4
     laser_line_center_node = ComposableNode(
         package='laser_line_center',
         plugin='laser_line_center::LaserLineCenter',
         remappings=[('~/image', '/rotate_image_node/image_rotated')],
-        parameters=[configParams],
+        parameters=[params['laser_line_center_node']],
         extra_arguments=[{'use_intra_process_comms': True}])
 
-    configFile = os.path.join(
-        get_package_share_directory('laser_line_filter'),
-        'config',
-        'params.yaml')
-
-    with open(configFile, 'r') as file:
-        handle = yaml.safe_load(file)
-        configParams = handle['laser_line_filter_node']['ros__parameters']
-        configParams['workers'] = 2
-
+    params['laser_line_filter_node']['workers'] = 2
     laser_line_filter_node = ComposableNode(
         package='laser_line_filter',
         plugin='laser_line_filter::LaserLineFilter',
         remappings=[('~/line', '/laser_line_center_node/line')],
-        parameters=[configParams],
+        parameters=[params['laser_line_filter_node']],
         extra_arguments=[{'use_intra_process_comms': True}])
 
-    configFile = os.path.join(
-        get_package_share_directory('line_center_reconstruction'),
-        'config',
-        'params.yaml')
-
-    with open(configFile, 'r') as file:
-        handle = yaml.safe_load(file)
-        configParams = handle['line_center_reconstruction_node']['ros__parameters']
-        configParams['workers'] = 2
-
+    params['line_center_reconstruction_node']['workers'] = 2
     line_center_reconstruction_node = ComposableNode(
         package='line_center_reconstruction',
         plugin='line_center_reconstruction::LineCenterReconstruction',
         remappings=[('~/line', '/laser_line_filter_node/line_filtered')],
-        parameters=[configParams],
+        parameters=[params['line_center_reconstruction_node']],
         extra_arguments=[{'use_intra_process_comms': True}])
 
     container = ComposableNodeContainer(
@@ -119,51 +93,29 @@ def generate_launch_description():
             line_center_reconstruction_node],
         output='screen')
 
-    configFile = os.path.join(
-        get_package_share_directory('seam_tracking'),
-        'config',
-        'params.yaml')
-
-    with open(configFile, 'r') as file:
-        handle = yaml.safe_load(file)
-        configParams = handle['seam_tracking_node']['ros__parameters']
-
     seam_tracking_node = Node(
         package='seam_tracking',
         executable='seam_tracking_node',
         remappings=[('~/pnts', '/line_center_reconstruction_node/pnts')],
-        parameters=[configParams])
-
-    configFile = os.path.join(
-        get_package_share_directory('modbus'),
-        'config',
-        'params.yaml')
-
-    with open(configFile, 'r') as file:
-        handle = yaml.safe_load(file)
-        configParams = handle['modbus_node']['ros__parameters']
+        parameters=[params['seam_tracking_node']])
 
     modbus_node = Node(
         package='modbus',
         executable='modbus_node',
         remappings=[('~/seam', '/seam_tracking_node/seam')],
-        parameters=[configParams])
-
-    configFile = os.path.join(
-        get_package_share_directory('gpio_raspberry'),
-        'config',
-        'params.yaml')
-
-    with open(configFile, 'r') as file:
-        handle = yaml.safe_load(file)
-        configParams = handle['gpio_raspberry_node']['ros__parameters']
+        parameters=[params['modbus_node']])
 
     gpio_raspberry_node = Node(
         package='gpio_raspberry',
         executable='gpio_raspberry_node',
-        parameters=[configParams])
+        parameters=[params['gpio_raspberry_node']])
+
+    config_tis_node = Node(
+        package='config_tis',
+        executable='config_tis_node')
 
     return launch.LaunchDescription([container,
         seam_tracking_node,
         modbus_node,
-        gpio_raspberry_node])
+        gpio_raspberry_node,
+        config_tis_node])

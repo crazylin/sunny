@@ -39,11 +39,10 @@ class SeamTracking(Node):
         self.declare_parameter('task', 0)
         self._task = self.get_parameter('task').value
 
-        self.declare_parameter('codes', [''], ignore_override=True)
-        self._file = os.path.join(os.path.dirname(__file__), 'codes.json')
-        self._codes = Codes()
+        self.declare_parameter('codes', [''])
+        self._codes = Codes(self.get_parameter('codes').value)
+
         try:
-            self._codes.load(self._file)
             self._codes.reload(self._task)
         except Exception as e:
             self.get_logger().error(str(e))
@@ -77,14 +76,14 @@ class SeamTracking(Node):
         #     '~/set_code',
         #     self._cb_set_code)
 
-        self.srv_dump_codes = self.create_service(
-            Trigger,
-            '~/dump_codes',
-            self._cb_dump_codes)
-        self.srv_load_codes = self.create_service(
-            Trigger,
-            '~/load_codes',
-            self._cb_load_codes)
+        # self.srv_dump_codes = self.create_service(
+        #     Trigger,
+        #     '~/dump_codes',
+        #     self._cb_dump_codes)
+        # self.srv_load_codes = self.create_service(
+        #     Trigger,
+        #     '~/load_codes',
+        #     self._cb_load_codes)
 
         self.add_on_set_parameters_callback(self._on_set_parameters)
         self.get_logger().info('Initialized successfully')
@@ -124,45 +123,45 @@ class SeamTracking(Node):
                 self._enable = p.value
         return result
 
-    def _cb_get_code(self, request, response):
-        try:
-            response.code = self._codes[request.index]
-        except Exception as e:
-            response.success = False
-            response.message = str(e)
-        else:
-            response.success = True
-        return response
+    # def _cb_get_code(self, request, response):
+    #     try:
+    #         response.code = self._codes[request.index]
+    #     except Exception as e:
+    #         response.success = False
+    #         response.message = str(e)
+    #     else:
+    #         response.success = True
+    #     return response
 
-    def _cb_set_code(self, request, response):
-        try:
-            self._codes[request.index] = request.code
-        except Exception as e:
-            response.success = False
-            response.message = str(e)
-        else:
-            response.success = True
-        return response
+    # def _cb_set_code(self, request, response):
+    #     try:
+    #         self._codes[request.index] = request.code
+    #     except Exception as e:
+    #         response.success = False
+    #         response.message = str(e)
+    #     else:
+    #         response.success = True
+    #     return response
 
-    def _cb_dump_codes(self, request, response):
-        try:
-            self._codes.dump(self._file)
-        except Exception as e:
-            response.success = False
-            response.message = str(e)
-        else:
-            response.success = True
-        return response
+    # def _cb_dump_codes(self, request, response):
+    #     try:
+    #         self._codes.dump(self._file)
+    #     except Exception as e:
+    #         response.success = False
+    #         response.message = str(e)
+    #     else:
+    #         response.success = True
+    #     return response
 
-    def _cb_load_codes(self, request, response):
-        try:
-            self._codes.load(self._file)
-        except Exception as e:
-            response.success = False
-            response.message = str(e)
-        else:
-            response.success = True
-        return response
+    # def _cb_load_codes(self, request, response):
+    #     try:
+    #         self._codes.load(self._file)
+    #     except Exception as e:
+    #         response.success = False
+    #         response.message = str(e)
+    #     else:
+    #         response.success = True
+    #     return response
 
     def _cb_sub(self, msg: PointCloud2):
         ret = PointCloud2()

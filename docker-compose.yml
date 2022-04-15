@@ -11,8 +11,8 @@ services:
       - "/dev/gpiochip0:/dev/gpiochip0"
     volumes:
       - ros2_log:/root/.ros/log
-      - seam_tracking:/workspace/sunny/install/seam_tracking/lib/python3.8/site-packages/seam_tracking
+      - config_data:/workspace/sunny/install/config_tis/share/config_tis/config
 
 volumes:
   ros2_log:
-  seam_tracking:
+  config_data:
