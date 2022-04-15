@@ -40,8 +40,6 @@ public:
   explicit _Impl(Modbus * ptr)
   : _node(ptr)
   {
-    declare_parameters();
-
     _ctx = modbus_new_tcp(NULL, 2345);
     if (!_ctx) {
       throw std::runtime_error("Can not create modbus context");
@@ -74,21 +72,14 @@ public:
     modbus_free(_ctx);
   }
 
-  void declare_parameters()
-  {
-    _node->declare_parameter("delta_x", 2000);
-    _node->declare_parameter("delta_y", 2000);
-  }
-
   void update(bool valid, float u = 0., float v = 0.)
   {
     std::lock_guard<std::mutex> lock(_mutex);
 
     if (valid) {
-      const auto & vp = _node->get_parameters({"delta_x", "delta_y"});
       _mb_mapping->tab_registers[2] = 255;
-      _mb_mapping->tab_registers[3] = static_cast<uint16_t>(u * 100 + vp[0].as_int());
-      _mb_mapping->tab_registers[4] = static_cast<uint16_t>(v * 100 + vp[1].as_int());
+      _mb_mapping->tab_registers[3] = static_cast<uint16_t>(u * 100);
+      _mb_mapping->tab_registers[4] = static_cast<uint16_t>(v * 100);
     } else {
       _mb_mapping->tab_registers[2] = 0;
     }

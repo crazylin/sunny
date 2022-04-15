@@ -1,4 +1,3 @@
 modbus_node:
   ros__parameters:
-    delta_x: 2000               # int, 0.01 mm
-    delta_y: 2000               # int, 0.01 mm
+    test: TODO
