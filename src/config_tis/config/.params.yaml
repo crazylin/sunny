@@ -27,7 +27,7 @@ line_center_reconstruction_node:
 
 seam_tracking_node:
     codes: ['fn', 'test']
-    task: 2                     #int
+    task: 0                     #int
     delta_x: 0.                 #float in mm
     delta_y: 0.                 #float in mm
     enable: false               #bool

@@ -14,7 +14,6 @@
 
 import os
 import yaml
-from config_tis.config_tis import config_tis_node
 import launch
 from ament_index_python.packages import get_package_share_directory
 from launch_ros.descriptions import ComposableNode
