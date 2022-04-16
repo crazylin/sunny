@@ -5,7 +5,7 @@ services:
     command: ros2 launch pipeline_tis main.launch.py
     container_name: ros
     network_mode: "host"
-    restart: on-failure
+    restart: unless-stopped
     devices:
       - "/dev/video0:/dev/video0"
       - "/dev/gpiochip0:/dev/gpiochip0"

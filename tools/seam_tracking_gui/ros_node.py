@@ -70,7 +70,7 @@ class RosNode(Node):
         # self._create_client('get_code', GetCode, '/seam_tracking_node/get_code')
         # self._create_client('set_code', SetCode, '/seam_tracking_node/set_code')
 
-    def preserve_config(self, msg: str):
+    def pub_config(self, msg: str):
         s = String()
         s.data = msg
         self._pub['config'].publish(s)

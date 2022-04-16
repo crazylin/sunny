@@ -89,8 +89,7 @@ def generate_launch_description():
             rotate_image_node,
             laser_line_center_node,
             laser_line_filter_node,
-            line_center_reconstruction_node],
-        output='screen')
+            line_center_reconstruction_node])
 
     seam_tracking_node = Node(
         package='seam_tracking',
@@ -111,7 +110,8 @@ def generate_launch_description():
 
     config_tis_node = Node(
         package='config_tis',
-        executable='config_tis_node')
+        executable='config_tis_node',
+        on_exit=launch.actions.Shutdown())
 
     return launch.LaunchDescription([container,
         seam_tracking_node,

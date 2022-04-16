@@ -35,6 +35,7 @@ COPY ./tools/ros2_numpy /usr/lib/python3/dist-packages/ros2_numpy
 
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     && apt-get -y install --no-install-recommends \
+    nano \
     gpiod \
     libmodbus5 \
     /tiscamera.deb \

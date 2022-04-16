@@ -1,4 +1,5 @@
 import os
+import sys
 import rclpy
 
 from rclpy.node import Node
@@ -25,6 +26,8 @@ class ConfigTis(Node):
         self.get_logger().info('Destroyed successfully')
 
     def _cb_sub(self, msg: String):
+        if msg.data == 'restart':
+            sys.exit(0)
         with open(self._file, 'w') as fp:
             fp.write(msg.data)
 

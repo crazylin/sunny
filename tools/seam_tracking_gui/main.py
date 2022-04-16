@@ -182,6 +182,7 @@ class App(tk.Tk):
         menu_edit.add_command(label='Line filter...', command=self._cb_menu_line_filter)
         menu_edit.add_command(label='Seam filter...', command=self._cb_menu_seam_filter)
         menu_edit.add_command(label='Preserve config', command=self._cb_menu_preserve_config)
+        menu_edit.add_command(label='Reboot defaults', command=self._cb_menu_reboot_defaults)
         
         menu_help = tk.Menu(menubar)
 
@@ -299,8 +300,14 @@ class App(tk.Tk):
             self._msg('Service [seam_tracking_node] is not ready!', level='Warn')
 
     def _cb_menu_preserve_config(self, *args):
+        self._msg('Menu [Preserve config] clicked')
         msg = yaml.dump(self._params)
-        self.ros.preserve_config(msg)
+        self.ros.pub_config(msg)
+
+    def _cb_menu_reboot_defaults(self, *args):
+        self._msg('Menu [Reboot defaults] clicked')
+        self.ros.pub_config('')
+        self.ros.pub_config('restart')
 
     def _params_cb_power(self, b: bool):
         if b:
