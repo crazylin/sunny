@@ -51,6 +51,7 @@ FROM runtime AS dev
 # Create a non-root user
 RUN groupadd --gid 1000 ros \
   && useradd -s /bin/bash --uid 1000 --gid 1000 -m ros \
+  && usermod -a -G video ros \
   && echo "source /opt/ros/galactic/setup.bash" >> /home/ros/.bashrc
 
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
