@@ -8,7 +8,7 @@ config_tis.config_tis_node
 
 ## Subscription
 
-/config_tis_node/config
+/config_tis_node/config std_msgs::msg::String
 
 ## Usage information
 

@@ -8,7 +8,12 @@ camera_tis::camera_tis_node
 
 ## Publisher
 
-/camera_tis_node/image
+/camera_tis_node/image sensor_msgs::msg::Image
+
+## Parameters
+
+- /camera_tis_node/power bool Power on or off the camera, means start or stop camera's capture.
+- /camera_tis_node/exposure_time int The exposure time in microseconds.
 
 ## Usage information
 
@@ -17,7 +22,7 @@ Instead, it is configurated, built and packaged by another repository.
 For more details, see [github: ros-tis](https://github.com/zhuoqiw/ros-tis)  
 And [dockerhub: ros-tis](https://hub.docker.com/repository/docker/zhuoqiw/ros-tis/general)
 
-To successfully utilize the camera hardware:  
+To successfully utilize the camera hardware, host and container should be configurated with cautions:
 - Make sure the camera is connected with USB 3.0 by using `lsusb` etc. (host)
 - Check the UDev rule is installed correctly under `/et/udev/rules.d`. (host)
 - Check `tcam-uvc-extension-loader` is installed under `/usr/bin`. (host)

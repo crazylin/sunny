@@ -8,9 +8,9 @@ branch_image::branch_image_node
 
 ## Subscription
 
-/branch_image_node/image
+/branch_image_node/image sensor_msgs::msg::Image
 
 ## Publisher
 
-- /branch_image_node/image_l
-- /branch_image_node/image_r
+- /branch_image_node/image_l sensor_msgs::msg::Image
+- /branch_image_node/image_r sensor_msgs::msg::Image
