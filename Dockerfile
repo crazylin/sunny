@@ -48,6 +48,11 @@ RUN echo "source /opt/ros/galactic/setup.bash" >> /root/.bashrc
 
 FROM runtime AS dev
 
+# Create a non-root user
+RUN groupadd --gid 1000 ros \
+  && useradd -s /bin/bash --uid 1000 --gid 1000 -m ros \
+  && echo "source /opt/ros/galactic/setup.bash" >> /home/ros/.bashrc
+
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     && apt-get -y install --no-install-recommends \
     python3-tk \
@@ -91,14 +96,6 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     python3-matplotlib \
     && rm -rf /var/lib/apt/lists/*
 
+RUN sed -i '/source/a umask 0' /ros_entrypoint.sh
+
 CMD [ "python3", "/workspace/sunny/tools/seam_tracking_gui/main.py" ]
-
-ARG USERNAME=ros
-ARG USER_UID=1000
-ARG USER_GID=$USER_UID
-
-# Create a non-root user
-RUN groupadd --gid $USER_GID $USERNAME \
-  && useradd -s /bin/bash --uid $USER_UID --gid $USER_GID -m $USERNAME
-
-RUN echo "source /opt/ros/galactic/setup.bash" >> /home/$USERNAME/.bashrc
