@@ -8,4 +8,4 @@ gpio_raspberry::gpio_raspberry_node
 
 ## Paramters
 
-- /gpio_raspberry_node/laser bool Power on or off the laser
+- /gpio_raspberry_node/laser bool Power on or off the laser.

@@ -34,4 +34,3 @@ Then two consecutive points are recognized as break point by `gap`.
 After that, a front cluster algorithm is applied to group points into segment of lines.
 Two segments are connected if the missing number points is smaller than `step`. 
 Finally, lines with shorter `length` are filtered altogether.
-
