@@ -172,7 +172,7 @@ public:
   }
 
   /**
-   * @brief Push a image and nority workers.
+   * @brief Push a image and notity workers.
    *
    * @param ptr Reference to a unique pointer to image to be moved.
    */

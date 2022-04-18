@@ -1,6 +1,6 @@
 # line_center_reconstruction (c++)
 
-Homography transformation between two plane: image plane and laser plane
+Homography transformation between two plane: image plane and laser plane.
 
 ## Package, node name
 

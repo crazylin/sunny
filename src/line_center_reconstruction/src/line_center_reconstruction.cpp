@@ -31,11 +31,30 @@ namespace line_center_reconstruction
 using sensor_msgs::msg::PointCloud2;
 using sensor_msgs::msg::PointField;
 
+/**
+ * @brief List of parameter names.
+ *
+ */
 const std::vector<std::string> KEYS = {"camera_matrix", "distort_coeffs", "homography_matrix"};
 
+/**
+ * @brief Inner implementation for the algorithm.
+ *
+ */
 class LineCenterReconstruction::_Impl
 {
 public:
+  /**
+   * @brief Construct a new impl object
+   *
+   * Declare parameters before usage.
+   * Get parameters.
+   * Create a thread for each worker.
+   * Create a thread for manager.
+   * Print success if all done.
+   * @param ptr Reference to parent node.
+   * @param w Number of workers to process simultaneously.
+   */
   explicit _Impl(LineCenterReconstruction * ptr, int w)
   : _node(ptr), _workers(w)
   {
@@ -49,6 +68,13 @@ public:
     RCLCPP_INFO(_node->get_logger(), "Employ %d workers successfully", w);
   }
 
+  /**
+   * @brief Destroy the impl object
+   *
+   * Wake up all workers.
+   * Wake up the manager.
+   * Synchronize with all threads, wait for its return.
+   */
   ~_Impl()
   {
     _points_con.notify_all();
@@ -58,6 +84,10 @@ public:
     }
   }
 
+  /**
+   * @brief Declare parameters with defaults before usage.
+   *
+   */
   void declare_parameters()
   {
     _node->declare_parameter<std::vector<double>>("camera_matrix");
@@ -65,6 +95,10 @@ public:
     _node->declare_parameter<std::vector<double>>("homography_matrix");
   }
 
+  /**
+   * @brief Get the parameters
+   *
+   */
   void get_parameters()
   {
     const auto & vp = _node->get_parameters(KEYS);
@@ -79,6 +113,11 @@ public:
     }
   }
 
+  /**
+   * @brief Push a point cloud and notity workers.
+   *
+   * @param ptr Reference to a unique pointer to point clout to be moved.
+   */
   void push_back_point(PointCloud2::UniquePtr & ptr)
   {
     std::unique_lock<std::mutex> lk(_points_mut);
@@ -91,6 +130,11 @@ public:
     _points_con.notify_all();
   }
 
+  /**
+   * @brief Promise a future so its future can be sychronized and notify the manager.
+   *
+   * @param f A future to point cloud msg.
+   */
   void push_back_future(std::future<PointCloud2::UniquePtr> f)
   {
     std::unique_lock<std::mutex> lk(_futures_mut);
@@ -99,6 +143,12 @@ public:
     _futures_con.notify_one();
   }
 
+  /**
+   * @brief The manager works in seperate thread to gather worker's results in order.
+   *
+   * Spin infinitely until rclcpp:ok() return false.
+   * Whenever a future is ready, the manager wake up, get the result from the future and publish.
+   */
   void manager()
   {
     while (rclcpp::ok()) {
@@ -115,6 +165,14 @@ public:
     }
   }
 
+  /**
+   * @brief The worker works in seperate thread to process incoming date parallelly.
+   *
+   * Enter infinite loop.
+   * Wait for incoming data.
+   * Wake up to get a possible data, make a promise and notify the manager.
+   * Continue to work on the data and return to sleep if no further data to process.
+   */
   void worker()
   {
     while (rclcpp::ok()) {
@@ -133,6 +191,13 @@ public:
     }
   }
 
+  /**
+   * @brief The algorithm to transform points from image plane to laser plane.
+   *
+   * For more details of the algorithm, refer to the README.md.
+   * @param ptr The input point cloud data.
+   * @return PointCloud2::UniquePtr Point cloud message to publish.
+   */
   PointCloud2::UniquePtr execute(PointCloud2::UniquePtr & ptr)
   {
     if (ptr->header.frame_id == "-1" || ptr->data.empty()) {
@@ -155,6 +220,12 @@ public:
     }
   }
 
+  /**
+   * @brief Construct a vector of points from ROS point cloud message.
+   *
+   * @param ptr Unique pointer to ROS point cloud.
+   * @return std::vector<cv::Point2f> A vector of points.
+   */
   std::vector<cv::Point2f> from_pc2(const PointCloud2::UniquePtr & ptr)
   {
     auto num = ptr->width;
@@ -169,6 +240,13 @@ public:
     return pnts;
   }
 
+  /**
+   * @brief Construct ROS point cloud message from two vector of points with x, y, u, v information.
+   *
+   * @param dst A sequence of points represent x, y.
+   * @param src A sequence of points represent u, v.
+   * @return PointCloud2::UniquePtr Point cloud message to publish.
+   */
   PointCloud2::UniquePtr to_pc2(
     const std::vector<cv::Point2f> & dst,
     const std::vector<cv::Point2f> & src)
@@ -237,6 +315,12 @@ private:
   std::vector<std::thread> _threads;
 };
 
+/**
+ * @brief Extract extra 'worker' parameter from ROS node options.
+ *
+ * @param options Encapsulation of options for node initialization.
+ * @return int Number of workers.
+ */
 int workers(const rclcpp::NodeOptions & options)
 {
   for (const auto & p : options.parameter_overrides()) {
@@ -247,6 +331,15 @@ int workers(const rclcpp::NodeOptions & options)
   return 1;
 }
 
+/**
+ * @brief Construct a new Line Center Reconstruction object
+ *
+ * Initialize publisher.
+ * Create an inner implementation.
+ * Initialize subscription.
+ * Print success if all done.
+ * @param options Encapsulation of options for node initialization.
+ */
 LineCenterReconstruction::LineCenterReconstruction(const rclcpp::NodeOptions & options)
 : Node("line_center_reconstruction_node", options)
 {
@@ -266,6 +359,15 @@ LineCenterReconstruction::LineCenterReconstruction(const rclcpp::NodeOptions & o
   RCLCPP_INFO(this->get_logger(), "Ininitialized successfully");
 }
 
+/**
+ * @brief Destroy the Line Center Reconstruction object
+ *
+ * Release subscription.
+ * Release inner implementation.
+ * Release publisher.
+ * Print success if all done.
+ * Throw no exception.
+ */
 LineCenterReconstruction::~LineCenterReconstruction()
 {
   try {
