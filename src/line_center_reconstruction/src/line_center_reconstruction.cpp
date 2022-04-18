@@ -45,7 +45,7 @@ class LineCenterReconstruction::_Impl
 {
 public:
   /**
-   * @brief Construct a new impl object
+   * @brief Construct a new impl object.
    *
    * Declare parameters before usage.
    * Get parameters.
@@ -69,7 +69,7 @@ public:
   }
 
   /**
-   * @brief Destroy the impl object
+   * @brief Destroy the impl object.
    *
    * Wake up all workers.
    * Wake up the manager.
@@ -96,7 +96,7 @@ public:
   }
 
   /**
-   * @brief Get the parameters
+   * @brief Get the parameters.
    *
    */
   void get_parameters()
@@ -332,7 +332,7 @@ int workers(const rclcpp::NodeOptions & options)
 }
 
 /**
- * @brief Construct a new Line Center Reconstruction object
+ * @brief Construct a new Line Center Reconstruction object.
  *
  * Initialize publisher.
  * Create an inner implementation.
@@ -360,7 +360,7 @@ LineCenterReconstruction::LineCenterReconstruction(const rclcpp::NodeOptions & o
 }
 
 /**
- * @brief Destroy the Line Center Reconstruction object
+ * @brief Destroy the Line Center Reconstruction object.
  *
  * Release subscription.
  * Release inner implementation.

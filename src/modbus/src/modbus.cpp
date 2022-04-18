@@ -14,13 +14,10 @@
 
 #include "modbus/modbus.hpp"
 
-extern "C"
-{
-    #include <errno.h>
-    #include <modbus.h>
-    #include <stdio.h>
-    #include <unistd.h>
-}
+#include <errno.h>
+#include <modbus.h>
+#include <stdio.h>
+#include <unistd.h>
 
 #include <climits>
 #include <memory>
@@ -34,9 +31,22 @@ namespace modbus
 
 using sensor_msgs::msg::PointCloud2;
 
+/**
+ * @brief Inner implementation for the algorithm.
+ *
+ */
 class Modbus::_Impl
 {
 public:
+  /**
+   * @brief Construct a new impl object.
+   *
+   * Declare parameters before usage.
+   * Establish a new TCP modbus via a specific port.
+   * Initialize a mapping block.
+   * Start a thread to recursively listen, accept and receive requests.
+   * @param ptr Reference to parent node.
+   */
   explicit _Impl(Modbus * ptr)
   : _node(ptr)
   {
@@ -64,6 +74,13 @@ public:
       }).detach();
   }
 
+  /**
+   * @brief Destroy the impl object.
+   *
+   * Close the socket if it is open.
+   * Free mapping block.
+   * Close and free modbus context.
+   */
   ~_Impl()
   {
     if (_sock != -1) {
@@ -74,6 +91,13 @@ public:
     modbus_free(_ctx);
   }
 
+  /**
+   * @brief Update coordinates in mapping block.
+   *
+   * @param valid true if found.
+   * @param u Coordinates in u.
+   * @param v Coordinates in v.
+   */
   void update(bool valid, float u = 0., float v = 0.)
   {
     std::lock_guard<std::mutex> lock(_mutex);
@@ -87,6 +111,11 @@ public:
     }
   }
 
+  /**
+   * @brief Listen connection request and accept.
+   *
+   * Close previous connection if it is open.
+   */
   void listen_and_accept()
   {
     if (_sock != -1) {
@@ -100,6 +129,10 @@ public:
     }
   }
 
+  /**
+   * @brief Receive and reply data request from master.
+   *
+   */
   void receive()
   {
     while (rclcpp::ok()) {
@@ -142,6 +175,16 @@ private:
   std::mutex _mutex;
 };
 
+/**
+ * @brief Construct a new Modbus object.
+ *
+ * Create an inner implementation.
+ * Initialize subscription.
+ * Initialize parameter client for camera.
+ * Initialize parameter client for gpio.
+ * Print success if all done.
+ * @param options Encapsulation of options for node initialization.
+ */
 Modbus::Modbus(const rclcpp::NodeOptions & options)
 : Node("modbus_node", options)
 {
@@ -165,6 +208,16 @@ Modbus::Modbus(const rclcpp::NodeOptions & options)
   RCLCPP_INFO(this->get_logger(), "Initialized successfully");
 }
 
+/**
+ * @brief Destroy the Modbus:: Modbus object.
+ *
+ * Release parameter client for camera.
+ * Release parameter client for gpio.
+ * Release subscription.
+ * Release inner implementation.
+ * Print success if all done.
+ * Throw no exception.
+ */
 Modbus::~Modbus()
 {
   try {
@@ -180,6 +233,11 @@ Modbus::~Modbus()
   }
 }
 
+/**
+ * @brief Control laser on of off.
+ *
+ * @param f true if on.
+ */
 void Modbus::gpio_laser(bool f)
 {
   if (f) {
@@ -189,6 +247,11 @@ void Modbus::gpio_laser(bool f)
   }
 }
 
+/**
+ * @brief Control camera capture or not.
+ *
+ * @param f true if enable camera capture.
+ */
 void Modbus::camera_power(bool f)
 {
   if (f) {

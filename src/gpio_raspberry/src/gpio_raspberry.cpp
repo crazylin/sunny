@@ -34,7 +34,7 @@ class GpioRaspberry::_Impl
 {
 public:
   /**
-   * @brief Construct a new impl object
+   * @brief Construct a new impl object.
    *
    * Open gpiochip0.
    * Get line 26 for laser.
@@ -52,7 +52,7 @@ public:
   }
 
   /**
-   * @brief Destroy the impl object
+   * @brief Destroy the impl object.
    *
    */
   ~_Impl()
@@ -62,8 +62,8 @@ public:
   /**
    * @brief Set the laser's state: on or off.
    *
-   * @param f true to power on laser
-   * @return int 0 if success
+   * @param f true to power on laser.
+   * @return int 0 if success.
    */
   int laser(bool f)
   {

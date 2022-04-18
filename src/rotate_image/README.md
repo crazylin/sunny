@@ -1,6 +1,6 @@
 # rotate_image (c++)
 
-Implemented via opencv's rotate.
+Rotate images implemented via opencv's rotate.
 
 ## Package, node name
 

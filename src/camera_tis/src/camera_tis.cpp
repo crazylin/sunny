@@ -121,7 +121,7 @@ public:
   }
 
   /**
-   * @brief Destroy the impl object
+   * @brief Destroy the impl object.
    *
    * Set pipeline state to NULL.
    * Synchronize with the spin thread, waits for its return.
@@ -325,7 +325,7 @@ private:
 };
 
 /**
- * @brief Construct a new Camera Tis object
+ * @brief Construct a new Camera Tis object.
  *
  * Initialize publisher.
  * Create an inner implementation.
@@ -342,7 +342,7 @@ CameraTis::CameraTis(const rclcpp::NodeOptions & options)
 }
 
 /**
- * @brief Destroy the Camera Tis object
+ * @brief Destroy the Camera Tis object.
  *
  * Release inner implementation.
  * Release publisher.

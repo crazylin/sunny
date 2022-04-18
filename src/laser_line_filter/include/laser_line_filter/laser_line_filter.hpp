@@ -32,14 +32,14 @@ class LaserLineFilter : public rclcpp::Node
 {
 public:
   /**
-   * @brief Construct a new Laser Line Filter object
+   * @brief Construct a new Laser Line Filter object.
    *
    * @param options Encapsulation of options for node initialization.
    */
   explicit LaserLineFilter(const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
 
   /**
-   * @brief Destroy the Laser Line Filter object
+   * @brief Destroy the Laser Line Filter object.
    *
    */
   virtual ~LaserLineFilter();

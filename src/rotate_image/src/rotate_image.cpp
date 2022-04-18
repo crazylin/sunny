@@ -29,9 +29,24 @@ namespace rotate_image
 
 using sensor_msgs::msg::Image;
 
+/**
+ * @brief Inner implementation for the algorithm.
+ *
+ */
 class RotateImage::_Impl
 {
 public:
+  /**
+   * @brief Construct a new impl object.
+   *
+   * Declare parameters before usage.
+   * Create a thread for each worker.
+   * Create a thread for manager.
+   * Initialize ROS parameter callback.
+   * Print success if all done.
+   * @param ptr Reference to parent node.
+   * @param w Number of workers to process simultaneously.
+   */
   explicit _Impl(RotateImage * ptr, int w)
   : _node(ptr), _workers(w)
   {
@@ -45,6 +60,13 @@ public:
     RCLCPP_INFO(_node->get_logger(), "Employ %d workers successfully", w);
   }
 
+  /**
+   * @brief Destroy the impl object.
+   *
+   * Wake up all workers.
+   * Wake up the manager.
+   * Synchronize with all threads, wait for its return.
+   */
   ~_Impl()
   {
     _images_con.notify_all();
@@ -54,6 +76,11 @@ public:
     }
   }
 
+  /**
+   * @brief Push a image and notity workers.
+   *
+   * @param ptr Reference to a unique pointer to image to be moved.
+   */
   void push_back_image(Image::UniquePtr ptr)
   {
     std::unique_lock<std::mutex> lk(_images_mut);
@@ -66,6 +93,11 @@ public:
     _images_con.notify_all();
   }
 
+  /**
+   * @brief Promise a future so its future can be sychronized and notify the manager.
+   *
+   * @param f A future to point cloud msg.
+   */
   void push_back_future(std::future<Image::UniquePtr> f)
   {
     std::unique_lock<std::mutex> lk(_futures_mut);
@@ -74,6 +106,12 @@ public:
     _futures_con.notify_one();
   }
 
+  /**
+   * @brief The manager works in seperate thread to gather worker's results in order.
+   *
+   * Spin infinitely until rclcpp:ok() return false.
+   * Whenever a future is ready, the manager wake up, get the result from the future and publish.
+   */
   void manager()
   {
     while (rclcpp::ok()) {
@@ -90,6 +128,15 @@ public:
     }
   }
 
+  /**
+   * @brief The worker works in seperate thread to process incoming date parallelly.
+   *
+   * Create a buffer.
+   * Enter infinite loop.
+   * Wait for incoming data.
+   * Wake up to get a possible data, make a promise and notify the manager.
+   * Continue to work on the data and return to sleep if no further data to process.
+   */
   void worker()
   {
     Image::_data_type buf;
@@ -136,6 +183,12 @@ private:
   std::vector<std::thread> _threads;
 };
 
+/**
+ * @brief Extract extra 'worker' parameter from ROS node options.
+ *
+ * @param options Encapsulation of options for node initialization.
+ * @return int Number of workers.
+ */
 int workers(const rclcpp::NodeOptions & options)
 {
   for (const auto & p : options.parameter_overrides()) {
@@ -146,6 +199,15 @@ int workers(const rclcpp::NodeOptions & options)
   return 1;
 }
 
+/**
+ * @brief Construct a new Rotate Image object.
+ *
+ * Initialize publisher.
+ * Create an inner implementation.
+ * Initialize subscription.
+ * Print success if all done.
+ * @param options Encapsulation of options for node initialization.
+ */
 RotateImage::RotateImage(const rclcpp::NodeOptions & options)
 : Node("rotate_image_node", options)
 {
@@ -165,6 +227,15 @@ RotateImage::RotateImage(const rclcpp::NodeOptions & options)
   RCLCPP_INFO(this->get_logger(), "Ininitialized successfully");
 }
 
+/**
+ * @brief Destroy the Rotate Image object.
+ *
+ * Release subscription.
+ * Release inner implementation.
+ * Release publisher.
+ * Print success if all done.
+ * Throw no exception.
+ */
 RotateImage::~RotateImage()
 {
   try {

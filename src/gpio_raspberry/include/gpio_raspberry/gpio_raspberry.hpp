@@ -30,14 +30,14 @@ class GpioRaspberry : public rclcpp::Node
 {
 public:
   /**
-   * @brief Construct a new Gpio Raspberry object
+   * @brief Construct a new Gpio Raspberry object.
    *
    * @param options Encapsulation of options for node initialization.
    */
   explicit GpioRaspberry(const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
 
   /**
-   * @brief Destroy the Gpio Raspberry object
+   * @brief Destroy the Gpio Raspberry object.
    *
    */
   virtual ~GpioRaspberry();

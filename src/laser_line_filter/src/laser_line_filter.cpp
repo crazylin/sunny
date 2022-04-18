@@ -77,7 +77,7 @@ class LaserLineFilter::_Impl
 {
 public:
   /**
-   * @brief Construct a new impl object
+   * @brief Construct a new impl object.
    *
    * Declare parameters before usage.
    * Create a thread for each worker.
@@ -140,7 +140,7 @@ public:
   }
 
   /**
-   * @brief Destroy the impl object
+   * @brief Destroy the impl object.
    *
    * Wake up all workers.
    * Wake up the manager.
@@ -370,7 +370,7 @@ int workers(const rclcpp::NodeOptions & options)
 }
 
 /**
- * @brief Construct a new Laser Line Filter object
+ * @brief Construct a new Laser Line Filter object.
  *
  * Initialize publisher.
  * Create an inner implementation.
@@ -398,7 +398,7 @@ LaserLineFilter::LaserLineFilter(const rclcpp::NodeOptions & options)
 }
 
 /**
- * @brief Destroy the Laser Line Filter object
+ * @brief Destroy the Laser Line Filter object.
  *
  * Release subscription.
  * Release inner implementation.

@@ -40,13 +40,13 @@ public:
   explicit LaserLineCenter(const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
 
   /**
-   * @brief Destroy the Laser Line Center object
+   * @brief Destroy the Laser Line Center object.
    *
    */
   virtual ~LaserLineCenter();
 
   /**
-   * @brief Publish an point cloud msg via unique_ptr so intra process communication my be enabled if possible.
+   * @brief Publish a point cloud msg via unique_ptr so intra process communication my be enabled if possible.
    *
    * @param ptr Reference to unique_ptr to be moved.
    */

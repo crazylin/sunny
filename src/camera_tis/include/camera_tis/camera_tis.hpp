@@ -32,14 +32,14 @@ class CameraTis : public rclcpp::Node
 {
 public:
   /**
-   * @brief Construct a new Camera Tis object
+   * @brief Construct a new Camera Tis object.
    *
    * @param options Encapsulation of options for node initialization.
    */
   explicit CameraTis(const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
 
   /**
-   * @brief Destroy the Camera Tis object
+   * @brief Destroy the Camera Tis object.
    *
    */
   virtual ~CameraTis();

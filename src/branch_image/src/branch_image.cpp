@@ -23,7 +23,7 @@ namespace branch_image
 using sensor_msgs::msg::Image;
 
 /**
- * @brief Construct a new Branch Image object
+ * @brief Construct a new Branch Image object.
  *
  * Initialize parameters then get parameters.
  * Initialize two publisher and then one subscription.
@@ -58,11 +58,11 @@ BranchImage::BranchImage(const rclcpp::NodeOptions & options)
 }
 
 /**
- * @brief Destroy the Branch Image object
+ * @brief Destroy the Branch Image object.
  *
- * Release subscription
- * Release publishers
- * Print success if all done
+ * Release subscription.
+ * Release publishers.
+ * Print success if all done.
  */
 BranchImage::~BranchImage()
 {
@@ -73,11 +73,19 @@ BranchImage::~BranchImage()
   RCLCPP_INFO(this->get_logger(), "Destroyed successfully");
 }
 
+/**
+ * @brief Initialize parameters before usage.
+ *
+ */
 void BranchImage::_InitializeParameters()
 {
   // this->declare_parameter("");
 }
 
+/**
+ * @brief Update parameters.
+ *
+ */
 void BranchImage::_UpdateParameters()
 {
   // this->get_parameter("", );

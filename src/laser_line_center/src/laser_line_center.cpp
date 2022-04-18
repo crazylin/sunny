@@ -144,7 +144,7 @@ public:
   }
 
   /**
-   * @brief Destroy the impl object
+   * @brief Destroy the impl object.
    *
    * Wake up all workers.
    * Wake up the manager.
@@ -263,7 +263,7 @@ public:
   /**
    * @brief The algorithm to extract laser line center row by row.
    *
-   * For more details of the algorithm, refer to the README.md
+   * For more details of the algorithm, refer to the README.md.
    * @param img The input opencv image.
    * @param buf The buffer to use.
    * @param pms Parameters group together.
@@ -374,7 +374,7 @@ private:
 };
 
 /**
- * @brief Extract extra 'worker' parameter from ROS node options
+ * @brief Extract extra 'worker' parameter from ROS node options.
  *
  * @param options Encapsulation of options for node initialization.
  * @return int Number of workers.
@@ -390,7 +390,7 @@ int workers(const rclcpp::NodeOptions & options)
 }
 
 /**
- * @brief Construct a new Laser Line Center object
+ * @brief Construct a new Laser Line Center object.
  *
  * Initialize publisher.
  * Create an inner implementation.
@@ -418,7 +418,7 @@ LaserLineCenter::LaserLineCenter(const rclcpp::NodeOptions & options)
 }
 
 /**
- * @brief Destroy the Laser Line Center object
+ * @brief Destroy the Laser Line Center object.
  *
  * Release subscription.
  * Release inner implementation.

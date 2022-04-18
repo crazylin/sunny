@@ -32,14 +32,14 @@ class LineCenterReconstruction : public rclcpp::Node
 {
 public:
   /**
-   * @brief Construct a new Line Center Reconstruction object
+   * @brief Construct a new Line Center Reconstruction object.
    *
    * @param options Encapsulation of options for node initialization.
    */
   explicit LineCenterReconstruction(const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
 
   /**
-   * @brief Destroy the Line Center Reconstruction object
+   * @brief Destroy the Line Center Reconstruction object.
    *
    */
   virtual ~LineCenterReconstruction();
