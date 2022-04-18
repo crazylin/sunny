@@ -26,9 +26,22 @@ namespace gpio_raspberry
 
 using rcl_interfaces::msg::ParameterDescriptor;
 
+/**
+ * @brief Inner implementation for libgpiod-dev.
+ *
+ */
 class GpioRaspberry::_Impl
 {
 public:
+  /**
+   * @brief Construct a new impl object
+   *
+   * Open gpiochip0.
+   * Get line 26 for laser.
+   * Get line 6 for led.
+   * Set laser off.
+   * Set led on.
+   */
   _Impl()
   : _chip(gpiod_chip_open_by_name("gpiochip0"), gpiod_chip_close),
     _line_26(gpiod_chip_get_line(_chip.get(), 26), gpiod_line_release),
@@ -38,10 +51,20 @@ public:
     gpiod_line_request_output(_line_6.get(), "ros", 1);
   }
 
+  /**
+   * @brief Destroy the impl object
+   *
+   */
   ~_Impl()
   {
   }
 
+  /**
+   * @brief Set the laser's state: on or off.
+   *
+   * @param f true to power on laser
+   * @return int 0 if success
+   */
   int laser(bool f)
   {
     if (f) {
@@ -57,9 +80,15 @@ private:
   std::unique_ptr<gpiod_line, void (*)(gpiod_line *)> _line_6;
 };
 
+/**
+ * @brief Construct a new Gpio Raspberry object.
+ *
+ * @param options Encapsulation of options for node initialization.
+ */
 GpioRaspberry::GpioRaspberry(const rclcpp::NodeOptions & options)
 : Node("gpio_raspberry_node", options), _impl(new _Impl)
 {
+  // To enforce start with laser off
   this->declare_parameter("laser", false, ParameterDescriptor(), true);
 
   _handle = this->add_on_set_parameters_callback(
@@ -82,6 +111,12 @@ GpioRaspberry::GpioRaspberry(const rclcpp::NodeOptions & options)
   RCLCPP_INFO(this->get_logger(), "Initialized successfully");
 }
 
+/**
+ * @brief Destroy the Gpio Raspberry object.
+ *
+ * Release inner implementation.
+ * Throw no exception.
+ */
 GpioRaspberry::~GpioRaspberry()
 {
   try {

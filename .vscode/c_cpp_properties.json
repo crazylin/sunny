@@ -1,24 +1,12 @@
 {
     "configurations": [
         {
-            "name": "Linux",
-            "includePath": [
-                "${workspaceFolder}/**",
-                "/opt/ros/galactic/include",
-                "/opt/opencv/include/opencv4",
-                "/usr/include/modbus"
-            ],
-            "defines": [],
-            "compilerPath": "/usr/bin/gcc",
-            "cStandard": "c99",
-            "cppStandard": "c++14",
-            "intelliSenseMode": "linux-gcc-x64"
-        },
-        {
             "name": "tis",
             "includePath": [
                 "${workspaceFolder}/**",
                 "/opt/ros/galactic/include",
+                "/opt/opencv/include/opencv4",
+                "/usr/include/modbus",
                 "/usr/include/gstreamer-1.0",
                 "/usr/include/glib-2.0",
                 "/usr/lib/x86_64-linux-gnu/glib-2.0/include"

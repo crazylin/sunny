@@ -22,16 +22,43 @@
 namespace gpio_raspberry
 {
 
+/**
+ * @brief Control GPIO, and laser by using libgpiod.
+ *
+ */
 class GpioRaspberry : public rclcpp::Node
 {
 public:
+  /**
+   * @brief Construct a new Gpio Raspberry object
+   *
+   * @param options Encapsulation of options for node initialization.
+   */
   explicit GpioRaspberry(const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
+
+  /**
+   * @brief Destroy the Gpio Raspberry object
+   *
+   */
   virtual ~GpioRaspberry();
 
 private:
+  /**
+   * @brief Forward declaration for inner implementation.
+   *
+   */
   class _Impl;
+
+  /**
+   * @brief Unique pointer to inner implementation.
+   *
+   */
   std::unique_ptr<_Impl> _impl;
 
+  /**
+   * @brief ROS parameter callback handle.
+   *
+   */
   OnSetParametersCallbackHandle::SharedPtr _handle;
 };
 

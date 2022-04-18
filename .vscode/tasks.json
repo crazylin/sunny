@@ -4,7 +4,7 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "colcon build",
+            "label": "colcon build (remote)",
             "detail": "Build workspace packages",
             "type": "shell",
             "command": "colcon build --cmake-args '-DCMAKE_BUILD_TYPE=Release' --packages-up-to ${input:packages}",
@@ -15,7 +15,7 @@
             }
         },
         {
-            "label": "colcon test",
+            "label": "colcon test (remote)",
             "detail": "Run all unit tests and show results.",
             "type": "shell",
             "command": "colcon test --event-handlers console_direct+ --packages-up-to ${input:packages}",
@@ -26,7 +26,7 @@
             }
         },
         {
-            "label": "clean",
+            "label": "clean (remote)",
             "detail": "Run the clean target",
             "type": "shell",
             "command": "colcon build --cmake-target clean --packages-up-to ${input:packages}",
@@ -40,7 +40,7 @@
             "problemMatcher": []
         },
         {
-            "label": "test GUI",
+            "label": "test GUI (host)",
             "detail": "Test GUI use ros2 galactic desktop",
             "type": "shell",
             "command": "docker run --rm --network=host --env=DISPLAY -v /tmp/.X11-unix -v $(pwd)/tools/seam_tracking_gui:/gui zhuoqiw/sunny-tis:desktop /gui/main.py",

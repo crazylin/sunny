@@ -25,25 +25,71 @@
 namespace laser_line_center
 {
 
+/**
+ * @brief High performance line center ridge extraction algorithm with sub-pixel accuracy.
+ *
+ */
 class LaserLineCenter : public rclcpp::Node
 {
 public:
+  /**
+   * @brief Construct a new Laser Line Center object.
+   *
+   * @param options Encapsulation of options for node initialization.
+   */
   explicit LaserLineCenter(const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
+
+  /**
+   * @brief Destroy the Laser Line Center object
+   *
+   */
   virtual ~LaserLineCenter();
 
+  /**
+   * @brief Publish an point cloud msg via unique_ptr so intra process communication my be enabled if possible.
+   *
+   * @param ptr Reference to unique_ptr to be moved.
+   */
   void publish(sensor_msgs::msg::PointCloud2::UniquePtr & ptr)
   {
     _pub->publish(std::move(ptr));
   }
 
 private:
+  /**
+   * @brief Publisher name.
+   *
+   */
   const char * _pub_name = "~/line";
+
+  /**
+   * @brief Shared pointer to publisher.
+   *
+   */
   rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr _pub;
 
+  /**
+   * @brief Forward declaration for inner implementation.
+   *
+   */
   class _Impl;
+
+  /**
+   * @brief Unique pointer to inner implementation.
+   *
+   */
   std::unique_ptr<_Impl> _impl;
 
+  /**
+   * @brief Subscription name.
+   *
+   */
   const char * _sub_name = "~/image";
+
+  /**
+   * @brief Shared pointer to subscription.
+   *
+   */
   rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr _sub;
 };
 

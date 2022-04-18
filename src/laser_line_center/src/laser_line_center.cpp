@@ -32,8 +32,16 @@ using sensor_msgs::msg::Image;
 using sensor_msgs::msg::PointCloud2;
 using sensor_msgs::msg::PointField;
 
+/**
+ * @brief List of parameter names.
+ *
+ */
 const std::vector<std::string> KEYS = {"ksize", "threshold", "width_min", "width_max"};
 
+/**
+ * @brief A map between ksize and its scalar.
+ *
+ */
 const std::map<int, double> SCALAR = {
   {1, 1.},
   {3, 1. / 4.},
@@ -42,6 +50,10 @@ const std::map<int, double> SCALAR = {
   {-1, 1. / 16.},
 };
 
+/**
+ * @brief Group parameters together.
+ *
+ */
 struct Params
 {
   explicit Params(LaserLineCenter * node)
@@ -66,9 +78,24 @@ struct Params
   int width_max = 30;
 };
 
+/**
+ * @brief Inner implementation for the algorithm.
+ *
+ */
 class LaserLineCenter::_Impl
 {
 public:
+  /**
+   * @brief Construct a new impl object.
+   *
+   * Declare parameters before usage.
+   * Create a thread for each worker.
+   * Create a thread for manager.
+   * Initialize ROS parameter callback.
+   * Print success if all done.
+   * @param ptr Reference to parent node.
+   * @param w Number of workers to process simultaneously.
+   */
   explicit _Impl(LaserLineCenter * ptr, int w)
   : _node(ptr), _workers(w)
   {
@@ -116,6 +143,13 @@ public:
     RCLCPP_INFO(_node->get_logger(), "Employ %d workers successfully", w);
   }
 
+  /**
+   * @brief Destroy the impl object
+   *
+   * Wake up all workers.
+   * Wake up the manager.
+   * Synchronize with all threads, wait for its return.
+   */
   ~_Impl()
   {
     _images_con.notify_all();
@@ -125,6 +159,10 @@ public:
     }
   }
 
+  /**
+   * @brief Declare parameters with defaults before usage.
+   *
+   */
   void declare_parameters()
   {
     _node->declare_parameter("ksize", 5);
@@ -133,6 +171,11 @@ public:
     _node->declare_parameter("width_max", 30);
   }
 
+  /**
+   * @brief Push a image and nority workers.
+   *
+   * @param ptr Reference to a unique pointer to image to be moved.
+   */
   void push_back_image(Image::UniquePtr & ptr)
   {
     std::unique_lock<std::mutex> lk(_images_mut);
@@ -145,6 +188,11 @@ public:
     _images_con.notify_all();
   }
 
+  /**
+   * @brief Promise a future so its future can be sychronized and notify the manager.
+   *
+   * @param f A future to point cloud msg.
+   */
   void push_back_future(std::future<PointCloud2::UniquePtr> f)
   {
     std::unique_lock<std::mutex> lk(_futures_mut);
@@ -153,6 +201,12 @@ public:
     _futures_con.notify_one();
   }
 
+  /**
+   * @brief The manager works in seperate thread to gather worker's results in order.
+   *
+   * Spin infinitely until rclcpp:ok() return false.
+   * Whenever a future is ready, the manager wake up, get the result from the future and publish.
+   */
   void manager()
   {
     while (rclcpp::ok()) {
@@ -169,6 +223,15 @@ public:
     }
   }
 
+  /**
+   * @brief The worker works in seperate thread to process incoming date parallelly.
+   *
+   * Create a buffer.
+   * Enter infinite loop.
+   * Wait for incoming data.
+   * Wake up to get a possible data, make a promise and notify the manager.
+   * Continue to work on the data and return to sleep if no further data to process.
+   */
   void worker()
   {
     cv::Mat buf;
@@ -197,6 +260,15 @@ public:
     }
   }
 
+  /**
+   * @brief The algorithm to extract laser line center row by row.
+   *
+   * For more details of the algorithm, refer to the README.md
+   * @param img The input opencv image.
+   * @param buf The buffer to use.
+   * @param pms Parameters group together.
+   * @return PointCloud2::UniquePtr Point cloud message to publish.
+   */
   PointCloud2::UniquePtr execute(const cv::Mat & img, cv::Mat & buf, const Params & pms)
   {
     std::vector<float> pnts;
@@ -250,6 +322,12 @@ public:
     return to_pc2(pnts);
   }
 
+  /**
+   * @brief Construct ROS point cloud message from vector of floats.
+   *
+   * @param pnts A sequence of floats as points' row coordinate.
+   * @return PointCloud2::UniquePtr Point cloud message to publish.
+   */
   PointCloud2::UniquePtr to_pc2(const std::vector<float> & pnts)
   {
     auto num = pnts.size();
@@ -295,6 +373,12 @@ private:
   OnSetParametersCallbackHandle::SharedPtr _handle;
 };
 
+/**
+ * @brief Extract extra 'worker' parameter from ROS node options
+ *
+ * @param options Encapsulation of options for node initialization.
+ * @return int Number of workers.
+ */
 int workers(const rclcpp::NodeOptions & options)
 {
   for (const auto & p : options.parameter_overrides()) {
@@ -305,6 +389,15 @@ int workers(const rclcpp::NodeOptions & options)
   return 1;
 }
 
+/**
+ * @brief Construct a new Laser Line Center object
+ *
+ * Initialize publisher.
+ * Create an inner implementation.
+ * Initialize subscription.
+ * Print success if all done.
+ * @param options Encapsulation of options for node initialization.
+ */
 LaserLineCenter::LaserLineCenter(const rclcpp::NodeOptions & options)
 : Node("laser_line_center_node", options)
 {
@@ -324,6 +417,15 @@ LaserLineCenter::LaserLineCenter(const rclcpp::NodeOptions & options)
   RCLCPP_INFO(this->get_logger(), "Ininitialized successfully");
 }
 
+/**
+ * @brief Destroy the Laser Line Center object
+ *
+ * Release subscription.
+ * Release inner implementation.
+ * Release publisher.
+ * Print success if all done.
+ * Throw no exception.
+ */
 LaserLineCenter::~LaserLineCenter()
 {
   try {

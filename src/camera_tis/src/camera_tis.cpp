@@ -14,12 +14,9 @@
 
 #include "camera_tis/camera_tis.hpp"
 
-extern "C"
-{
-  #include <gst/gst.h>
-  #include <gst/video/video.h>
-  #include <tcamprop.h>
-}
+#include <gst/gst.h>
+#include <gst/video/video.h>
+#include <tcamprop.h>
 
 #include <exception>
 #include <memory>
@@ -32,6 +29,13 @@ namespace camera_tis
 using sensor_msgs::msg::Image;
 using rcl_interfaces::msg::ParameterDescriptor;
 
+/**
+ * @brief Gstreamer pipeline.
+ *
+ * Raw image format, resolution and fps are defined here.
+ * Then with videoscale plugin, it is scaled down to a lower resolution to reduce overall CPU usage.
+ * The pipeline use appsink plugin to pass image date asynchronously.
+ */
 constexpr char PIPELINE_STR[] =
   "tcambin name=source"
   " ! video/x-raw,format=GRAY8,width=3072,height=2048,framerate=30/1"
@@ -39,12 +43,30 @@ constexpr char PIPELINE_STR[] =
   " ! video/x-raw,width=1536,height=1024"
   " ! appsink name=sink emit-signals=true sync=false drop=true max-buffers=4";
 
+/**
+ * @brief Const expression for image size infomation.
+ *
+ */
 constexpr int WIDTH = 1536, HEIGHT = 1024, SIZE = WIDTH * HEIGHT;
-constexpr int EXPOSURE = 1000;
 
+/**
+ * @brief Inner implementation for tiscamera.
+ *
+ */
 class CameraTis::_Impl
 {
 public:
+  /**
+   * @brief Construct a new impl object.
+   *
+   * Declare parameters before usage.
+   * Initialize gst environment.
+   * Create pipeline.
+   * Set default properties.
+   * Create spin thread.
+   * Initialize ROS parameter callback.
+   * @param ptr Reference to parent node.
+   */
   explicit _Impl(CameraTis * ptr)
   : _node(ptr)
   {
@@ -57,6 +79,7 @@ public:
       throw std::runtime_error("TIS pipeline fail");
     }
 
+    // Disable auto exposure and auto gain, set brightness to 0
     set_property("Exposure Auto", false);
     set_property("Gain Auto", false);
     set_property("Brightness", 0);
@@ -66,9 +89,12 @@ public:
       throw std::runtime_error("TIS set exposure fail");
     }
 
+    // Set pipeline state to pause before spin.
     gst_element_set_state(_pipeline, GST_STATE_PAUSED);
+    // Spin infinitely until rclcpp::ok() return false which means termination.
     _thread = std::thread(&_Impl::spin, this);
 
+    // ROS parameter callback handle.
     _handle = _node->add_on_set_parameters_callback(
       [this](const std::vector<rclcpp::Parameter> & parameters) {
         rcl_interfaces::msg::SetParametersResult result;
@@ -94,6 +120,13 @@ public:
       });
   }
 
+  /**
+   * @brief Destroy the impl object
+   *
+   * Set pipeline state to NULL.
+   * Synchronize with the spin thread, waits for its return.
+   * Release pipeline.
+   */
   ~_Impl()
   {
     gst_element_set_state(_pipeline, GST_STATE_NULL);
@@ -101,12 +134,20 @@ public:
     gst_object_unref(_pipeline);
   }
 
+  /**
+   * @brief Declare parameters with defaults before usage.
+   *
+   */
   void declare_parameters()
   {
-    _node->declare_parameter("exposure_time", EXPOSURE);
+    _node->declare_parameter("exposure_time", 1000);
     _node->declare_parameter("power", false, ParameterDescriptor(), true);
   }
 
+  /**
+   * @brief Spin infinitely to receive image data from camera.
+   *
+   */
   void spin()
   {
     GstElement * sink = gst_bin_get_by_name(GST_BIN(_pipeline), "sink");
@@ -123,6 +164,7 @@ public:
         continue;
       }
 
+      // Construct a ROS image to publish.
       GstMapInfo info;
       if (gst_buffer_map(buffer, &info, GST_MAP_READ)) {
         auto ptr = std::make_unique<Image>();
@@ -143,26 +185,54 @@ public:
     gst_object_unref(sink);
   }
 
+  /**
+   * @brief Get exposure time.
+   *
+   * @return int exposure time in microseconds.
+   */
   int exposure()
   {
     return _node->get_parameter("exposure_time").as_int();
   }
 
+  /**
+   * @brief Set the exposure object.
+   *
+   * @param e int in microseconds.
+   * @return int 0 if success.
+   */
   int set_exposure(int e)
   {
     return set_property("Exposure Time (us)", e) ? 0 : 1;
   }
 
+  /**
+   * @brief Get the camera's state: capturing or not.
+   *
+   * @return true Capturing.
+   * @return false Not capturing.
+   */
   bool power()
   {
     return _node->get_parameter("power").as_bool();
   }
 
+  /**
+   * @brief Set the camera's state: capturing or not.
+   *
+   * @param p true to enable capture.
+   * @return int 0 if success.
+   */
   int set_power(bool p)
   {
     return p ? power_on() : power_off();
   }
 
+  /**
+   * @brief Enable capture.
+   *
+   * @return int 0 if success.
+   */
   int power_on()
   {
     if (power() == false) {
@@ -174,6 +244,11 @@ public:
     return 0;
   }
 
+  /**
+   * @brief Disable capture.
+   *
+   * @return int 0 if success.
+   */
   int power_off()
   {
     if (power()) {
@@ -185,6 +260,13 @@ public:
     return 0;
   }
 
+  /**
+   * @brief Set the property object for string.
+   *
+   * @param property The name of the property to set.
+   * @param value The value of the property to set.
+   * @return gboolean true if success.
+   */
   gboolean set_property(const char * property, const char * value)
   {
     gboolean ret = FALSE;
@@ -198,6 +280,13 @@ public:
     return ret;
   }
 
+  /**
+   * @brief Set the property object for integer.
+   *
+   * @param property The name of the property to set.
+   * @param value The value of the property to set.
+   * @return gboolean true if success.
+   */
   gboolean set_property(const char * property, int value)
   {
     gboolean ret = FALSE;
@@ -235,6 +324,14 @@ private:
   OnSetParametersCallbackHandle::SharedPtr _handle;
 };
 
+/**
+ * @brief Construct a new Camera Tis object
+ *
+ * Initialize publisher.
+ * Create an inner implementation.
+ * Print success if all done.
+ * @param options Encapsulation of options for node initialization.
+ */
 CameraTis::CameraTis(const rclcpp::NodeOptions & options)
 : Node("camera_tis_node", options)
 {
@@ -244,6 +341,14 @@ CameraTis::CameraTis(const rclcpp::NodeOptions & options)
   RCLCPP_INFO(this->get_logger(), "Initialized successfully");
 }
 
+/**
+ * @brief Destroy the Camera Tis object
+ *
+ * Release inner implementation.
+ * Release publisher.
+ * Print success if all done.
+ * Throw no exception.
+ */
 CameraTis::~CameraTis()
 {
   try {
