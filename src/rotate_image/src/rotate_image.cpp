@@ -35,6 +35,8 @@ public:
   explicit _Impl(RotateImage * ptr, int w)
   : _node(ptr), _workers(w)
   {
+    _node->declare_parameter("mode", 0);
+    _mode = _node->get_parameter("mode").as_int();
     for (int i = 0; i < w; ++i) {
       _threads.push_back(std::thread(&_Impl::worker, this));
     }
@@ -105,7 +107,8 @@ public:
           buf.resize(ptr->data.size());
           cv::Mat src(ptr->height, ptr->width, CV_8UC1, ptr->data.data());
           cv::Mat dst(ptr->width, ptr->height, CV_8UC1, buf.data());
-          cv::rotate(src, dst, cv::ROTATE_90_CLOCKWISE);
+          // cv::rotate(src, dst, cv::ROTATE_90_CLOCKWISE);
+          cv::rotate(src, dst, _mode);
           std::swap(ptr->data, buf);
           std::swap(ptr->width, ptr->height);
           ptr->step = ptr->width;
@@ -120,6 +123,7 @@ public:
 private:
   RotateImage * _node;
   int _workers;
+  int _mode;
 
   std::mutex _images_mut;
   std::condition_variable _images_con;

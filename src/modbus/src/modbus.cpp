@@ -40,7 +40,9 @@ public:
   explicit _Impl(Modbus * ptr)
   : _node(ptr)
   {
-    _ctx = modbus_new_tcp(NULL, 2345);
+    _node->declare_parameter("port", 2345);
+    auto port = _node->get_parameter("port").as_int();
+    _ctx = modbus_new_tcp(NULL, port);
     if (!_ctx) {
       throw std::runtime_error("Can not create modbus context");
     }

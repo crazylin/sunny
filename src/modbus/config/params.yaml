@@ -1,3 +1,3 @@
 modbus_node:
   ros__parameters:
-    test: TODO
+    port: 2345                  # int
