@@ -43,8 +43,9 @@ public:
    *
    * Declare parameters before usage.
    * Establish a new TCP modbus via a specific port.
+   * Listen to port.
    * Initialize a mapping block.
-   * Start a thread to recursively listen, accept and receive requests.
+   * Start a thread to recursively accept and receive requests.
    * @param ptr Reference to parent node.
    */
   explicit _Impl(Modbus * ptr)
@@ -52,24 +53,35 @@ public:
   {
     _node->declare_parameter("port", 2345);
     auto port = _node->get_parameter("port").as_int();
+
     _ctx = modbus_new_tcp(NULL, port);
     if (!_ctx) {
       throw std::runtime_error("Can not create modbus context");
     }
 
-    _mb_mapping = modbus_mapping_new(0, 0, 400, 0);
+    _sock = modbus_tcp_listen(_ctx, 1);
+    if (_sock == -1) {
+      modbus_free(_ctx);
+      throw std::runtime_error("Can not create modbus socket");
+    }
+
+    _mb_mapping = modbus_mapping_new(MODBUS_MAX_READ_BITS, 0, MODBUS_MAX_READ_REGISTERS, 0);
     if (!_mb_mapping) {
+      close(_sock);
       modbus_free(_ctx);
       throw std::runtime_error("Can not initialize modbus registers");
     }
 
-    _mb_mapping->tab_registers[1] = 255;
+    _mb_mapping->tab_registers[1] = 0xff;
     std::thread(
       [this]() {
         while (rclcpp::ok()) {
-          listen_and_accept();
+          if (modbus_tcp_accept(_ctx, &_sock) == -1) {
+            RCLCPP_ERROR(rclcpp::get_logger("rclcpp"), "modbus tcp accept error");
+            rclcpp::shutdown();
+            break;
+          }
           receive();
-          RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Initialized listen and accept stopped");
         }
       }).detach();
   }
@@ -79,7 +91,7 @@ public:
    *
    * Close the socket if it is open.
    * Free mapping block.
-   * Close and free modbus context.
+   * Free modbus context.
    */
   ~_Impl()
   {
@@ -87,7 +99,6 @@ public:
       close(_sock);
     }
     modbus_mapping_free(_mb_mapping);
-    modbus_close(_ctx);
     modbus_free(_ctx);
   }
 
@@ -103,29 +114,11 @@ public:
     std::lock_guard<std::mutex> lock(_mutex);
 
     if (valid) {
-      _mb_mapping->tab_registers[2] = 255;
+      _mb_mapping->tab_registers[2] = 0xff;
       _mb_mapping->tab_registers[3] = static_cast<uint16_t>(u * 100);
       _mb_mapping->tab_registers[4] = static_cast<uint16_t>(v * 100);
     } else {
       _mb_mapping->tab_registers[2] = 0;
-    }
-  }
-
-  /**
-   * @brief Listen connection request and accept.
-   *
-   * Close previous connection if it is open.
-   */
-  void listen_and_accept()
-  {
-    if (_sock != -1) {
-      close(_sock);
-    }
-    _sock = modbus_tcp_listen(_ctx, 1);
-    if (_sock != -1 && modbus_tcp_accept(_ctx, &_sock) != -1) {
-      RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Initialized listen and accept successfully");
-    } else {
-      RCLCPP_WARN(rclcpp::get_logger("rclcpp"), "Initialized listen and accept failed");
     }
   }
 
@@ -136,23 +129,18 @@ public:
   void receive()
   {
     while (rclcpp::ok()) {
-      int rc;
-      do {
-        rc = modbus_receive(_ctx, _query);
-      } while (rc == 0 && rclcpp::ok());
-
-      if (rc <= 0) {
+      uint8_t query[MODBUS_TCP_MAX_ADU_LENGTH];
+      int rc = modbus_receive(_ctx, query);
+      if (rc == -1) {
+        // Connection closed by the client or error
         break;
+      } else if (rc == 0) {
+        continue;
       }
 
-      // for (int i = 0; i < rc; ++i) {
-      // //std::cout << i << ' ' << int(_query[i]) << std::endl;
-      //   printf("%02d: %02hhx\n", i, _query[i]);
-      // }
-      // std::cout << "========================\n" << std::endl;
-
-      if (_query[7] == 0x10 && _query[8] == 0x01 && _query[9] == 0x01) {
-        if (_query[14]) {
+      // Received request
+      if (rc > 14 && query[7] == 0x10 && query[8] == 0x01 && query[9] == 0x01) {
+        if (query[14]) {
           _node->gpio_laser(true);
           _node->camera_power(true);
         } else {
@@ -160,9 +148,8 @@ public:
           _node->gpio_laser(false);
         }
       }
-
       std::lock_guard<std::mutex> lock(_mutex);
-      modbus_reply(_ctx, _query, rc, _mb_mapping);
+      modbus_reply(_ctx, query, rc, _mb_mapping);
     }
   }
 
@@ -171,7 +158,6 @@ private:
   modbus_t * _ctx = NULL;
   modbus_mapping_t * _mb_mapping = NULL;
   int _sock = -1;
-  unsigned char _query[MODBUS_TCP_MAX_ADU_LENGTH];
   std::mutex _mutex;
 };
 
