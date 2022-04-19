@@ -284,9 +284,9 @@ public:
 
     auto p = reinterpret_cast<float *>(ptr->data.data());
     for (size_t i = 0; i < num; ++i) {
-      p[i * 4 + 0] = dst[i].x;
-      p[i * 4 + 1] = dst[i].y;
-      p[i * 4 + 2] = src[i].y;
+      p[i * 3 + 0] = dst[i].x;
+      p[i * 3 + 1] = dst[i].y;
+      p[i * 3 + 2] = src[i].y;
     }
 
     return ptr;
