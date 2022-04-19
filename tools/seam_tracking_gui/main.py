@@ -512,7 +512,7 @@ class App(tk.Tk):
     def _update_codes(self):
         codes = self._params['seam_tracking_node']['codes']
 
-        if len(codes) == 0:
+        if not codes:
             self.btn_task['text'] = 'Task:     '
             self.btn_previous.state(['disabled'])
             self.btn_next.state(['disabled'])
@@ -544,7 +544,7 @@ class App(tk.Tk):
 
     def _code_modified(self):
         codes = self._params['seam_tracking_node']['codes']
-        if len(codes) == 0 or codes[self._task].rstrip() == self.texts.get('1.0', 'end').rstrip():
+        if not codes or codes[self._task].rstrip() == self.texts.get('1.0', 'end').rstrip():
             return False
         else:
             return True

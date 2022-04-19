@@ -101,7 +101,7 @@ class CustomFigure(Figure):
             self._info.set_text(f'frames: {id:>9}\nfps:')
         else:
             self._info.set_text(f'frames: {id:>9}\nfps: {fps:>16.2f}')
-        if len(self._pd['pick']['x']) and len(self._pd['pick']['y']):
+        if self._pd['pick']['x'] and self._pd['pick']['y']:
             self._xxyy.set_text(f"X: {self._pd['pick']['x'][0]:>8.2f}\nY: {self._pd['pick']['y'][0]:>8.2f}")
         else:
             self._xxyy.set_text(f"X:\nY:")

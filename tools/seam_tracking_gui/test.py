@@ -4,7 +4,7 @@ from numpy.polynomial.polynomial import polyfit
 dtype=[('x', np.float32), ('y', np.float32), ('i', np.float32)]
 
 def interpolate(d: np.array):
-    if len(d) == 0:
+    if not d:
         return np.array([], dtype=dtype)
     t = []
     for i in range(len(d) - 1):
@@ -69,7 +69,7 @@ def fn(d: np.array):
     d = interpolate(d)
     d = mid(d, 10, 5.)
     md = localMax(d, delta=150)
-    if len(md):
+    if md:
         return cross(d, md[0], delta=150, num=30)
     else:
         return None
@@ -94,7 +94,7 @@ def cross(d: np.array, id, delta, num):
         return np.array([], dtype=dtype)
 
 def fn(d: np.array):
-    if len(d) == 0:
+    if not d:
         return np.array([], dtype=dtype)
     id = np.nanargmax(d['y'])
     if 150 < id < len(d) - 150:

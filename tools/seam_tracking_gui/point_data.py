@@ -33,7 +33,7 @@ class SeamData():
 
     @_lock
     def from_msg(self, msg: PointCloud2):
-        if len(msg.data):
+        if msg.data:
             d = rnp.numpify(msg)
             self._x = d['x'].tolist()
             self._y = d['y'].tolist()

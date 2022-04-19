@@ -173,7 +173,7 @@ class SeamTracking(Node):
     def _cb_sub(self, msg: PointCloud2):
         ret = PointCloud2()
         ret.header = msg.header
-        if len(msg.data):
+        if msg.data:
             try:
                 pnts_xyi = rnp.numpify(msg)
                 pnts_xyi = self._codes(pnts_xyi)
