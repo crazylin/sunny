@@ -241,7 +241,7 @@ public:
   }
 
   /**
-   * @brief Construct ROS point cloud message from two vector of points with x, y, u, v information.
+   * @brief Construct ROS point cloud message from two vector of points with x, y, i information.
    *
    * @param dst A sequence of points represent x, y.
    * @param src A sequence of points represent u, v.
@@ -257,7 +257,7 @@ public:
     ptr->height = 1;
     ptr->width = num;
 
-    ptr->fields.resize(4);
+    ptr->fields.resize(3);
 
     ptr->fields[0].name = "x";
     ptr->fields[0].offset = 0;
@@ -269,21 +269,16 @@ public:
     ptr->fields[1].datatype = 7;
     ptr->fields[1].count = 1;
 
-    ptr->fields[2].name = "u";
+    ptr->fields[2].name = "i";
     ptr->fields[2].offset = 8;
     ptr->fields[2].datatype = 7;
     ptr->fields[2].count = 1;
 
-    ptr->fields[3].name = "v";
-    ptr->fields[3].offset = 12;
-    ptr->fields[3].datatype = 7;
-    ptr->fields[3].count = 1;
-
     ptr->is_bigendian = false;
-    ptr->point_step = 4 * 4;
-    ptr->row_step = 16 * num;
+    ptr->point_step = 4 * 3;
+    ptr->row_step = 12 * num;
 
-    ptr->data.resize(16 * num);
+    ptr->data.resize(12 * num);
 
     ptr->is_dense = true;
 
@@ -291,8 +286,7 @@ public:
     for (size_t i = 0; i < num; ++i) {
       p[i * 4 + 0] = dst[i].x;
       p[i * 4 + 1] = dst[i].y;
-      p[i * 4 + 2] = src[i].x;
-      p[i * 4 + 3] = src[i].y;
+      p[i * 4 + 2] = src[i].y;
     }
 
     return ptr;

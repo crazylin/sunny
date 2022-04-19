@@ -1,11 +1,13 @@
-import os
+"""ROS node to locate seams from points, supports source code plugin.
+"""
+
 import rclpy
 
 from collections import deque
 from rclpy.node import Node
-from rclpy.parameter import Parameter
+# from rclpy.parameter import Parameter
 from rcl_interfaces.msg import SetParametersResult
-from std_srvs.srv import Trigger
+# from std_srvs.srv import Trigger
 from sensor_msgs.msg import PointCloud2
 # from shared_interfaces.srv import GetCode
 # from shared_interfaces.srv import SetCode
@@ -15,10 +17,15 @@ import ros2_numpy as rnp
 import numpy as np
 
 class SeamTracking(Node):
+    """ROS node to locate seam and maintain plugins.
+
+    Args:
+        Node (_type_): Base class
+    """
 
     def __init__(self):
         Node.__init__(self, 'seam_tracking_node')
-        self._dtype = [('x', np.float32), ('y', np.float32)]
+        # self._dtype = [('x', np.float32), ('y', np.float32), ('i', np.float32)]
         self._deq = deque()
 
         self.declare_parameter('window_size', 10)
@@ -39,6 +46,12 @@ class SeamTracking(Node):
         self.declare_parameter('task', 0)
         self._task = self.get_parameter('task').value
 
+        self.declare_parameter('delta_x', 0.)
+        self._delta_x = self.get_parameter('delta_x').value
+
+        self.declare_parameter('delta_y', 0.)
+        self._delta_y = self.get_parameter('delta_y').value
+
         self.declare_parameter('codes', [''])
         self._codes = Codes(self.get_parameter('codes').value)
 
@@ -46,14 +59,8 @@ class SeamTracking(Node):
             self._codes.reload(self._task)
         except Exception as e:
             self.get_logger().error(str(e))
-        finally:
-            self.set_parameters([Parameter('codes', Parameter.Type.STRING_ARRAY, self._codes)])
-
-        self.declare_parameter('delta_x', 0.)
-        self._delta_x = self.get_parameter('delta_x').value
-
-        self.declare_parameter('delta_y', 0.)
-        self._delta_y = self.get_parameter('delta_y').value
+        # finally:
+        #     self.set_parameters([Parameter('codes', Parameter.Type.STRING_ARRAY, self._codes)])
 
         self._error = ''
 
@@ -168,25 +175,29 @@ class SeamTracking(Node):
         ret.header = msg.header
         if len(msg.data):
             try:
-                d = rnp.numpify(msg)
-                r = self._codes(d)
-                f = self._filter(r)
-                if f is not None:
-                    ret = rnp.msgify(PointCloud2, np.array([(f[0], f[1])], dtype=self._dtype))
-                    ret.header = msg.header
+                pnts_xyi = rnp.numpify(msg)
+                pnts_xyi = self._codes(pnts_xyi)
+                self._filter(pnts_xyi)
+                self._offset(pnts_xyi)
+                ret = rnp.msgify(PointCloud2, pnts_xyi)
+                ret.header = msg.header
             except Exception as e:
                 if self._error != str(e):
                     self.get_logger().error(str(e))
                     self._error = str(e)
         self.pub.publish(ret)
 
-    def _filter(self, r):
-        self._deq.appendleft(r)
+    def _filter(self, r: np.ndarray):
+        if r is None or len(r) == 0 or r[0][2] != -1:
+            self._deq.appendleft(None)
+            return
+        else:
+            self._deq.appendleft(r[0][1])
         while len(self._deq) > self._ws:
             self._deq.pop()
 
-        if not self._enable or r is None:
-            return r
+        if not self._enable:
+            return
 
         i = 0
         j = 1
@@ -205,9 +216,15 @@ class SeamTracking(Node):
             j += 1
 
         if i >= self._length:
-            return r
+            return
         else:
-            return None
+            r[0][1] = -2
+            return
+
+    def _offset(self, r: np.ndarray):
+        if r is not None and len(r) != 0 and r[0][2] == -1:
+            r[0][0] += self._delta_x
+            r[0][1] += self._delta_y
 
 def main(args=None):
     rclpy.init(args=args)

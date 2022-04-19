@@ -1,8 +1,19 @@
+"""Provide a Codes as list of string.
+"""
+
 # import json
 from functools import wraps
 from threading import RLock
 
 def _lock(f):
+    """Function decorater to protect from data race.
+
+    Args:
+        f (_type_): Callable object.
+
+    Returns:
+        _type_: Wrapped callable object.
+    """
     @wraps(f)
     def wrapper(self, *args, **kwargs):
         with self._lock:
@@ -10,6 +21,11 @@ def _lock(f):
     return wrapper
 
 class _Code():
+    """A local namespace wraps names in source code.
+
+    Source code in string form will be executed.
+    Names are saved in local scope from which the fn shall find.
+    """
 
     def __init__(self):
         self._scope = {}
@@ -22,6 +38,11 @@ class _Code():
         return self._scope['fn'](*args, **kwargs)
 
 class Codes(list):
+    """A list of strings protected from data race.
+
+    Args:
+        list (_type_): Inherit from build-in list.
+    """
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

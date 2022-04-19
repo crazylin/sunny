@@ -184,7 +184,11 @@ Modbus::Modbus(const rclcpp::NodeOptions & options)
         _impl->update(false, 0., 0.);
       } else {
         float * p = reinterpret_cast<float *>(ptr->data.data());
-        _impl->update(true, p[0], p[1]);
+        if (p[2] == -1) {
+          _impl->update(true, p[0], p[1]);
+        } else {
+          _impl->update(false, 0., 0.);
+        }
       }
     });
 

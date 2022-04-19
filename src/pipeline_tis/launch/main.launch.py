@@ -1,3 +1,13 @@
+"""Generate a launch description.
+
+This launch configuration gathers a bunch of node into a pipeline:
+It parses the underlay config: .params.yaml and overlay config: params.yaml.
+The overlay is updated to the underlay.
+Several computation intensive nodes employee more workers.
+Image related topics are passed around via intra-process communication.
+Only pointers to image are copied to minimize CPU consumption.
+"""
+
 # Copyright 2019 Zhushi Tech, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
