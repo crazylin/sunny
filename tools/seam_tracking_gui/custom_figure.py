@@ -26,33 +26,36 @@ class CustomFigure(Figure):
                 "fmt": "sr",
                 "kwargs": {
                     "label": "Pick",
-                    "markersize": 3.
+                    "markersize": 5.
                 }
             },
             "pnts_a": {
                 "cb": lambda i: i == -2,
                 "x": [],
                 "y": [],
-                "fmt": ".b",
+                "fmt": "om",
                 "kwargs": {
-                    "markersize": 2.
+                    "label": "Points A",
+                    "markersize": 3.
                 }
             },
             "pnts_b": {
                 "cb": lambda i: i == -3,
                 "x": [],
                 "y": [],
-                "fmt": ".b",
+                "fmt": "oy",
                 "kwargs": {
-                    "markersize": 2.
+                    "label": "Points B",
+                    "markersize": 3.
                 }
             },
             "line_a": {
                 "cb": lambda i: i == -4,
                 "x": [],
                 "y": [],
-                "fmt": "-g",
+                "fmt": "-m",
                 "kwargs": {
+                    "label": "Line A",
                     "linewidth": 1.
                 }
             },
@@ -60,8 +63,9 @@ class CustomFigure(Figure):
                 "cb": lambda i: i == -5,
                 "x": [],
                 "y": [],
-                "fmt": "-g",
+                "fmt": "-y",
                 "kwargs": {
+                    "label": "Line B",
                     "linewidth": 1.
                 }
             }
