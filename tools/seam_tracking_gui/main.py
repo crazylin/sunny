@@ -76,7 +76,7 @@ class App(tk.Tk):
         self.columnconfigure(1, weight=3)
 
         self.ros = RosNode(self._params)
-        self.ros.sub_pnts(self._ros_cb_pnts)
+        # self.ros.sub_pnts(self._ros_cb_pnts)
         self.ros.sub_seam(self._ros_cb_seam)
         self.ros.sub_log(self._ros_cb_log)
 
@@ -108,8 +108,8 @@ class App(tk.Tk):
         frame.rowconfigure(0, weight=1)
         frame.columnconfigure(0, weight=1)
 
-        self.bind('<<RosSubPnts>>', self.fig.update_pnts)
-        self.bind('<<RosSubPnts>>', lambda e: canvas.draw_idle(), add='+')
+        # self.bind('<<RosSubPnts>>', self.fig.update_pnts)
+        # self.bind('<<RosSubPnts>>', lambda e: canvas.draw_idle(), add='+')
         self.bind('<<RosSubSeam>>', self.fig.update_seam)
         self.bind('<<RosSubSeam>>', lambda e: canvas.draw_idle(), add='+')
         return frame
@@ -130,7 +130,7 @@ class App(tk.Tk):
         self.btn_append = ttk.Button(frame, text='Append', width=10, command=self._cb_btn_append)
         self.btn_delete = ttk.Button(frame, text='Delete', width=10, command=self._cb_btn_delete)
         self.btn_modify = ttk.Button(frame, text='Modify', width=10, command=self._cb_btn_modify)
-    
+
         self.btn_commit = ttk.Button(frame, text='Commit', width=10, command=self._cb_btn_commit)
 
         self.btn_backup = ttk.Button(frame, text='Backup...', width=10, command=self._cb_btn_backup)
@@ -183,16 +183,16 @@ class App(tk.Tk):
         menu_edit.add_command(label='Seam filter...', command=self._cb_menu_seam_filter)
         menu_edit.add_command(label='Preserve config', command=self._cb_menu_preserve_config)
         menu_edit.add_command(label='Reboot defaults', command=self._cb_menu_reboot_defaults)
-        
+
         menu_help = tk.Menu(menubar)
 
         menubar.add_cascade(menu=menu_file, label='File')
         menubar.add_cascade(menu=menu_edit, label='Edit')
         menubar.add_cascade(menu=menu_help, label='Help')
 
-    def _ros_cb_pnts(self, msg):
-        self.fig.msg_to_pnts(msg)
-        self.event_generate('<<RosSubPnts>>', when='tail')
+    # def _ros_cb_pnts(self, msg):
+    #     self.fig.msg_to_pnts(msg)
+    #     self.event_generate('<<RosSubPnts>>', when='tail')
 
     def _ros_cb_seam(self, msg):
         self.fig.msg_to_seam(msg)

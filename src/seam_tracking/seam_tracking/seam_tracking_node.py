@@ -177,8 +177,9 @@ class SeamTracking(Node):
             try:
                 pnts_xyi = rnp.numpify(msg)
                 pnts_xyi = self._codes(pnts_xyi)
-                self._filter(pnts_xyi)
-                self._offset(pnts_xyi)
+                pnts_xyi = self._filter(pnts_xyi)
+                pnts_xyi = self._offset(pnts_xyi)
+                pnts_xyi = self._notnan(pnts_xyi)
                 ret = rnp.msgify(PointCloud2, pnts_xyi)
                 ret.header = msg.header
             except Exception as e:
@@ -188,16 +189,19 @@ class SeamTracking(Node):
         self.pub.publish(ret)
 
     def _filter(self, r: np.ndarray):
-        if r is None or len(r) == 0 or r[0][2] != -1:
-            self._deq.appendleft(None)
-            return
+        for z, p in enumerate(r):
+            if p[2] == -1:
+                self._deq.appendleft(p[1])
+                break
         else:
-            self._deq.appendleft(r[0][1])
+            self._deq.appendleft(None)
+            return r
+
         while len(self._deq) > self._ws:
             self._deq.pop()
 
         if not self._enable:
-            return
+            return r
 
         i = 0
         j = 1
@@ -216,15 +220,21 @@ class SeamTracking(Node):
             j += 1
 
         if i >= self._length:
-            return
+            return r
         else:
-            r[0][1] = -2
-            return
+            r[z][2] = -99
+            return r
 
     def _offset(self, r: np.ndarray):
-        if r is not None and len(r) != 0 and r[0][2] == -1:
-            r[0][0] += self._delta_x
-            r[0][1] += self._delta_y
+        for i in range(len(r)):
+            if r[i][2] == -1:
+                r[i][0] += self._delta_x
+                r[i][1] += self._delta_y
+        return r
+
+    def _notnan(self, r: np.ndarray):
+        mask = np.invert(np.isnan(r['x']))
+        return r[mask]
 
 def main(args=None):
     rclpy.init(args=args)

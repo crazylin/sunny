@@ -1,19 +1,19 @@
 ﻿import numpy as np
 from numpy.polynomial.polynomial import polyfit
 
-dtype=[('x', np.float32), ('y', np.float32)]
+dtype=[('x', np.float32), ('y', np.float32), ('i', np.float32)]
 
 def interpolate(d: np.array):
     if len(d) == 0:
         return np.array([], dtype=dtype)
     t = []
     for i in range(len(d) - 1):
-        t.append((d['x'][i], d['y'][i]))
-        steps = int(round(d['v'][i + 1] - d['v'][i]))
+        t.append((d['x'][i], d['y'][i], d['i'][i]))
+        steps = int(round(d['i'][i + 1] - d['i'][i]))
         if steps > 1:
             for s in range(1, steps):
-                t.append((None, None))
-    t.append((d['x'][-1], d['y'][-1]))
+                t.append((None, None, None))
+    t.append((d['x'][-1], d['y'][-1], d['i'][-1]))
     return np.array(t, dtype=dtype)
 
 def mid(d: np.array, k: int, t: float):
