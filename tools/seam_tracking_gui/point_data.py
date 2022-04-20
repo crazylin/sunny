@@ -1,6 +1,4 @@
-﻿"""An intermediate point data protected from data race."""
-
-# Copyright 2019 Zhushi Tech, Inc.
+﻿# Copyright 2019 Zhushi Tech, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -61,7 +59,7 @@ class SeamData():
             dt = dt_sec + dt_nano * 1e-9
             df = int(h.frame_id) - int(self._h.frame_id)
             self._f = df / dt
-        except:
+        except Exception:
             self._f = None
         self._h = h
 

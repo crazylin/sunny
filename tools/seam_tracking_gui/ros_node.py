@@ -1,6 +1,4 @@
-﻿"""Sub module to interact with ROS."""
-
-# Copyright 2019 Zhushi Tech, Inc.
+﻿# Copyright 2019 Zhushi Tech, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -58,7 +56,9 @@ def to_parameter_value(v):
         return ParameterValue(type=ParameterType.PARAMETER_STRING, string_value=v)
     elif type(v) is list:
         if type(v[0]) is int:
-            return ParameterValue(type=ParameterType.PARAMETER_INTEGER_ARRAY, integer_array_value=v)
+            return ParameterValue(
+                type=ParameterType.PARAMETER_INTEGER_ARRAY,
+                integer_array_value=v)
         elif type(v[0]) is float:
             return ParameterValue(type=ParameterType.PARAMETER_DOUBLE_ARRAY, double_array_value=v)
         elif type(v[0]) is bool:

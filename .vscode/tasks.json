@@ -26,6 +26,17 @@
             }
         },
         {
+            "label": "pytest (remote)",
+            "detail": "Run pytest and show results.",
+            "type": "shell",
+            "command": "cd ./${input:packages} && python3 -m pytest",
+            "problemMatcher": [],
+            "group": {
+                "kind": "test",
+                "isDefault": false
+            }
+        },
+        {
             "label": "clean (remote)",
             "detail": "Run the clean target",
             "type": "shell",
@@ -40,13 +51,13 @@
             "problemMatcher": []
         },
         {
-            "label": "test GUI (host)",
+            "label": "Run GUI (host)",
             "detail": "Test GUI use ros2 galactic desktop",
             "type": "shell",
             "command": "docker run --rm --network=host --env=DISPLAY -v /tmp/.X11-unix -v $(pwd)/tools/seam_tracking_gui:/gui zhuoqiw/sunny-tis:desktop /gui/main.py",
             "problemMatcher": [],
             "group": {
-                "kind": "test",
+                "kind": "none",
                 "isDefault": false
             }
         }

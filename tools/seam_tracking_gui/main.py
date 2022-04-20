@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 
-"""Main app."""
-
 # Copyright 2019 Zhushi Tech, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,6 +27,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolb
 from custom_figure import CustomFigure
 from custom_dialog import dialog_delta, dialog_center, dialog_line_filter, dialog_seam_filter
 from datetime import datetime
+
 
 class App(tk.Tk):
     """Toplevel window."""
@@ -131,26 +130,62 @@ class App(tk.Tk):
         return frame
 
     def _init_list(self):
-        frame = ttk.Frame(self, padding=(10,0,10,0))
+        frame = ttk.Frame(self, padding=(10, 0, 10, 0))
 
-        self.btn_task = ttk.Button(frame, text='Task:', width=10, command=self._cb_btn_task)
-        self.btn_previous = ttk.Button(frame, text='Previous', width=10, command=self._cb_btn_previous)
-        self.btn_next = ttk.Button(frame, text='Next', width=10, command=self._cb_btn_next)
-        self.btn_refresh = ttk.Button(frame, text='Refresh', width=10, command=self._cb_btn_refresh)
+        self.btn_task = ttk.Button(frame,
+                                   text='Task:',
+                                   width=10,
+                                   command=self._cb_btn_task)
+        self.btn_previous = ttk.Button(frame,
+                                       text='Previous',
+                                       width=10,
+                                       command=self._cb_btn_previous)
+        self.btn_next = ttk.Button(frame,
+                                   text='Next',
+                                   width=10,
+                                   command=self._cb_btn_next)
+        self.btn_refresh = ttk.Button(frame,
+                                      text='Refresh',
+                                      width=10,
+                                      command=self._cb_btn_refresh)
 
-        self.texts = ScrolledText(frame, wrap = 'none')
+        self.texts = ScrolledText(frame, wrap='none')
 
-        self.btn_laser = ttk.Button(frame, text='Laser on', width=10, command=self._cb_btn_laser)
-        self.btn_power = ttk.Button(frame, text='Camera on', width=10, command=self._cb_btn_power)
+        self.btn_laser = ttk.Button(frame,
+                                    text='Laser on',
+                                    width=10,
+                                    command=self._cb_btn_laser)
+        self.btn_power = ttk.Button(frame,
+                                    text='Camera on',
+                                    width=10,
+                                    command=self._cb_btn_power)
 
-        self.btn_append = ttk.Button(frame, text='Append', width=10, command=self._cb_btn_append)
-        self.btn_delete = ttk.Button(frame, text='Delete', width=10, command=self._cb_btn_delete)
-        self.btn_modify = ttk.Button(frame, text='Modify', width=10, command=self._cb_btn_modify)
+        self.btn_append = ttk.Button(frame,
+                                     text='Append',
+                                     width=10,
+                                     command=self._cb_btn_append)
+        self.btn_delete = ttk.Button(frame,
+                                     text='Delete',
+                                     width=10,
+                                     command=self._cb_btn_delete)
+        self.btn_modify = ttk.Button(frame,
+                                     text='Modify',
+                                     width=10,
+                                     command=self._cb_btn_modify)
 
-        self.btn_commit = ttk.Button(frame, text='Commit', width=10, command=self._cb_btn_commit)
+        self.btn_commit = ttk.Button(frame,
+                                     text='Commit',
+                                     width=10,
+                                     command=self._cb_btn_commit)
 
-        self.btn_backup = ttk.Button(frame, text='Backup...', width=10, command=self._cb_btn_backup)
-        self.btn_upload = ttk.Button(frame, text='Upload...', width=10, command=self._cb_btn_upload)
+        self.btn_backup = ttk.Button(frame,
+                                     text='Backup...',
+                                     width=10,
+                                     command=self._cb_btn_backup)
+        self.btn_upload = ttk.Button(frame,
+                                     text='Upload...',
+                                     width=10,
+                                     command=self._cb_btn_upload)
 
         frame.grid(row=0, column=0, sticky=tk.NSEW)
 
@@ -364,20 +399,21 @@ class App(tk.Tk):
                 self._msg('Service [camera_tis_node] is not ready!', level='Warn')
 
     def _cb_btn_laser(self, *args):
+        gpn = 'gpio_raspberry_node'
         if self.btn_laser['text'] == 'Laser on':
             self._msg('Button [Laser on] clicked')
-            future = self.ros.set_params('gpio_raspberry_node', {'laser': True})
+            future = self.ros.set_params(gpn, {'laser': True})
             if future is not None:
                 future.add_done_callback(
-                    lambda f: self._cb_set_params_done(f, {'gpio_raspberry_node': {'laser': True}}))
+                    lambda f: self._cb_set_params_done(f, {gpn: {'laser': True}}))
             else:
                 self._msg('Service [gpio_raspberry_node] is not ready!', level='Warn')
         else:
             self._msg('Button [Laser off] clicked')
-            future = self.ros.set_params('gpio_raspberry_node', {'laser': False})
+            future = self.ros.set_params(gpn, {'laser': False})
             if future is not None:
                 future.add_done_callback(
-                    lambda f: self._cb_set_params_done(f, {'gpio_raspberry_node': {'laser': False}}))
+                    lambda f: self._cb_set_params_done(f, {gpn: {'laser': False}}))
             else:
                 self._msg('Service [gpio_raspberry_node] is not ready!', level='Warn')
 
@@ -410,7 +446,8 @@ class App(tk.Tk):
             title='Backup codes',
             initialfile='codes.json',
             defaultextension='json',
-            filetypes=[('JSON JavaScript Object Notation', '.json'), ("YAML Ain't Markup Language", '.yaml .yml')])
+            filetypes=[('JSON JavaScript Object Notation', '.json'),
+                       ("YAML Ain't Markup Language", '.yaml .yml')])
         if filename:
             try:
                 fp = open(filename, 'w')
@@ -437,7 +474,8 @@ class App(tk.Tk):
             title='Upload codes',
             initialfile='codes.json',
             defaultextension='json',
-            filetypes=[('JSON JavaScript Object Notation', '.json'), ("YAML Ain't Markup Language", '.yaml .yml')])
+            filetypes=[('JSON JavaScript Object Notation', '.json'),
+                       ("YAML Ain't Markup Language", '.yaml .yml')])
         if filename:
             try:
                 fp = open(filename)
@@ -565,7 +603,7 @@ class App(tk.Tk):
         else:
             return True
 
-    def _msg(self, s: str, *, level = 'Info'):
+    def _msg(self, s: str, *, level='Info'):
         with self._lock:
             n = datetime.now()
             t = n.strftime("%m/%d/%Y %H:%M:%S")

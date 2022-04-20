@@ -1,6 +1,4 @@
-﻿"""Customized figure to dipict via matplotlib and tkinter."""
-
-# Copyright 2019 Zhushi Tech, Inc.
+﻿# Copyright 2019 Zhushi Tech, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,7 +22,7 @@ class CustomFigure(Figure):
     def __init__(self):
         super().__init__()
 
-        self._pd= {
+        self._pd = {
             "laser": {
                 "cb": lambda i: i >= 0,
                 "x": [],
@@ -118,7 +116,8 @@ class CustomFigure(Figure):
         else:
             self._info.set_text(f'frames: {id:>9}\nfps: {fps:>16.2f}')
         if self._pd['pick']['x'] and self._pd['pick']['y']:
-            self._xxyy.set_text(f"X: {self._pd['pick']['x'][0]:>8.2f}\nY: {self._pd['pick']['y'][0]:>8.2f}")
+            self._xxyy.set_text(
+                f"X: {self._pd['pick']['x'][0]:>8.2f}\nY: {self._pd['pick']['y'][0]:>8.2f}")
         else:
             self._xxyy.set_text(f"X:\nY:")
 

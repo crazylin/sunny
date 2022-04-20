@@ -1,6 +1,4 @@
-﻿"""Test code templates for plugin."""
-
-# Copyright 2019 Zhushi Tech, Inc.
+﻿# Copyright 2019 Zhushi Tech, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,7 +15,7 @@
 import numpy as np
 from numpy.polynomial.polynomial import polyfit
 
-dtype=[('x', np.float32), ('y', np.float32), ('i', np.float32)]
+dtype = [('x', np.float32), ('y', np.float32), ('i', np.float32)]
 
 
 def interpolate(d: np.array):
@@ -77,9 +75,13 @@ def localMin(d: np.array, *, delta: int):
 def cross(d: np.array, id, delta, num):
     mask1 = np.invert(np.isnan(d['x'][id - delta + 1:id - num]))
     mask2 = np.invert(np.isnan(d['x'][id + num + 1:id + delta]))
+    dx1 = d['x'][id - delta + 1:id - num][mask1]
+    dy1 = d['y'][id - delta + 1:id - num][mask1]
+    dx2 = d['x'][id + num + 1:id + delta][mask2]
+    dy2 = d['y'][id + num + 1:id + delta][mask2]
     if np.any(mask1) and np.any(mask2):
-        b1, m1 = polyfit(d['x'][id - delta + 1:id - num][mask1], d['y'][id - delta + 1:id - num][mask1], 1)
-        b2, m2 = polyfit(d['x'][id + num + 1:id + delta][mask2], d['y'][id + num + 1:id + delta][mask2], 1)
+        b1, m1 = polyfit(dx1, dy1, 1)
+        b2, m2 = polyfit(dx2, dy2, 1)
         px = (b2 - b1) / (m1 - m2)
         py = px * m1 + b1
         return np.array([(px, py)], dtype=dtype)
@@ -97,24 +99,11 @@ def fn(d: np.array):
         return None
 
 
-def cross(d: np.array, id, delta, num):
-    mask1 = np.invert(np.isnan(d['x'][id - delta + 1:id - num]))
-    mask2 = np.invert(np.isnan(d['x'][id + num + 1:id + delta]))
-    if np.any(mask1) and np.any(mask2):
-        b1, m1 = polyfit(d['x'][id - delta + 1:id - num][mask1], d['y'][id - delta + 1:id - num][mask1], 1)
-        b2, m2 = polyfit(d['x'][id + num + 1:id + delta][mask2], d['y'][id + num + 1:id + delta][mask2], 1)
-        px = (b2 - b1) / (m1 - m2)
-        py = px * m1 + b1
-        return np.array([(px, py)], dtype=dtype)
-    else:
-        return np.array([], dtype=dtype)
-
-
-def fn(d: np.array):
-    if not d:
-        return np.array([], dtype=dtype)
-    id = np.nanargmax(d['y'])
-    if 150 < id < len(d) - 150:
-        return cross(d, id, 150, 30)
-    else:
-        return np.array([], dtype=dtype)
+# def fn(d: np.array):
+#     if not d:
+#         return np.array([], dtype=dtype)
+#     id = np.nanargmax(d['y'])
+#     if 150 < id < len(d) - 150:
+#         return cross(d, id, 150, 30)
+#     else:
+#         return np.array([], dtype=dtype)

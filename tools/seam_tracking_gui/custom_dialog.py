@@ -1,6 +1,4 @@
-﻿"""Customized dialog for user inputs."""
-
-# Copyright 2019 Zhushi Tech, Inc.
+﻿# Copyright 2019 Zhushi Tech, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -54,7 +52,7 @@ class DialogDelta(Dialog):
         try:
             self._x = float(self.x_box.get())
             self._y = float(self.y_box.get())
-        except Exception as e:
+        except Exception:
             pass
         else:
             self.destroy()
@@ -143,7 +141,11 @@ class DialogLineFilter(Dialog):
 
         self.enable = tk.BooleanVar()
         self.enable.set(self._b)
-        enable_btn = tk.Checkbutton(frame, width=10, text='Enable filter', variable=self.enable, command=self.toggle)
+        enable_btn = tk.Checkbutton(frame,
+                                    width=10,
+                                    text='Enable filter',
+                                    variable=self.enable,
+                                    command=self.toggle)
         enable_btn.pack(side=tk.RIGHT)
 
         self.toggle()
@@ -159,7 +161,7 @@ class DialogLineFilter(Dialog):
                 self._dev = float(self.dev_box.get())
                 self._step = float(self.step_box.get())
                 self._length = int(self.length_box.get())
-        except Exception as e:
+        except Exception:
             pass
         else:
             self.destroy()
@@ -229,7 +231,7 @@ class DialogCenter(Dialog):
         self.threshold_label = tk.Label(threshold, width=10, text='threshold:', anchor=tk.E)
         self.threshold_label.pack(side=tk.LEFT)
         self.threshold_box = tk.Entry(threshold, width=15)
-        self.threshold_box.insert(tk.END, str(self._threshold) if self._threshold is not None else '')
+        self.threshold_box.insert(tk.END, '' if self._threshold is None else str(self._threshold))
         self.threshold_box.pack(side=tk.LEFT)
         self.threshold_unit = tk.Label(threshold, width=15, text='0~255', anchor=tk.W)
         self.threshold_unit.pack(side=tk.LEFT)
@@ -263,7 +265,7 @@ class DialogCenter(Dialog):
             self._threshold = int(self.threshold_box.get())
             self._wmin = int(self.wmin_box.get())
             self._wmax = int(self.wmax_box.get())
-        except Exception as e:
+        except Exception:
             pass
         else:
             self.destroy()
@@ -293,6 +295,7 @@ def dialog_center(app, *, initialvalue: dict):
 
 class DialogSeamFilter(Dialog):
     """Dialog for seam tracking."""
+
     def __init__(self, parent, title, *, initialvalue: dict):
         self._ok = True
         self._b = initialvalue['enable']
@@ -345,7 +348,11 @@ class DialogSeamFilter(Dialog):
 
         self.enable = tk.BooleanVar()
         self.enable.set(self._b)
-        enable_btn = tk.Checkbutton(frame, width=10, text='Enable filter', variable=self.enable, command=self.toggle)
+        enable_btn = tk.Checkbutton(frame,
+                                    width=10,
+                                    text='Enable filter',
+                                    variable=self.enable,
+                                    command=self.toggle)
         enable_btn.pack(side=tk.RIGHT)
 
         self.toggle()
@@ -360,7 +367,7 @@ class DialogSeamFilter(Dialog):
                 self._gap = int(self.gap_box.get())
                 self._step = float(self.step_box.get())
                 self._length = int(self.length_box.get())
-        except Exception as e:
+        except Exception:
             pass
         else:
             self.destroy()
