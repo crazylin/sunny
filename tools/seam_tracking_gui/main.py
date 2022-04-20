@@ -132,60 +132,79 @@ class App(tk.Tk):
     def _init_list(self):
         frame = ttk.Frame(self, padding=(10, 0, 10, 0))
 
-        self.btn_task = ttk.Button(frame,
-                                   text='Task:',
-                                   width=10,
-                                   command=self._cb_btn_task)
-        self.btn_previous = ttk.Button(frame,
-                                       text='Previous',
-                                       width=10,
-                                       command=self._cb_btn_previous)
-        self.btn_next = ttk.Button(frame,
-                                   text='Next',
-                                   width=10,
-                                   command=self._cb_btn_next)
-        self.btn_refresh = ttk.Button(frame,
-                                      text='Refresh',
-                                      width=10,
-                                      command=self._cb_btn_refresh)
+        self.btn_task = ttk.Button(
+            frame,
+            text='Task:',
+            width=10,
+            command=self._cb_btn_task)
+
+        self.btn_previous = ttk.Button(
+            frame,
+            text='Previous',
+            width=10,
+            command=self._cb_btn_previous)
+
+        self.btn_next = ttk.Button(
+            frame,
+            text='Next',
+            width=10,
+            command=self._cb_btn_next)
+
+        self.btn_refresh = ttk.Button(
+            frame,
+            text='Refresh',
+            width=10,
+            command=self._cb_btn_refresh)
 
         self.texts = ScrolledText(frame, wrap='none')
 
-        self.btn_laser = ttk.Button(frame,
-                                    text='Laser on',
-                                    width=10,
-                                    command=self._cb_btn_laser)
-        self.btn_power = ttk.Button(frame,
-                                    text='Camera on',
-                                    width=10,
-                                    command=self._cb_btn_power)
+        self.btn_laser = ttk.Button(
+            frame,
+            text='Laser on',
+            width=10,
+            command=self._cb_btn_laser)
 
-        self.btn_append = ttk.Button(frame,
-                                     text='Append',
-                                     width=10,
-                                     command=self._cb_btn_append)
-        self.btn_delete = ttk.Button(frame,
-                                     text='Delete',
-                                     width=10,
-                                     command=self._cb_btn_delete)
-        self.btn_modify = ttk.Button(frame,
-                                     text='Modify',
-                                     width=10,
-                                     command=self._cb_btn_modify)
+        self.btn_power = ttk.Button(
+            frame,
+            text='Camera on',
+            width=10,
+            command=self._cb_btn_power)
 
-        self.btn_commit = ttk.Button(frame,
-                                     text='Commit',
-                                     width=10,
-                                     command=self._cb_btn_commit)
+        self.btn_append = ttk.Button(
+            frame,
+            text='Append',
+            width=10,
+            command=self._cb_btn_append)
 
-        self.btn_backup = ttk.Button(frame,
-                                     text='Backup...',
-                                     width=10,
-                                     command=self._cb_btn_backup)
-        self.btn_upload = ttk.Button(frame,
-                                     text='Upload...',
-                                     width=10,
-                                     command=self._cb_btn_upload)
+        self.btn_delete = ttk.Button(
+            frame,
+            text='Delete',
+            width=10,
+            command=self._cb_btn_delete)
+
+        self.btn_modify = ttk.Button(
+            frame,
+            text='Modify',
+            width=10,
+            command=self._cb_btn_modify)
+
+        self.btn_commit = ttk.Button(
+            frame,
+            text='Commit',
+            width=10,
+            command=self._cb_btn_commit)
+
+        self.btn_backup = ttk.Button(
+            frame,
+            text='Backup...',
+            width=10,
+            command=self._cb_btn_backup)
+
+        self.btn_upload = ttk.Button(
+            frame,
+            text='Upload...',
+            width=10,
+            command=self._cb_btn_upload)
 
         frame.grid(row=0, column=0, sticky=tk.NSEW)
 

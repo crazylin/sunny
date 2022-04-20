@@ -141,11 +141,12 @@ class DialogLineFilter(Dialog):
 
         self.enable = tk.BooleanVar()
         self.enable.set(self._b)
-        enable_btn = tk.Checkbutton(frame,
-                                    width=10,
-                                    text='Enable filter',
-                                    variable=self.enable,
-                                    command=self.toggle)
+        enable_btn = tk.Checkbutton(
+            frame,
+            width=10,
+            text='Enable filter',
+            variable=self.enable,
+            command=self.toggle)
         enable_btn.pack(side=tk.RIGHT)
 
         self.toggle()
@@ -348,11 +349,12 @@ class DialogSeamFilter(Dialog):
 
         self.enable = tk.BooleanVar()
         self.enable.set(self._b)
-        enable_btn = tk.Checkbutton(frame,
-                                    width=10,
-                                    text='Enable filter',
-                                    variable=self.enable,
-                                    command=self.toggle)
+        enable_btn = tk.Checkbutton(
+            frame,
+            width=10,
+            text='Enable filter',
+            variable=self.enable,
+            command=self.toggle)
         enable_btn.pack(side=tk.RIGHT)
 
         self.toggle()
