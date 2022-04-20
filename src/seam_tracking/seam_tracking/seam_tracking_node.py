@@ -1,5 +1,22 @@
-"""ROS node to locate seams from points, supports source code plugin.
 """
+ROS node to locate seams from points, supports source code plugin.
+
+A python ROS node to subscribe from upstream topic.
+"""
+
+# Copyright 2019 Zhushi Tech, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 import rclpy
 
@@ -16,11 +33,13 @@ from .codes import Codes
 import ros2_numpy as rnp
 import numpy as np
 
-class SeamTracking(Node):
-    """ROS node to locate seam and maintain plugins.
 
-    Args:
-        Node (_type_): Base class
+class SeamTracking(Node):
+    """
+    ROS node to locate seam and maintain plugins.
+
+    A python ROS node to subscribe from upstream topic.
+    Apply a serial of customizable plugins to locate seam.
     """
 
     def __init__(self):
@@ -171,6 +190,17 @@ class SeamTracking(Node):
     #     return response
 
     def _cb_sub(self, msg: PointCloud2):
+        """
+        Subscription callback.
+
+        The call takes a ROS point cloud message.
+        It uses the customized codes to process the data.
+        The output data is further processed with filter, offset and removal nan.
+        Finally, a ROS point cloud message is published.
+
+        :param msg: ROS point cloud message.
+        :type msg: PointCloud2
+        """
         ret = PointCloud2()
         ret.header = msg.header
         if msg.data:
@@ -226,6 +256,14 @@ class SeamTracking(Node):
             return r
 
     def _offset(self, r: np.ndarray):
+        """
+        Offset the picked point in milli meter.
+
+        :param r: Point cloud in nunpy.
+        :type r: np.ndarray
+        :return: The input is modified in place and returned.
+        :rtype: np.ndarray
+        """
         for i in range(len(r)):
             if r[i][2] == -1:
                 r[i][0] += self._delta_x
@@ -235,6 +273,7 @@ class SeamTracking(Node):
     def _notnan(self, r: np.ndarray):
         mask = np.invert(np.isnan(r['x']))
         return r[mask]
+
 
 def main(args=None):
     rclpy.init(args=args)
@@ -251,6 +290,7 @@ def main(args=None):
         # when the garbage collector destroys the node object)
         seam_tracking.destroy_node()
         rclpy.shutdown()
+
 
 if __name__ == '__main__':
     main()

@@ -1,24 +1,34 @@
-﻿# from collections import deque
+﻿"""An intermediate point data protected from data race."""
+
+# Copyright 2019 Zhushi Tech, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 from functools import wraps
 from threading import Lock
 from std_msgs.msg import Header
 from sensor_msgs.msg import PointCloud2
 import ros2_numpy as rnp
 
+
 def _lock(f):
-    """Function decorater to protect from data race.
-
-    Args:
-        f (_type_): Callable object.
-
-    Returns:
-        _type_: Wrapped callable object.
-    """
+    """Decorater to protect from data race."""
     @wraps(f)
     def wrapper(self, *args, **kwargs):
         with self._lock:
             return f(self, *args, **kwargs)
     return wrapper
+
 
 class SeamData():
     """For point(x, y) data."""

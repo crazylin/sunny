@@ -26,7 +26,8 @@
 		"ms-python.python",
 		"ms-azuretools.vscode-docker",
 		"ms-vscode.cmake-tools",
-		"cschlosser.doxdocgen"
+		"cschlosser.doxdocgen",
+		"njpwerner.autodocstring"
 	],
 
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.

@@ -1,7 +1,24 @@
-﻿import numpy as np
+﻿"""Test code templates for plugin."""
+
+# Copyright 2019 Zhushi Tech, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import numpy as np
 from numpy.polynomial.polynomial import polyfit
 
 dtype=[('x', np.float32), ('y', np.float32), ('i', np.float32)]
+
 
 def interpolate(d: np.array):
     if not d:
@@ -16,6 +33,7 @@ def interpolate(d: np.array):
     t.append((d['x'][-1], d['y'][-1], d['i'][-1]))
     return np.array(t, dtype=dtype)
 
+
 def mid(d: np.array, k: int, t: float):
     z = []
     for i in range(k, len(d) - k):
@@ -26,6 +44,7 @@ def mid(d: np.array, k: int, t: float):
         else:
             z.append((d['x'][i], s[k]))
     return np.array(z, dtype=dtype)
+
 
 def localMax(d: np.array, *, delta: int):
     md = []
@@ -40,6 +59,7 @@ def localMax(d: np.array, *, delta: int):
             md.append(m)
     return md
 
+
 def localMin(d: np.array, *, delta: int):
     md = []
     id = []
@@ -53,6 +73,7 @@ def localMin(d: np.array, *, delta: int):
             md.append(m)
     return md
 
+
 def cross(d: np.array, id, delta, num):
     mask1 = np.invert(np.isnan(d['x'][id - delta + 1:id - num]))
     mask2 = np.invert(np.isnan(d['x'][id + num + 1:id + delta]))
@@ -64,6 +85,7 @@ def cross(d: np.array, id, delta, num):
         return np.array([(px, py)], dtype=dtype)
     else:
         return np.array([], dtype=dtype)
+
 
 def fn(d: np.array):
     d = interpolate(d)
@@ -75,12 +97,6 @@ def fn(d: np.array):
         return None
 
 
-###################################################################################
-import numpy as np
-from numpy.polynomial.polynomial import polyfit
-
-dtype=[('x', np.float32), ('y', np.float32)]
-
 def cross(d: np.array, id, delta, num):
     mask1 = np.invert(np.isnan(d['x'][id - delta + 1:id - num]))
     mask2 = np.invert(np.isnan(d['x'][id + num + 1:id + delta]))
@@ -92,6 +108,7 @@ def cross(d: np.array, id, delta, num):
         return np.array([(px, py)], dtype=dtype)
     else:
         return np.array([], dtype=dtype)
+
 
 def fn(d: np.array):
     if not d:

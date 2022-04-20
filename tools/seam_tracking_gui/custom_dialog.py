@@ -1,7 +1,26 @@
-﻿import tkinter as tk
+﻿"""Customized dialog for user inputs."""
+
+# Copyright 2019 Zhushi Tech, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import tkinter as tk
 from tkinter.simpledialog import Dialog
 
+
 class DialogDelta(Dialog):
+    """Dialog for offset."""
+
     def __init__(self, parent, title, *, initialvalue: dict):
         self._ok = True
         self._x = initialvalue['delta_x']
@@ -52,11 +71,15 @@ class DialogDelta(Dialog):
         self.bind('<Return>', lambda event: self.ok_pressed())
         self.bind('<Escape>', lambda event: self.cancel_pressed())
 
+
 def dialog_delta(app, *, initialvalue: dict):
     d = DialogDelta(title='Offset', parent=app, initialvalue=initialvalue)
     return {'delta_x': d._x, 'delta_y': d._y} if d._ok else None
 
+
 class DialogLineFilter(Dialog):
+    """Dialog for laser line filter."""
+
     def __init__(self, parent, title, *, initialvalue: dict):
         self._ok = True
         self._b = initialvalue['enable']
@@ -167,6 +190,7 @@ class DialogLineFilter(Dialog):
             self.step_box.configure(state=['disabled'])
             self.length_box.configure(state=['disabled'])
 
+
 def dialog_line_filter(app, *, initialvalue: dict):
     d = DialogLineFilter(title='Laser line filter', parent=app, initialvalue=initialvalue)
     return {
@@ -178,7 +202,10 @@ def dialog_line_filter(app, *, initialvalue: dict):
         'length': d._length
         } if d._ok else None
 
+
 class DialogCenter(Dialog):
+    """Dialog for laser line center."""
+
     def __init__(self, parent, title, *, initialvalue: dict):
         self._ok = True
         self._ksize = initialvalue['ksize']
@@ -253,6 +280,7 @@ class DialogCenter(Dialog):
         self.bind('<Return>', lambda event: self.ok_pressed())
         self.bind('<Escape>', lambda event: self.cancel_pressed())
 
+
 def dialog_center(app, *, initialvalue: dict):
     d = DialogCenter(title='Laser line center', parent=app, initialvalue=initialvalue)
     return {
@@ -262,7 +290,9 @@ def dialog_center(app, *, initialvalue: dict):
         'width_max': d._wmax
         } if d._ok else None
 
+
 class DialogSeamFilter(Dialog):
+    """Dialog for seam tracking."""
     def __init__(self, parent, title, *, initialvalue: dict):
         self._ok = True
         self._b = initialvalue['enable']
@@ -358,6 +388,7 @@ class DialogSeamFilter(Dialog):
             self.gap_box.configure(state=['disabled'])
             self.step_box.configure(state=['disabled'])
             self.length_box.configure(state=['disabled'])
+
 
 def dialog_seam_filter(app, *, initialvalue: dict):
     d = DialogSeamFilter(title='Seam tracking filter', parent=app, initialvalue=initialvalue)

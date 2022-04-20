@@ -1,4 +1,20 @@
-﻿from rclpy.node import Node
+﻿"""Sub module to interact with ROS."""
+
+# Copyright 2019 Zhushi Tech, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+from rclpy.node import Node
 from rclpy.qos import qos_profile_sensor_data
 from std_msgs.msg import String
 from sensor_msgs.msg import PointCloud2
@@ -6,6 +22,7 @@ from sensor_msgs.msg import PointCloud2
 # from shared_interfaces.srv import SetCode
 from rcl_interfaces.srv import GetParameters, SetParameters
 from rcl_interfaces.msg import Parameter, ParameterType, ParameterValue, Log
+
 
 def from_parameter_value(p: ParameterValue):
     if p.type == ParameterType.PARAMETER_NOT_SET:
@@ -29,6 +46,7 @@ def from_parameter_value(p: ParameterValue):
     else:
         return None
 
+
 def to_parameter_value(v):
     if type(v) is int:
         return ParameterValue(type=ParameterType.PARAMETER_INTEGER, integer_value=v)
@@ -49,6 +67,7 @@ def to_parameter_value(v):
             return ParameterValue(type=ParameterType.PARAMETER_STRING_ARRAY, string_array_value=v)
     else:
         return None
+
 
 class RosNode(Node):
     """Ros node."""
