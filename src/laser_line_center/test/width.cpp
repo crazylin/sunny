@@ -22,14 +22,10 @@ int main()
     auto col = img.colRange(10, 11);
     col = cv::Scalar(100);
 
-    auto p = Params();
-    p.ksize = 1;
-    p.width_min = 2. * (1. + DBL_EPSILON);
-    auto pnts = center(img, buf, p);
+    auto pnts = center(img, buf, 1, 35, 2. * (1. + DBL_EPSILON));
     assert(pnts[0] == -1);
 
-    p.width_min = 2.;
-    pnts = center(img, buf, p);
+    pnts = center(img, buf, 1, 35, 2.);
     assert(pnts[0] != -1);
   }
   {
@@ -38,14 +34,10 @@ int main()
     auto col = img.colRange(10, 12);
     col = cv::Scalar(100);
 
-    auto p = Params();
-    p.ksize = 1;
-    p.width_min = 2. * (1. + DBL_EPSILON);
-    auto pnts = center(img, buf, p);
+    auto pnts = center(img, buf, 1, 35, 2. * (1. + DBL_EPSILON));
     assert(pnts[0] == -1);
 
-    p.width_min = 2.;
-    pnts = center(img, buf, p);
+    pnts = center(img, buf, 1, 35, 2.);
     assert(pnts[0] != -1);
   }
   {
@@ -54,14 +46,10 @@ int main()
     auto col = img.colRange(10, 13);
     col = cv::Scalar(100);
 
-    auto p = Params();
-    p.ksize = 1;
-    p.width_min = 3. * (1. + DBL_EPSILON);
-    auto pnts = center(img, buf, p);
+    auto pnts = center(img, buf, 1, 35, 3. * (1. + DBL_EPSILON));
     assert(pnts[0] == -1);
 
-    p.width_min = 3.;
-    pnts = center(img, buf, p);
+    pnts = center(img, buf, 1, 35, 3.);
     assert(pnts[0] != -1);
   }
   return 0;

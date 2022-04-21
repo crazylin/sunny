@@ -19,7 +19,18 @@
 #include <vector>
 
 #include "opencv2/opencv.hpp"
-#include "params.hpp"
+
+/**
+ * @brief A map between ksize and normalized scalar for sobel.
+ *
+ */
+std::map<int, double> SCALAR {
+  {1, 1.},
+  {3, 1. / 4.},
+  {5, 1. / 48.},
+  {7, 1. / 640.},
+  {-1, 1. / 16.}
+};
 
 /**
  * @brief The algorithm to extract laser line center row by row.
@@ -27,17 +38,23 @@
  * For more details of the algorithm, refer to the README.md.
  * @param img The input opencv image.
  * @param buf The buffer to use.
- * @param pms Parameters group together.
  * @return PointCloud2::UniquePtr Point cloud message to publish.
  */
-std::vector<float> center(const cv::Mat & img, cv::Mat & buf, const Params & pms = Params())
+std::vector<float> center(
+  const cv::Mat & img,
+  cv::Mat & buf,
+  int ksize = 5,
+  int threshold = 35,
+  double width_min = 1.,
+  double width_max = 30.)
 {
   std::vector<float> pnts;
   if (img.empty()) {return pnts;}
 
   pnts.reserve(img.rows * 2);
 
-  cv::Sobel(img, buf, CV_16S, 1, 0, pms.ksize, pms.scalar());
+  cv::Sobel(img, buf, CV_16S, 1, 0, ksize, SCALAR[ksize]);
+
   for (decltype(img.rows) r = 0; r < img.rows; ++r) {
     auto pRow = buf.ptr<short>(r);  // NOLINT
     auto minmax = std::minmax_element(pRow, pRow + img.cols);
@@ -68,10 +85,10 @@ std::vector<float> center(const cv::Mat & img, cv::Mat & buf, const Params & pms
     auto width = minPos + s2 - maxPos - s1;
     // std::cout << width << " " << minPos << " " << s2 << " " << maxPos << " " << s1 << "\n";
     if (
-      maxVal >= pms.threshold &&
-      minVal <= -pms.threshold &&
-      width >= pms.width_min &&
-      width <= pms.width_max &&
+      maxVal >= threshold &&
+      minVal <= -threshold &&
+      width >= width_min &&
+      width <= width_max &&
       maxPos > 0 &&
       minPos < img.cols - 1)
     {

@@ -23,51 +23,14 @@
 #include <utility>
 #include <vector>
 
+#include "impl/params.hpp"
+#include "impl/filter.hpp"
+
 namespace laser_line_filter
 {
 
 using sensor_msgs::msg::PointCloud2;
 using sensor_msgs::msg::PointField;
-
-/**
- * @brief List of parameter names.
- *
- */
-const std::vector<std::string> KEYS = {"enable", "window_size", "gap", "deviate", "step", "length"};
-
-/**
- * @brief Group parameters together.
- *
- */
-struct Params
-{
-  explicit Params(LaserLineFilter * node)
-  {
-    const auto & vp = node->get_parameters(KEYS);
-    for (const auto & p : vp) {
-      if (p.get_name() == "enable") {
-        enable = p.as_bool();
-      } else if (p.get_name() == "window_size") {
-        ws = p.as_int();
-      } else if (p.get_name() == "gap") {
-        gap = p.as_int();
-      } else if (p.get_name() == "deviate") {
-        dev = p.as_double();
-      } else if (p.get_name() == "step") {
-        step = p.as_double();
-      } else if (p.get_name() == "length") {
-        length = p.as_int();
-      }
-    }
-  }
-
-  bool enable = false;
-  int ws = 10;
-  int gap = 5;
-  double dev = 5.;
-  double step = 2.;
-  int length = 30;
-};
 
 /**
  * @brief Inner implementation for the algorithm.
@@ -171,6 +134,33 @@ public:
   }
 
   /**
+   * @brief Get parameters from ROS
+   * 
+   * @return Params 
+   */
+  Params update_parameters()
+  {
+    Params pm;
+    const auto & vp = _node->get_parameters(KEYS);
+    for (const auto & p : vp) {
+      if (p.get_name() == "enable") {
+        pm.enable = p.as_bool();
+      } else if (p.get_name() == "window_size") {
+        pm.ws = p.as_int();
+      } else if (p.get_name() == "gap") {
+        pm.gap = p.as_int();
+      } else if (p.get_name() == "deviate") {
+        pm.dev = p.as_double();
+      } else if (p.get_name() == "step") {
+        pm.step = p.as_double();
+      } else if (p.get_name() == "length") {
+        pm.length = p.as_int();
+      }
+    }
+    return pm;
+  }
+
+  /**
    * @brief Push a point cloud and notity workers.
    *
    * @param ptr Reference to a unique pointer to point clout to be moved.
@@ -239,100 +229,13 @@ public:
         _points.pop_front();
         std::promise<PointCloud2::UniquePtr> prom;
         push_back_future(prom.get_future());
-        auto pms = Params(_node);
+        auto pms = update_parameters();
         lk.unlock();
-        if (ptr->header.frame_id == "-1" || ptr->data.empty()) {
-          prom.set_value(std::move(ptr));
-        } else {
-          auto msg = execute(std::move(ptr), pms);
-          prom.set_value(std::move(msg));
-        }
+        auto msg = filter(std::move(ptr), pms);
+        prom.set_value(std::move(msg));
       } else {
         _points_con.wait(lk);
       }
-    }
-  }
-
-  /**
-   * @brief The algorithm to filter out noise points.
-   *
-   * For more details of the algorithm, refer to the README.md.
-   * @param ptr The input point cloud data.
-   * @param pms Parameters group together.
-   * @return PointCloud2::UniquePtr Point cloud message to publish.
-   */
-  PointCloud2::UniquePtr execute(PointCloud2::UniquePtr ptr, const Params & pms)
-  {
-    if (pms.enable == false) {
-      return ptr;
-    }
-
-    auto num = static_cast<int>(ptr->width);
-    if (ptr->header.frame_id == "-1" || num == 0) {
-      return ptr;
-    } else {
-      std::vector<float> buf;
-      buf.resize(num, -1);
-      auto p = reinterpret_cast<float *>(ptr->data.data());
-
-      for (int i = pms.ws; i < num - pms.ws; ++i) {
-        if (p[i] < 0) {
-          continue;
-        }
-
-        float sum = 0;
-        int hit = 0;
-        for (auto j = -pms.ws; j <= pms.ws; ++j) {
-          if (p[i + j] < 0) {
-            continue;
-          }
-          sum += p[i + j];
-          ++hit;
-        }
-        buf[i] = sum / hit;
-      }
-
-      // filter by diff with average
-      for (int i = 0; i < num; ++i) {
-        if (p[i] < 0 || buf[i] < 0) {
-          continue;
-        }
-        if (abs(p[i] - buf[i]) > pms.dev) {
-          p[i] = -1;
-        }
-      }
-
-      // filter by length
-      auto i = 0;
-      while (i < num) {
-        if (p[i] < 0) {
-          ++i;
-          continue;
-        }
-        auto f = i;
-        auto j = f + 1;
-        while (j < num) {
-          if (p[j] < 0) {
-            ++j;
-            continue;
-          }
-          if (j - f <= pms.gap && abs(p[j] - p[f]) / (j - f) < pms.step) {
-            f = j;
-            ++j;
-          } else {
-            break;
-          }
-        }
-        if (f - i < pms.length) {
-          for (auto k = i; k <= f; ++k) {
-            p[k] = -1;
-          }
-        } else {
-          i = j;
-        }
-      }
-
-      return ptr;
     }
   }
 

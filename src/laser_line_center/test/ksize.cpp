@@ -23,43 +23,37 @@ int main()
   auto col = img.col(10);
   col = cv::Scalar(0xFE);  // Use 0xFE instead of oxff to avoid nasty round.
 
-  auto p = Params();
   int16_t ret;
 
-  p.ksize = 1;
-  cv::Sobel(img, buf, CV_16S, 1, 0, p.ksize, p.scalar());
+  cv::Sobel(img, buf, CV_16S, 1, 0, 1, 1);
   ret = 0;
   for (auto i = 0; i < 10; ++i) {
     ret += buf.at<int16_t>(0, i);
   }
   assert(ret == 0xFE);
 
-  p.ksize = 3;
-  cv::Sobel(img, buf, CV_16S, 1, 0, p.ksize, p.scalar());
+  cv::Sobel(img, buf, CV_16S, 1, 0, 3, 1 / 4.);
   ret = 0;
   for (auto i = 0; i < 10; ++i) {
     ret += buf.at<int16_t>(0, i);
   }
   assert(ret == 0xFE);
 
-  p.ksize = 5;
-  cv::Sobel(img, buf, CV_16S, 1, 0, p.ksize, p.scalar());
+  cv::Sobel(img, buf, CV_16S, 1, 0, 5, 1 / 48.);
   ret = 0;
   for (auto i = 0; i < 10; ++i) {
     ret += buf.at<int16_t>(0, i);
   }
   assert(ret == 0xFE);
 
-  p.ksize = 7;
-  cv::Sobel(img, buf, CV_16S, 1, 0, p.ksize, p.scalar());
+  cv::Sobel(img, buf, CV_16S, 1, 0, 7, 1 / 640.);
   ret = 0;
   for (auto i = 0; i < 10; ++i) {
     ret += buf.at<int16_t>(0, i);
   }
   assert(ret == 0xFE);
 
-  p.ksize = -1;
-  cv::Sobel(img, buf, CV_16S, 1, 0, p.ksize, p.scalar());
+  cv::Sobel(img, buf, CV_16S, 1, 0, -1, 1 / 16.);
   ret = 0;
   for (auto i = 0; i < 10; ++i) {
     ret += buf.at<int16_t>(0, i);

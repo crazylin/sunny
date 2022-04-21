@@ -20,15 +20,10 @@ int main()
   auto col = img.col(10);
   col = cv::Scalar(50);
 
-  auto p = Params();
-  p.ksize = 1;
-
-  p.threshold = 50;   // Threshold set to 50, shall pass.
-  auto pnts = center(img, buf, p);
+  auto pnts = center(img, buf, 1, 50);  // Threshold set to 50, shall pass.
   assert(pnts[0] == 10);
 
-  p.threshold = 51;   // Threshold set to 51, shall be filtered.
-  pnts = center(img, buf, p);
+  pnts = center(img, buf, 1, 51);     // Threshold set to 51, shall be filtered.
   assert(pnts[0] == -1);
 
   return 0;
