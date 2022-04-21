@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#undef NDEBUG
+#include <cassert>
+
 #include "impl/center.hpp"
 
 int main()
@@ -19,7 +22,7 @@ int main()
   cv::Mat img(100, 100, CV_8U, cv::Scalar(0)), buf;
 
   auto pnts = center(img, buf);
-  assert(pnts.size() == i);
+  assert(pnts.size() == 100);
   for (size_t i = 0; i < pnts.size(); ++i) {
     assert(pnts[i] == -1);
   }

@@ -18,7 +18,7 @@ int main()
 {
   cv::Mat img(1, 20, CV_8U, cv::Scalar(0)), buf;
   auto col = img.col(10);
-  col.setTo(cv::Scalar(50));
+  col = cv::Scalar(50);
 
   auto p = Params();
   p.ksize = 1;

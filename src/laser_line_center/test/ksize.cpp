@@ -12,13 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#undef NDEBUG
+#include <cassert>
+
 #include "impl/center.hpp"
 
 int main()
 {
   cv::Mat img(1, 20, CV_8U, cv::Scalar(0)), buf;
   auto col = img.col(10);
-  col.setTo(cv::Scalar(0xff));
+  col = cv::Scalar(0xFE);  // Use 0xFE instead of oxff to avoid nasty round.
 
   auto p = Params();
   int16_t ret;
@@ -29,7 +32,7 @@ int main()
   for (auto i = 0; i < 10; ++i) {
     ret += buf.at<int16_t>(0, i);
   }
-  assert(ret == 0xff);
+  assert(ret == 0xFE);
 
   p.ksize = 3;
   cv::Sobel(img, buf, CV_16S, 1, 0, p.ksize, p.scalar());
@@ -37,7 +40,7 @@ int main()
   for (auto i = 0; i < 10; ++i) {
     ret += buf.at<int16_t>(0, i);
   }
-  assert(ret == 0xff);
+  assert(ret == 0xFE);
 
   p.ksize = 5;
   cv::Sobel(img, buf, CV_16S, 1, 0, p.ksize, p.scalar());
@@ -45,7 +48,7 @@ int main()
   for (auto i = 0; i < 10; ++i) {
     ret += buf.at<int16_t>(0, i);
   }
-  assert(ret == 0xff);
+  assert(ret == 0xFE);
 
   p.ksize = 7;
   cv::Sobel(img, buf, CV_16S, 1, 0, p.ksize, p.scalar());
@@ -53,7 +56,7 @@ int main()
   for (auto i = 0; i < 10; ++i) {
     ret += buf.at<int16_t>(0, i);
   }
-  assert(ret == 0xff);
+  assert(ret == 0xFE);
 
   p.ksize = -1;
   cv::Sobel(img, buf, CV_16S, 1, 0, p.ksize, p.scalar());
@@ -61,7 +64,7 @@ int main()
   for (auto i = 0; i < 10; ++i) {
     ret += buf.at<int16_t>(0, i);
   }
-  assert(ret == 0xff);
+  assert(ret == 0xFE);
 
   return 0;
 }

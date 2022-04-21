@@ -66,7 +66,7 @@ std::vector<float> center(const cv::Mat & img, cv::Mat & buf, const Params & pms
 
     auto c = (maxPos + minPos + s1 + s2) / 2.;
     auto width = minPos + s2 - maxPos - s1;
-
+    // std::cout << width << " " << minPos << " " << s2 << " " << maxPos << " " << s1 << "\n";
     if (
       maxVal >= pms.threshold &&
       minVal <= -pms.threshold &&

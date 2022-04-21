@@ -65,6 +65,7 @@ public:
       throw std::runtime_error("Can not create modbus socket");
     }
 
+    // _mb_mapping = modbus_mapping_new(MODBUS_MAX_READ_BITS, 0, MODBUS_MAX_READ_REGISTERS, 0);
     _mb_mapping = modbus_mapping_new(0, 0, 400, 0);
     if (!_mb_mapping) {
       close(_sock);

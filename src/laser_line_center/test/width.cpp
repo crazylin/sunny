@@ -17,17 +17,50 @@
 int main()
 {
   {
+    // One pixel
     cv::Mat img(1, 20, CV_8U, cv::Scalar(0)), buf;
     auto col = img.colRange(10, 11);
-    col.setTo(cv::Scalar(100));
+    col = cv::Scalar(100);
 
     auto p = Params();
     p.ksize = 1;
-    p.width_min = 2. + DBL_EPSILON;
+    p.width_min = 2. * (1. + DBL_EPSILON);
     auto pnts = center(img, buf, p);
     assert(pnts[0] == -1);
 
     p.width_min = 2.;
+    pnts = center(img, buf, p);
+    assert(pnts[0] != -1);
+  }
+  {
+    // Two pixel
+    cv::Mat img(1, 20, CV_8U, cv::Scalar(0)), buf;
+    auto col = img.colRange(10, 12);
+    col = cv::Scalar(100);
+
+    auto p = Params();
+    p.ksize = 1;
+    p.width_min = 2. * (1. + DBL_EPSILON);
+    auto pnts = center(img, buf, p);
+    assert(pnts[0] == -1);
+
+    p.width_min = 2.;
+    pnts = center(img, buf, p);
+    assert(pnts[0] != -1);
+  }
+  {
+    // Three pixel
+    cv::Mat img(1, 20, CV_8U, cv::Scalar(0)), buf;
+    auto col = img.colRange(10, 13);
+    col = cv::Scalar(100);
+
+    auto p = Params();
+    p.ksize = 1;
+    p.width_min = 3. * (1. + DBL_EPSILON);
+    auto pnts = center(img, buf, p);
+    assert(pnts[0] == -1);
+
+    p.width_min = 3.;
     pnts = center(img, buf, p);
     assert(pnts[0] != -1);
   }
