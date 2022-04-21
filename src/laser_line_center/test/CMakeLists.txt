@@ -5,6 +5,6 @@ macro(test filename)
     add_test(NAME ${filename} COMMAND ${filename})
 endmacro()
 
-foreach(X IN ITEMS empty small black white threshold ksize width)
+foreach(X IN ITEMS empty small black white threshold ksize width perf)
     test(${X})
 endforeach()
