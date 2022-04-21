@@ -7,8 +7,8 @@ rotate_image_node:
 laser_line_center_node:
     ksize: 5                    # int
     threshold: 35               # int
-    width_min: 1                # int
-    width_max: 30               # int
+    width_min: 1.               # double
+    width_max: 30.              # double
 
 laser_line_filter_node:
     enable: false               # bool, enable

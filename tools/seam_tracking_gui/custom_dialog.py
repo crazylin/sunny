@@ -264,8 +264,8 @@ class DialogCenter(Dialog):
         try:
             self._ksize = int(self.ksize_box.get())
             self._threshold = int(self.threshold_box.get())
-            self._wmin = int(self.wmin_box.get())
-            self._wmax = int(self.wmax_box.get())
+            self._wmin = float(self.wmin_box.get())
+            self._wmax = float(self.wmax_box.get())
         except Exception:
             pass
         else:

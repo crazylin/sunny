@@ -53,8 +53,8 @@ class App(tk.Tk):
             'laser_line_center_node': {
                 'ksize': 5,
                 'threshold': 35,
-                'width_min': 1,
-                'width_max': 30},
+                'width_min': 1.,
+                'width_max': 30.},
             'laser_line_filter_node': {
                 'enable': False,
                 'window_size': 10,

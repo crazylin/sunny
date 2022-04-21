@@ -24,6 +24,9 @@
 #include <vector>
 
 #include "opencv2/opencv.hpp"
+#include "impl/params.hpp"
+#include "impl/center.hpp"
+#include "impl/to_pc2.hpp"
 
 namespace laser_line_center
 {
@@ -31,52 +34,6 @@ namespace laser_line_center
 using sensor_msgs::msg::Image;
 using sensor_msgs::msg::PointCloud2;
 using sensor_msgs::msg::PointField;
-
-/**
- * @brief List of parameter names.
- *
- */
-const std::vector<std::string> KEYS = {"ksize", "threshold", "width_min", "width_max"};
-
-/**
- * @brief A map between ksize and its scalar.
- *
- */
-const std::map<int, double> SCALAR = {
-  {1, 1.},
-  {3, 1. / 4.},
-  {5, 1. / 48.},
-  {7, 1. / 640.},
-  {-1, 1. / 16.},
-};
-
-/**
- * @brief Group parameters together.
- *
- */
-struct Params
-{
-  explicit Params(LaserLineCenter * node)
-  {
-    const auto & vp = node->get_parameters(KEYS);
-    for (const auto & p : vp) {
-      if (p.get_name() == "ksize") {
-        ksize = p.as_int();
-      } else if (p.get_name() == "threshold") {
-        threshold = p.as_int();
-      } else if (p.get_name() == "width_min") {
-        width_min = p.as_int();
-      } else if (p.get_name() == "width_max") {
-        width_max = p.as_int();
-      }
-    }
-  }
-
-  int ksize = 5;
-  int threshold = 35;
-  int width_min = 1;
-  int width_max = 30;
-};
 
 /**
  * @brief Inner implementation for the algorithm.
@@ -124,13 +81,13 @@ public:
               return result;
             }
           } else if (p.get_name() == "width_min") {
-            if (p.as_int() <= 0) {
+            if (p.as_double() <= 0) {
               result.successful = false;
               result.reason = "Failed to set width_min";
               return result;
             }
           } else if (p.get_name() == "width_max") {
-            if (p.as_int() <= 0) {
+            if (p.as_double() <= 0) {
               result.successful = false;
               result.reason = "Failed to set width_max";
               return result;
@@ -167,8 +124,26 @@ public:
   {
     _node->declare_parameter("ksize", 5);
     _node->declare_parameter("threshold", 35);
-    _node->declare_parameter("width_min", 1);
-    _node->declare_parameter("width_max", 30);
+    _node->declare_parameter("width_min", 1.);
+    _node->declare_parameter("width_max", 30.);
+  }
+
+  Params update_parameters()
+  {
+    Params pm;
+    const auto & vp = _node->get_parameters(KEYS);
+    for (const auto & p : vp) {
+      if (p.get_name() == "ksize") {
+        pm.ksize = p.as_int();
+      } else if (p.get_name() == "threshold") {
+        pm.threshold = p.as_int();
+      } else if (p.get_name() == "width_min") {
+        pm.width_min = p.as_double();
+      } else if (p.get_name() == "width_max") {
+        pm.width_max = p.as_double();
+      }
+    }
+    return pm;
   }
 
   /**
@@ -242,7 +217,7 @@ public:
         _images.pop_front();
         std::promise<PointCloud2::UniquePtr> prom;
         push_back_future(prom.get_future());
-        auto pms = Params(_node);
+        auto pms = update_parameters();
         lk.unlock();
         if (ptr->header.frame_id == "-1" || ptr->data.empty()) {
           auto line = std::make_unique<PointCloud2>();
@@ -250,7 +225,8 @@ public:
           prom.set_value(std::move(line));
         } else {
           cv::Mat img(ptr->height, ptr->width, CV_8UC1, ptr->data.data());
-          auto line = execute(img, buf, pms);
+          auto pnts = center(img, buf, pms);
+          auto line = to_pc2(pnts);
           line->header = ptr->header;
           prom.set_value(std::move(line));
         }
@@ -258,102 +234,6 @@ public:
         _images_con.wait(lk);
       }
     }
-  }
-
-  /**
-   * @brief The algorithm to extract laser line center row by row.
-   *
-   * For more details of the algorithm, refer to the README.md.
-   * @param img The input opencv image.
-   * @param buf The buffer to use.
-   * @param pms Parameters group together.
-   * @return PointCloud2::UniquePtr Point cloud message to publish.
-   */
-  PointCloud2::UniquePtr execute(const cv::Mat & img, cv::Mat & buf, const Params & pms)
-  {
-    std::vector<float> pnts;
-    pnts.reserve(img.rows * 2);
-
-    cv::Sobel(img, buf, CV_16S, 1, 0, pms.ksize, SCALAR.at(pms.ksize));
-    for (decltype(img.rows) r = 0; r < img.rows; ++r) {
-      auto pRow = buf.ptr<short>(r);  // NOLINT
-      auto minmax = std::minmax_element(pRow, pRow + img.cols);
-
-      auto minEle = minmax.first;
-      auto maxEle = minmax.second;
-
-      auto minVal = *minEle;
-      auto maxVal = *maxEle;
-
-      auto minPos = minEle - pRow;
-      auto minP = minPos == 0 ? pRow[minPos + 1] : pRow[minPos - 1];
-      auto minN = minPos == img.cols - 1 ? pRow[minPos - 1] : pRow[minPos + 1];
-
-      auto maxPos = maxEle - pRow;
-      auto maxP = maxPos == 0 ? pRow[maxPos + 1] : pRow[maxPos - 1];
-      auto maxN = maxPos == img.cols - 1 ? pRow[maxPos - 1] : pRow[maxPos + 1];
-
-      auto width = minPos - maxPos;
-
-      auto a1 = maxP + maxN - maxVal * 2;
-      auto b1 = maxP - maxN;
-      auto s1 = (a1 < 0 ? 0.5 * b1 / a1 : 0.5 * b1);
-
-      auto a2 = minP + minN - minVal * 2;
-      auto b2 = minP - minN;
-      auto s2 = (a2 > 0 ? 0.5 * b2 / a2 : 0.5 * b2);
-
-      auto c = (maxPos + minPos + s1 + s2) / 2.;
-
-      if (
-        maxVal > pms.threshold &&
-        minVal < -pms.threshold &&
-        width > pms.width_min &&
-        width < pms.width_max &&
-        maxPos > 0 &&
-        minPos < img.cols - 1)
-      {
-        pnts.push_back(c);
-      } else {
-        pnts.push_back(-1.);
-      }
-    }
-
-    return to_pc2(pnts);
-  }
-
-  /**
-   * @brief Construct ROS point cloud message from vector of floats.
-   *
-   * @param pnts A sequence of floats as points' row coordinate.
-   * @return PointCloud2::UniquePtr Point cloud message to publish.
-   */
-  PointCloud2::UniquePtr to_pc2(const std::vector<float> & pnts)
-  {
-    auto num = pnts.size();
-    auto ptr = std::make_unique<PointCloud2>();
-
-    ptr->height = 1;
-    ptr->width = num;
-
-    ptr->fields.resize(1);
-
-    ptr->fields[0].name = "u";
-    ptr->fields[0].offset = 0;
-    ptr->fields[0].datatype = 7;
-    ptr->fields[0].count = 1;
-
-    ptr->is_bigendian = false;
-    ptr->point_step = 4;
-    ptr->row_step = num * 4;
-
-    ptr->data.resize(num * 4);
-
-    ptr->is_dense = true;
-
-    memcpy(ptr->data.data(), pnts.data(), num * 4);
-
-    return ptr;
   }
 
 private:
