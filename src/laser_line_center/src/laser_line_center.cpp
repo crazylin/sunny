@@ -163,6 +163,7 @@ LaserLineCenter::~LaserLineCenter()
 {
   try {
     _sub.reset();
+    _handle.reset();
     _images_con.notify_all();
     _futures_con.notify_one();
     for (auto & t : _threads) {
