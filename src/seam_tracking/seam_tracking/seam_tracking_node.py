@@ -1,9 +1,3 @@
-"""
-ROS node to locate seams from points, supports source code plugin.
-
-A python ROS node to subscribe from upstream topic.
-"""
-
 # Copyright 2019 Zhushi Tech, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -219,10 +213,8 @@ class SeamTracking(Node):
         self.pub.publish(ret)
 
     def _filter(self, r: np.ndarray):
-        for z, p in enumerate(r):
-            if p[2] == -1:
-                self._deq.appendleft(p[1])
-                break
+        if len(r) and r[0][2] == -1:
+            self._deq.appendleft(r[0][1])
         else:
             self._deq.appendleft(None)
             return r
@@ -252,7 +244,7 @@ class SeamTracking(Node):
         if i >= self._length:
             return r
         else:
-            r[z][2] = -99
+            r[0][2] = -99
             return r
 
     def _offset(self, r: np.ndarray):
@@ -264,10 +256,9 @@ class SeamTracking(Node):
         :return: The input is modified in place and returned.
         :rtype: np.ndarray
         """
-        for i in range(len(r)):
-            if r[i][2] == -1:
-                r[i][0] += self._delta_x
-                r[i][1] += self._delta_y
+        if r[0][2] == -1:
+            r[0][0] += self._delta_x
+            r[0][1] += self._delta_y
         return r
 
     def _notnan(self, r: np.ndarray):

@@ -33,9 +33,7 @@ PointCloud2::UniquePtr execute(PointCloud2::UniquePtr ptr, const Params & pm)
   if (ptr->header.frame_id == "-1" || ptr->data.empty() || pm.enable == false) {return ptr;}
 
   auto p = reinterpret_cast<float *>(ptr->data.data());
-
   auto width = static_cast<int>(ptr->width);
-
   filter(
     p,
     width,
