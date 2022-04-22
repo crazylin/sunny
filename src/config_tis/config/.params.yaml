@@ -26,7 +26,8 @@ line_center_reconstruction_node:
     # homography_matrix: [ 4.47905463e-02,  5.49310680e-02, -9.69979774e+00, -2.07889516e-01,  2.35214168e-03,  1.99641511e+02, 1.16829292e-03, -1.26498284e-05,  1.00000000e+00]
 
 seam_tracking_node:
-    codes: ['def fn(d)\n    return d']
+    codes:
+        - "def fn(d):\n    return d"
     task: 0                     # int
     delta_x: 0.                 # double in mm
     delta_y: 0.                 # double in mm
