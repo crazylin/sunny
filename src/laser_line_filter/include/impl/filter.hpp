@@ -15,10 +15,87 @@
 #ifndef IMPL__FILTER_HPP_
 #define IMPL__FILTER_HPP_
 
+#include <cmath>
 #include <vector>
 
-using sensor_msgs::msg::PointCloud2;
+std::vector<float> cal_average(const float * ptr, int width, int window_size)
+{
+  std::vector<float> avg;
+  avg.resize(width, -1);
+  for (auto i = window_size; i < width - window_size; ++i) {
+    if (ptr[i] < 0) {continue;}
 
+    float sum = 0;
+    int hit = 0;
+    for (auto j = -window_size; j <= window_size; ++j) {
+      if (ptr[i + j] < 0) {continue;}
+
+      sum += ptr[i + j];
+      ++hit;
+    }
+    avg[i] = sum / hit;
+  }
+  return avg;
+}
+
+void filter_average(float * ptr, int width, const std::vector<float> & avg, double deviate)
+{
+  for (auto i = 0; i < width; ++i) {
+    if (ptr[i] < 0 || avg[i] < 0) {continue;}
+
+    if (abs(ptr[i] - avg[i]) > deviate) {
+      ptr[i] = -1;
+    }
+  }
+}
+
+void filter_length(float * ptr, int width, int gap, double step, int length)
+{
+  // start point i
+  auto i = 0;
+  while (i < width) {
+    if (ptr[i] < 0) {
+      ++i;
+      continue;
+    }
+    // front point f as first non -1 start point
+    auto f = i;
+    // move point j start from f + 1
+    auto j = f + 1;
+    while (j < width) {
+      if (ptr[j] < 0) {
+        ++j;
+        continue;
+      }
+      // move to first non -1
+      if (j - f <= gap && abs(ptr[j] - ptr[f]) / (j - f) < step) {
+        // interpolate in between
+        if (j - f > 1) {
+          auto s = (ptr[j] - ptr[f]) / (j - f);
+          for (auto k = 1; k < j - f; ++k) {
+            ptr[f + k] = ptr[f] + s * k;
+          }
+        }
+        // move forward front point and continue move j forward
+        f = j;
+        ++j;
+      } else {
+        break;
+      }
+    }
+
+    // calculate the distance between front and start points
+    if (f - i < length) {
+      // disable all in between if length criteria fails.
+      for (auto k = i; k <= f; ++k) {
+        ptr[k] = -1;
+      }
+    }
+
+    // move start point to j
+    i = j;
+  }
+}
 
 /**
  * @brief The algorithm to filter out noise points.
@@ -28,79 +105,20 @@ using sensor_msgs::msg::PointCloud2;
  * @param pms Parameters group together.
  * @return PointCloud2::UniquePtr Point cloud message to publish.
  */
-PointCloud2::UniquePtr filter(
-  PointCloud2::UniquePtr ptr,
-  bool enable = false,
+void filter(
+  float * ptr,
+  int width,
   int window_size = 10,
   int gap = 5,
   double deviate = 5.,
   double step = 2.,
   int length = 30)
 {
-  if (ptr->header.frame_id == "-1" || ptr->data.empty() || enable == false) {return ptr;}
+  auto buf = cal_average(ptr, width, window_size);
 
-  auto num = static_cast<int>(ptr->width);
-  std::vector<float> buf;
-  buf.resize(num, -1);
-  auto p = reinterpret_cast<float *>(ptr->data.data());
-  for (int i = window_size; i < num - window_size; ++i) {
-    if (p[i] < 0) {
-      continue;
-    }
+  filter_average(ptr, width, buf, deviate);
 
-    float sum = 0;
-    int hit = 0;
-    for (auto j = -window_size; j <= window_size; ++j) {
-      if (p[i + j] < 0) {
-        continue;
-      }
-      sum += p[i + j];
-      ++hit;
-    }
-    buf[i] = sum / hit;
-  }
-
-  // filter by diff with average
-  for (int i = 0; i < num; ++i) {
-    if (p[i] < 0 || buf[i] < 0) {
-      continue;
-    }
-    if (abs(p[i] - buf[i]) > deviate) {
-      p[i] = -1;
-    }
-  }
-
-  // filter by length
-  auto i = 0;
-  while (i < num) {
-    if (p[i] < 0) {
-      ++i;
-      continue;
-    }
-    auto f = i;
-    auto j = f + 1;
-    while (j < num) {
-      if (p[j] < 0) {
-        ++j;
-        continue;
-      }
-      if (j - f <= gap && abs(p[j] - p[f]) / (j - f) < step) {
-        f = j;
-        ++j;
-      } else {
-        break;
-      }
-    }
-    if (f - i < length) {
-      for (auto k = i; k <= f; ++k) {
-        p[k] = -1;
-      }
-    } else {
-      i = j;
-    }
-  }
-
-  return ptr;
+  filter_length(ptr, width, gap, step, length);
 }
 
 #endif  // IMPL__FILTER_HPP_

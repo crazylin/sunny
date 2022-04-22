@@ -30,14 +30,22 @@ namespace laser_line_filter
 
 PointCloud2::UniquePtr execute(PointCloud2::UniquePtr ptr, const Params & pm)
 {
-  return filter(
-    std::move(ptr),
-    pm.enable,
+  if (ptr->header.frame_id == "-1" || ptr->data.empty() || pm.enable == false) {return ptr;}
+
+  auto p = reinterpret_cast<float *>(ptr->data.data());
+
+  auto width = static_cast<int>(ptr->width);
+
+  filter(
+    p,
+    width,
     pm.window_size,
     pm.gap,
     pm.deviate,
     pm.step,
     pm.length);
+
+  return ptr;
 }
 
 /**
