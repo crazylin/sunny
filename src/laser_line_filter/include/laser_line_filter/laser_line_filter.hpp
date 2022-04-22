@@ -16,7 +16,6 @@
 #define LASER_LINE_FILTER__LASER_LINE_FILTER_HPP_
 
 #include <deque>
-#include <future>
 #include <memory>
 #include <string>
 #include <utility>

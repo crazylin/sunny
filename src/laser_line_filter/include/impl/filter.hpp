@@ -37,8 +37,7 @@ PointCloud2::UniquePtr filter(
   double step = 2.,
   int length = 30)
 {
-  if (ptr->header.frame_id == "-1" || ptr->data.empty()) {return ptr;}
-  if (enable == false) {return ptr;}
+  if (ptr->header.frame_id == "-1" || ptr->data.empty() || enable == false) {return ptr;}
 
   auto num = static_cast<int>(ptr->width);
   std::vector<float> buf;
