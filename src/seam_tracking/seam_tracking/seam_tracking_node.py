@@ -1,3 +1,9 @@
+"""
+ROS node to locate seams from points, supports source code plugin.
+
+A python ROS node to subscribe from upstream topic.
+"""
+
 # Copyright 2019 Zhushi Tech, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");

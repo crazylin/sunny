@@ -14,18 +14,31 @@
 
 #undef NDEBUG
 #include <cassert>
-#include <iostream>
+#include <cfloat>
 
 #include "impl/filter.hpp"
 
 int main()
 {
-  float p[] = {10, 10, 10, 10, 20, 10, 10, 10, 10, 10};
-  p[4] = 20;
-  auto avg = cal_average(p, 10, 2);
-  filter_average(p, 10, avg, 5);
+  {
+    float p[] = {10, 10, 10, 10, 10, 10, 10, 10, 10, 10};
+    p[4] = 20;
+    auto avg = cal_average(p, 10, 2);
+    // avg: -1 -1 12 12 12 12 12 10 -1 -1
 
-  assert(p[4] == -1);
+    filter_average(p, 10, avg, 8);                        // deviate = 8
+    assert(p[4] == -1);
+  }
+
+  {
+    float p[] = {10, 10, 10, 10, 10, 10, 10, 10, 10, 10};
+    p[4] = 20;
+    auto avg = cal_average(p, 10, 2);
+    // avg: -1 -1 12 12 12 12 12 10 -1 -1
+
+    filter_average(p, 10, avg, 8 * (1. + DBL_EPSILON));   // deviate = 8 * (1. + DBL_EPSILON)
+    assert(p[4] == 20);
+  }
 
   return 0;
 }

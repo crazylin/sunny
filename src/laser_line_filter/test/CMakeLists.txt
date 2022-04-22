@@ -4,6 +4,6 @@ macro(test filename)
     add_test(NAME ${filename} COMMAND ${filename})
 endmacro()
 
-foreach(X IN ITEMS average length)
+foreach(X IN ITEMS average length interpolate)
     test(${X})
 endforeach()

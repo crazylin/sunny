@@ -43,7 +43,7 @@ void filter_average(float * ptr, int width, const std::vector<float> & avg, doub
   for (auto i = 0; i < width; ++i) {
     if (ptr[i] < 0 || avg[i] < 0) {continue;}
 
-    if (abs(ptr[i] - avg[i]) > deviate) {
+    if (abs(ptr[i] - avg[i]) >= deviate) {
       ptr[i] = -1;
     }
   }
@@ -68,7 +68,7 @@ void filter_length(float * ptr, int width, int gap, double step, int length)
         continue;
       }
       // move to first non -1
-      if (j - f <= gap && abs(ptr[j] - ptr[f]) / (j - f) < step) {
+      if (j - f <= gap && abs(ptr[j] - ptr[f]) / (j - f) <= step) {
         // interpolate in between
         if (j - f > 1) {
           auto s = (ptr[j] - ptr[f]) / (j - f);
@@ -85,7 +85,7 @@ void filter_length(float * ptr, int width, int gap, double step, int length)
     }
 
     // calculate the distance between front and start points
-    if (f - i < length) {
+    if (f - i <= length) {
       // disable all in between if length criteria fails.
       for (auto k = i; k <= f; ++k) {
         ptr[k] = -1;
