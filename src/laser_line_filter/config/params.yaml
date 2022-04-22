@@ -3,6 +3,6 @@ laser_line_filter_node:
     enable: false               # bool, enable
     window_size: 10             # int pixel
     gap: 5                      # int pixel
-    deviate: 5.                 # float pixel
-    step: 2.                    # float pixel
+    deviate: 5.                 # double pixel
+    step: 2.                    # double pixel
     length: 30                  # int pixel

@@ -63,8 +63,8 @@ LaserLineFilter::LaserLineFilter(const rclcpp::NodeOptions & options)
 
   _declare_parameters();
 
-  auto w = workers(options);
-  for (int i = 0; i < w; ++i) {
+  _workers = workers(options);
+  for (int i = 0; i < _workers; ++i) {
     _threads.push_back(std::thread(&LaserLineFilter::_worker, this));
   }
   _threads.push_back(std::thread(&LaserLineFilter::_manager, this));
