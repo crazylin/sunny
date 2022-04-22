@@ -111,8 +111,15 @@ PointCloud2::UniquePtr execute(PointCloud2::UniquePtr ptr, const Params & pm)
 {
   if (ptr->header.frame_id == "-1" || ptr->data.empty()) {return ptr;}
 
-  auto _homo = cv::Mat(pm.homography_matrix, true).reshape(1, 3);
   auto src = from_pc2(ptr);
+  if (src.empty()) {
+    auto msg = std::make_unique<PointCloud2>();
+    msg->header = ptr->header;
+    return msg;
+  }
+
+  auto _homo = cv::Mat(pm.homography_matrix, true).reshape(1, 3);
+
   std::vector<cv::Point2f> dst;
   dst.reserve(ptr->width);
   cv::perspectiveTransform(src, dst, _homo);

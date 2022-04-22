@@ -1,10 +1,10 @@
 seam_tracking_node:
   ros__parameters:
-    task: 0                     #int
-    delta_x: 0.                 #float in mm
-    delta_y: 0.                 #float in mm
-    enable: false               #bool
-    window_size: 10             #int in count
-    gap: 2                      #int in count
-    step: 2.                    #float in mm
-    length: 5                   #int in count
+    task: 0                     # int
+    delta_x: 0.                 # double in mm
+    delta_y: 0.                 # double in mm
+    enable: false               # bool
+    window_size: 10             # int in count
+    gap: 2                      # int in count
+    step: 2.                    # double in mm
+    length: 5                   # int in count
