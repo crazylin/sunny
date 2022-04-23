@@ -22,6 +22,18 @@
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/point_cloud2.hpp"
 
+/**
+ * @brief Forward declaration for inner implementation.
+ *
+ */
+typedef struct _modbus modbus_t;
+
+/**
+ * @brief Forward declaration for inner implementation.
+ *
+ */
+typedef struct _modbus_mapping_t modbus_mapping_t;
+
 namespace modbus
 {
 
@@ -35,41 +47,56 @@ public:
   /**
    * @brief Construct a new Modbus object.
    *
+   * Create an inner implementation.
+   * Initialize subscription.
+   * Initialize parameter client for camera.
+   * Initialize parameter client for gpio.
+   * Print success if all done.
    * @param options Encapsulation of options for node initialization.
    */
   explicit Modbus(const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
 
   /**
-   * @brief Destroy the Modbus object.
+   * @brief Destroy the Modbus:: Modbus object.
    *
+   * Release parameter client for camera.
+   * Release parameter client for gpio.
+   * Release subscription.
+   * Release inner implementation.
+   * Print success if all done.
+   * Throw no exception.
    */
   ~Modbus();
 
+private:
   /**
    * @brief Control laser on of off.
    *
    */
-  void gpio_laser(bool);
+  void _gpio_laser(bool);
 
   /**
    * @brief Control camera capture or not.
    *
    */
-  void camera_power(bool);
+  void _camera_power(bool);
+
+  /**
+   * @brief Control camera capture or not.
+   *
+   */
+  void _modbus(int);
+
+  /**
+   * @brief Update coordinates in mapping block.
+   *
+   * @param valid true if found.
+   * @param u Coordinates in u.
+   * @param v Coordinates in v.
+   */
+  void _update(bool valid, float u = 0., float v = 0.);
 
 private:
-  /**
-   * @brief Forward declaration for inner implementation.
-   *
-   */
-  class _Impl;
-
-  /**
-   * @brief Unique pointer to inner implementation.
-   *
-   */
-  std::unique_ptr<_Impl> _impl;
-
   /**
    * @brief Subscription name.
    *
@@ -93,6 +120,36 @@ private:
    *
    */
   std::shared_ptr<rclcpp::AsyncParametersClient> _param_gpio;
+
+  /**
+   * @brief Modbus context.
+   *
+   */
+  modbus_t * _ctx = NULL;
+
+  /**
+   * @brief Modbus mapping zone.
+   *
+   */
+  modbus_mapping_t * _mb_mapping = NULL;
+
+  /**
+   * @brief Socket file descriptor
+   *
+   */
+  int _sock = -1;
+
+  /**
+   * @brief Mutex to protect from data race.
+   *
+   */
+  std::mutex _mutex;
+
+  /**
+   * @brief Thread for communication through modbus tcp.
+   *
+   */
+  std::thread _thread;
 };
 
 }  // namespace modbus
