@@ -14,19 +14,19 @@
 
 #include "modbus/modbus.hpp"
 
-#include <sys/socket.h>
-
-#include <errno.h>
+// #include <sys/socket.h>
+// #include <errno.h>
 #include <modbus.h>
-#include <stdio.h>
+// #include <stdio.h>
 #include <unistd.h>
 
-#include <climits>
+// #include <climits>
 #include <memory>
-#include <string>
-#include <utility>
-#include <vector>
-#include <iostream>
+#include <set>
+// #include <string>
+// #include <utility>
+// #include <vector>
+// #include <iostream>
 
 namespace modbus
 {
@@ -36,45 +36,22 @@ using sensor_msgs::msg::PointCloud2;
 Modbus::Modbus(const rclcpp::NodeOptions & options)
 : Node("modbus_node", options)
 {
-  _sub = this->create_subscription<PointCloud2>(
-    _sub_name,
-    rclcpp::SensorDataQoS(),
-    [this](PointCloud2::UniquePtr ptr) {
-      if (ptr->data.empty()) {
-        _update(false, 0., 0.);
-      } else {
-        float * p = reinterpret_cast<float *>(ptr->data.data());
-        if (p[2] == -1) {
-          _update(true, p[0], p[1]);
-        } else {
-          _update(false, 0., 0.);
-        }
-      }
-    }
-  );
-
   _param_camera = std::make_shared<rclcpp::AsyncParametersClient>(this, "camera_tis_node");
   _param_gpio = std::make_shared<rclcpp::AsyncParametersClient>(this, "gpio_raspberry_node");
 
   this->declare_parameter("port", 2345);
   auto port = this->get_parameter("port").as_int();
-
   _thread = std::thread(&Modbus::_modbus, this, port);
+
   RCLCPP_INFO(this->get_logger(), "Initialized successfully");
 }
 
 Modbus::~Modbus()
 {
   try {
-    if (_sock != -1) {
-      shutdown(_sock, SHUT_RDWR);
-      close(_sock);
-    }
-    modbus_mapping_free(_mb_mapping);
-    modbus_free(_ctx);
+    _thread.join();
     _param_gpio.reset();
     _param_camera.reset();
-    _sub.reset();
     RCLCPP_INFO(this->get_logger(), "Destroyed successfully");
   } catch (const std::exception & e) {
     RCLCPP_FATAL(this->get_logger(), "Exception in destructor: %s", e.what());
@@ -123,65 +100,61 @@ void Modbus::_camera_power(bool f)
  */
 void Modbus::_modbus(int port)
 {
-  _ctx = modbus_new_tcp(NULL, port);
-  if (!_ctx) {
+  auto ctx = modbus_new_tcp(NULL, port);
+  if (!ctx) {
     throw std::runtime_error("Can not create modbus context");
   }
 
   // _mb_mapping = modbus_mapping_new(MODBUS_MAX_READ_BITS, 0, MODBUS_MAX_READ_REGISTERS, 0);
-  _mb_mapping = modbus_mapping_new(0, 0, 400, 0);
-  if (!_mb_mapping) {
-    modbus_free(_ctx);
+  auto mb_mapping = modbus_mapping_new(0, 0, 400, 0);
+  if (!mb_mapping) {
+    modbus_free(ctx);
     throw std::runtime_error("Can not initialize modbus registers");
   }
-  _mb_mapping->tab_registers[1] = 0xff;
-  _mb_mapping->tab_registers[2] = 0xff;
-  _mb_mapping->tab_registers[3] = 256;
-  _mb_mapping->tab_registers[4] = 257;
+  mb_mapping->tab_registers[1] = 0xff;
 
-  
-  _sock = modbus_tcp_listen(_ctx, 1);
-  if (_sock == -1) {
-    modbus_mapping_free(_mb_mapping);
-    modbus_free(_ctx);
+  auto sock = modbus_tcp_listen(ctx, 10);
+  if (sock == -1) {
+    modbus_mapping_free(mb_mapping);
+    modbus_free(ctx);
     throw std::runtime_error("Can not create modbus socket");
   }
 
+  std::set<int> fds {sock};
+
   fd_set refset;
   FD_ZERO(&refset);
-  FD_SET(_sock, &refset);
+  FD_SET(sock, &refset);
 
-  int fdmax = _sock;
+  int fdmax = sock;
+  uint8_t query[MODBUS_TCP_MAX_ADU_LENGTH];
   while (rclcpp::ok()) {
-    fd_set rdset = refset;
+    auto rdset = refset;
     timeval tv;
     tv.tv_sec = 0;
     tv.tv_usec = 100000;
-    if (select(fdmax + 1, &rdset, NULL, NULL, &tv) < 1)
-      continue;
-    
-    for (int fd = 0; fd <= fdmax; ++fd) {
+    if (select(fdmax + 1, &rdset, NULL, NULL, &tv) < 1) {continue;}
+
+    auto fds_bak = fds;
+    for (auto fd : fds_bak) {
       if (!FD_ISSET(fd, &rdset)) {continue;}
 
-      if (fd == _sock) {
+      if (fd == sock) {
         // A client is asking a new connection
-        int sock = modbus_tcp_accept(_ctx, &_sock);
-        FD_SET(sock, &refset);
-        if (sock > fdmax) {fdmax = sock;}
-        RCLCPP_ERROR(rclcpp::get_logger("rclcpp"), "new accepted");
+        auto s = modbus_tcp_accept(ctx, &sock);
+        if (s != -1) {
+          FD_SET(s, &refset);
+          fds.insert(fds.end(), s);
+        }
       } else {
         // A client is asking for reply
-        modbus_set_socket(_ctx, fd);
-        uint8_t query[MODBUS_TCP_MAX_ADU_LENGTH];
-        int rc = modbus_receive(_ctx, query);
+        modbus_set_socket(ctx, fd);
+        auto rc = modbus_receive(ctx, query);
         if (rc == -1) {
           // Connection closed by the client or error
           close(fd);
           FD_CLR(fd, &refset);
-          if (fd == fdmax) {
-            fdmax--;
-          }
-          RCLCPP_ERROR(rclcpp::get_logger("rclcpp"), "connection closed");
+          fds.erase(fd);
         } else if (rc > 0) {
           if (rc > 14 && query[7] == 0x10 && query[8] == 0x01 && query[9] == 0x01) {
             if (query[14]) {
@@ -192,27 +165,16 @@ void Modbus::_modbus(int port)
               _gpio_laser(false);
             }
           }
-          std::lock_guard<std::mutex> lock(_mutex);
-          modbus_reply(_ctx, query, rc, _mb_mapping);
+          modbus_reply(ctx, query, rc, mb_mapping);
         }
       }
     }
-    RCLCPP_ERROR(rclcpp::get_logger("rclcpp"), "select end");
+    fdmax = *fds.rbegin();
   }
-  RCLCPP_ERROR(rclcpp::get_logger("rclcpp"), "thread end");
-}
 
-void Modbus::_update(bool valid, float u, float v)
-{
-  std::lock_guard<std::mutex> lock(_mutex);
-
-  if (valid) {
-    _mb_mapping->tab_registers[2] = 0xff;
-    _mb_mapping->tab_registers[3] = static_cast<uint16_t>(u * 100);
-    _mb_mapping->tab_registers[4] = static_cast<uint16_t>(v * 100);
-  } else {
-    _mb_mapping->tab_registers[2] = 0;
-  }
+  close(sock);
+  modbus_mapping_free(mb_mapping);
+  modbus_free(ctx);
 }
 
 }  // namespace modbus

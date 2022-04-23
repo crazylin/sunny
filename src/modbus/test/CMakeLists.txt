@@ -4,7 +4,7 @@ target_link_libraries(bandwidth-client PkgConfig::MODBUS)
 add_executable(bandwidth-server bandwidth-server.c)
 target_link_libraries(bandwidth-server PkgConfig::MODBUS)
 
-add_executable(connect connect.c)
+add_executable(connect connect.cpp)
 target_link_libraries(connect PkgConfig::MODBUS)
 
 add_test(

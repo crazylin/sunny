@@ -15,9 +15,7 @@
 #ifndef MODBUS__MODBUS_HPP_
 #define MODBUS__MODBUS_HPP_
 
-#include <map>
 #include <memory>
-#include <string>
 
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/point_cloud2.hpp"
@@ -87,28 +85,7 @@ private:
    */
   void _modbus(int);
 
-  /**
-   * @brief Update coordinates in mapping block.
-   *
-   * @param valid true if found.
-   * @param u Coordinates in u.
-   * @param v Coordinates in v.
-   */
-  void _update(bool valid, float u = 0., float v = 0.);
-
 private:
-  /**
-   * @brief Subscription name.
-   *
-   */
-  const char * _sub_name = "~/seam";
-
-  /**
-   * @brief Shared pointer to subscription.
-   *
-   */
-  rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr _sub;
-
   /**
    * @brief Parameter client for camera.
    *
@@ -120,30 +97,6 @@ private:
    *
    */
   std::shared_ptr<rclcpp::AsyncParametersClient> _param_gpio;
-
-  /**
-   * @brief Modbus context.
-   *
-   */
-  modbus_t * _ctx = NULL;
-
-  /**
-   * @brief Modbus mapping zone.
-   *
-   */
-  modbus_mapping_t * _mb_mapping = NULL;
-
-  /**
-   * @brief Socket file descriptor
-   *
-   */
-  int _sock = -1;
-
-  /**
-   * @brief Mutex to protect from data race.
-   *
-   */
-  std::mutex _mutex;
 
   /**
    * @brief Thread for communication through modbus tcp.
