@@ -31,8 +31,6 @@
 namespace modbus
 {
 
-using sensor_msgs::msg::PointCloud2;
-
 Modbus::Modbus(const rclcpp::NodeOptions & options)
 : Node("modbus_node", options)
 {
@@ -102,14 +100,18 @@ void Modbus::_modbus(int port)
 {
   auto ctx = modbus_new_tcp(NULL, port);
   if (!ctx) {
-    throw std::runtime_error("Can not create modbus context");
+    RCLCPP_ERROR(this->get_logger(), "Failed to create modbus context.");
+    rclcpp::shutdown();
+    return;
   }
 
   // _mb_mapping = modbus_mapping_new(MODBUS_MAX_READ_BITS, 0, MODBUS_MAX_READ_REGISTERS, 0);
   auto mb_mapping = modbus_mapping_new(0, 0, 400, 0);
   if (!mb_mapping) {
     modbus_free(ctx);
-    throw std::runtime_error("Can not initialize modbus registers");
+    RCLCPP_ERROR(this->get_logger(), "Failed to initialize modbus registers.");
+    rclcpp::shutdown();
+    return;
   }
   mb_mapping->tab_registers[1] = 0xff;
 
@@ -117,7 +119,9 @@ void Modbus::_modbus(int port)
   if (sock == -1) {
     modbus_mapping_free(mb_mapping);
     modbus_free(ctx);
-    throw std::runtime_error("Can not create modbus socket");
+    RCLCPP_ERROR(this->get_logger(), "Failed to listen.");
+    rclcpp::shutdown();
+    return;
   }
 
   std::set<int> fds {sock};
@@ -128,12 +132,20 @@ void Modbus::_modbus(int port)
 
   int fdmax = sock;
   uint8_t query[MODBUS_TCP_MAX_ADU_LENGTH];
-  while (rclcpp::ok()) {
+  int ret = 0;
+  while (rclcpp::ok() && ret != -1) {
     auto rdset = refset;
     timeval tv;
     tv.tv_sec = 0;
     tv.tv_usec = 100000;
-    if (select(fdmax + 1, &rdset, NULL, NULL, &tv) < 1) {continue;}
+    ret = select(fdmax + 1, &rdset, NULL, NULL, &tv);
+    if (ret == -1) {
+      RCLCPP_ERROR(this->get_logger(), "Failed to select.");
+      break;
+    } else if (ret == 0) {
+      // time out.
+      continue;
+    }
 
     auto fds_bak = fds;
     for (auto fd : fds_bak) {
@@ -141,22 +153,33 @@ void Modbus::_modbus(int port)
 
       if (fd == sock) {
         // A client is asking a new connection
-        auto s = modbus_tcp_accept(ctx, &sock);
-        if (s != -1) {
-          FD_SET(s, &refset);
-          fds.insert(fds.end(), s);
+        ret = modbus_tcp_accept(ctx, &sock);
+        if (ret != -1) {
+          FD_SET(ret, &refset);
+          fds.insert(fds.end(), ret);
+          fdmax = *fds.rbegin();
+        } else {
+          RCLCPP_ERROR(this->get_logger(), "Failed to accept.");
+          break;
         }
       } else {
         // A client is asking for reply
-        modbus_set_socket(ctx, fd);
-        auto rc = modbus_receive(ctx, query);
-        if (rc == -1) {
+        ret = modbus_set_socket(ctx, fd);
+        if (ret == -1) {
+          RCLCPP_ERROR(this->get_logger(), "Failed to set socket.");
+          break;
+        }
+        ret = modbus_receive(ctx, query);
+        if (ret == -1) {
           // Connection closed by the client or error
           close(fd);
           FD_CLR(fd, &refset);
           fds.erase(fd);
-        } else if (rc > 0) {
-          if (rc > 14 && query[7] == 0x10 && query[8] == 0x01 && query[9] == 0x01) {
+          fdmax = *fds.rbegin();
+          ret = 0;
+        } else if (ret > 0) {
+          // Client request
+          if (ret > 14 && query[7] == 0x10 && query[8] == 0x01 && query[9] == 0x01) {
             if (query[14]) {
               _gpio_laser(true);
               _camera_power(true);
@@ -165,16 +188,22 @@ void Modbus::_modbus(int port)
               _gpio_laser(false);
             }
           }
-          modbus_reply(ctx, query, rc, mb_mapping);
+          ret = modbus_reply(ctx, query, ret, mb_mapping);
+          if (ret == -1) {
+            RCLCPP_ERROR(this->get_logger(), "Failed to reply.");
+            break;
+          }
         }
       }
     }
-    fdmax = *fds.rbegin();
   }
 
   close(sock);
   modbus_mapping_free(mb_mapping);
   modbus_free(ctx);
+  if (ret == -1) {
+    rclcpp::shutdown();
+  }
 }
 
 }  // namespace modbus

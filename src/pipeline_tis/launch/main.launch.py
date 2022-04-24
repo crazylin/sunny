@@ -110,7 +110,6 @@ def generate_launch_description():
     modbus_node = Node(
         package='modbus',
         executable='modbus_node',
-        remappings=[('~/seam', '/seam_tracking_node/seam')],
         parameters=[params['modbus_node']])
 
     gpio_raspberry_node = Node(

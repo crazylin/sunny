@@ -18,19 +18,6 @@
 #include <memory>
 
 #include "rclcpp/rclcpp.hpp"
-#include "sensor_msgs/msg/point_cloud2.hpp"
-
-/**
- * @brief Forward declaration for inner implementation.
- *
- */
-typedef struct _modbus modbus_t;
-
-/**
- * @brief Forward declaration for inner implementation.
- *
- */
-typedef struct _modbus_mapping_t modbus_mapping_t;
 
 namespace modbus
 {
