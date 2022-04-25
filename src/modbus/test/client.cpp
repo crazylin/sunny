@@ -20,6 +20,9 @@
 
 #include <vector>
 
+#undef NDEBUG
+#include <cassert>
+
 int main()
 {
   std::vector<unsigned char> d = {0, 1, 0, 0, 0, 13, 1, 16, 0, 0, 0, 3, 6, 0, 1, 0, 2, 0, 3};
@@ -30,33 +33,23 @@ int main()
 
   // Create socket
   socket_desc = socket(AF_INET, SOCK_STREAM, 0);
-  if (socket_desc == -1) {
-    printf("Could not create socket");
-  }
+  assert(socket_desc != -1);
 
   server.sin_addr.s_addr = inet_addr("127.0.0.1");
   server.sin_family = AF_INET;
   server.sin_port = htons(2345);
 
   // Connect to remote server
-  if (connect(socket_desc, (struct sockaddr *)&server, sizeof(server)) < 0) {
-    puts("connect error");
-    return 1;
-  }
-
-  puts("Connected\n");
+  int ret = connect(socket_desc, (struct sockaddr *)&server, sizeof(server));
+  assert(ret != -1);
 
   // Send some data
   // message = "GET / HTTP/1.1\r\n\r\n";
-  if (send(socket_desc, d.data(), d.size(), 0) < 0) {
-    puts("Send failed");
-    return 1;
-  }
-  puts("Data Send\n");
+  assert(send(socket_desc, d.data(), d.size(), 0) == 19);
   // modbus_t * ctx = modbus_new_tcp("127.0.0.1", 2345);
 
   // auto sock = modbus_connect(ctx);
 
   // send(sock, d.data(), d.size(), 0);
-  getchar();
+  return 0;
 }
