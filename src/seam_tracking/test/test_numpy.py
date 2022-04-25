@@ -36,7 +36,7 @@ def local_max(d: np.array, *, delta: int):
     md = []
     id = []
     for i in range(0, len(d), delta):
-        mask = np.invert(np.isnan(d['y'][i:i + delta]))
+        mask = ~np.isnan(d['y'][i:i + delta])
         if np.any(mask):
             id.append(np.nanargmax(d['y'][i:i + delta]) + i)
     for i in id:
@@ -52,7 +52,7 @@ def local_min(d: np.array, *, delta: int):
     md = []
     id = []
     for i in range(0, len(d), delta):
-        mask = np.invert(np.isnan(d['y'][i:i + delta]))
+        mask = ~np.isnan(d['y'][i:i + delta])
         if np.any(mask):
             id.append(np.nanargmin(d['y'][i:i + delta]) + i)
     for i in id:
@@ -72,8 +72,8 @@ def cross(d: np.array, id: int, *, delta: int, num: int = None):
 
     d['i'][s1:e1] = -2
     d['i'][s2:e2] = -3
-    mask1 = np.invert(np.isnan(d['x'][s1:e1]))
-    mask2 = np.invert(np.isnan(d['x'][s2:e2]))
+    mask1 = ~np.isnan(d['x'][s1:e1])
+    mask2 = ~np.isnan(d['x'][s2:e2])
     if np.count_nonzero(mask1) > 1 and np.count_nonzero(mask2) > 1:
         b1, m1 = polyfit(d['x'][s1:e1][mask1], d['y'][s1:e1][mask1], 1)
         b2, m2 = polyfit(d['x'][s2:e2][mask2], d['y'][s2:e2][mask2], 1)
