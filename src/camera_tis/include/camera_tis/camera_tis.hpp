@@ -15,14 +15,16 @@
 #ifndef CAMERA_TIS__CAMERA_TIS_HPP_
 #define CAMERA_TIS__CAMERA_TIS_HPP_
 
-#include <utility>
-#include <memory>
-
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/image.hpp"
 
+struct _GstElement;
+
 namespace camera_tis
 {
+
+using sensor_msgs::msg::Image;
+using rcl_interfaces::msg::ParameterDescriptor;
 
 /**
  * @brief The imaging souce camera library (tiscamera), warpped in ROS2.
@@ -44,15 +46,68 @@ public:
    */
   virtual ~CameraTis();
 
+private:
   /**
-   * @brief Publish an image msg via unique_ptr so intra process communication my be enabled if possible.
+   * @brief Declare parameters with defaults before usage.
    *
-   * @param ptr Reference to unique_ptr to be moved.
    */
-  void publish(sensor_msgs::msg::Image::UniquePtr & ptr)
-  {
-    _pub->publish(std::move(ptr));
-  }
+  void _declare_parameters();
+
+  /**
+   * @brief Construct a new impl object.
+   *
+   * Declare parameters before usage.
+   * Initialize gst environment.
+   * Create pipeline.
+   * Set default properties.
+   * Create spin thread.
+   * Initialize ROS parameter callback.
+   */
+  void _initialize_camera();
+
+  /**
+   * @brief Spin infinitely to receive image data from camera.
+   *
+   */
+  void _spin();
+
+  /**
+   * @brief Get the camera's state: capturing or not.
+   *
+   * @return true Capturing.
+   * @return false Not capturing.
+   */
+  bool _power();
+
+  /**
+   * @brief Enable capture.
+   *
+   * @return int 0 if success.
+   */
+  int _power_on();
+
+  /**
+   * @brief Disable capture.
+   *
+   * @return int 0 if success.
+   */
+  int _power_off();
+
+  /**
+   * @brief Set the camera's state: capturing or not.
+   *
+   * @param p true to enable capture.
+   * @return int 0 if success.
+   */
+  int _set_power(bool p);
+
+  /**
+   * @brief Set the exposure object.
+   *
+   * @param e int in microseconds.
+   * @return int 0 if success.
+   */
+  int _set_exposure(int e);
 
 private:
   /**
@@ -67,17 +122,11 @@ private:
    */
   rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr _pub;
 
-  /**
-   * @brief Forward declaration for inner implementation.
-   *
-   */
-  class _Impl;
+  _GstElement * _pipeline;
 
-  /**
-   * @brief Unique pointer to inner implementation.
-   *
-   */
-  std::unique_ptr<_Impl> _impl;
+  std::thread _thread;
+
+  OnSetParametersCallbackHandle::SharedPtr _handle;
 };
 
 }  // namespace camera_tis
