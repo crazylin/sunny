@@ -294,7 +294,7 @@ class SeamTracking(Node):
         return r
 
     def _notnan(self, r: np.ndarray):
-        mask = np.invert(np.isnan(r['x']))
+        mask = ~np.isnan(r['x'])
         return r[mask]
 
     def _modbus_msg(self, id: str, valid: bool, u: float, v: float):
