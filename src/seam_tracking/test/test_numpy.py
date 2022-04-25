@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import numpy as np
+from numpy.polynomial.polynomial import polyfit
 
 dtype = [('x', np.float32), ('y', np.float32), ('i', np.float32)]
 
@@ -45,6 +46,47 @@ def local_max(d: np.array, *, delta: int):
         if i == m:
             md.append(m)
     return md
+
+
+def local_min(d: np.array, *, delta: int):
+    md = []
+    id = []
+    for i in range(0, len(d), delta):
+        mask = np.invert(np.isnan(d['y'][i:i + delta]))
+        if np.any(mask):
+            id.append(np.nanargmin(d['y'][i:i + delta]) + i)
+    for i in id:
+        if i - delta + 1 < 0 or i + delta > d.size:
+            continue
+        m = np.nanargmin(d['y'][i - delta + 1:i + delta]) + i - delta + 1
+        if i == m:
+            md.append(m)
+    return md
+
+
+def cross(d: np.array, id: int, *, delta: int, num: int = None):
+    s1 = None if num is None or id - num + 1 < 0 else id - num + 1
+    e1 = 0 if id - delta < 0 else id - delta
+    s2 = id + delta + 1
+    e2 = None if num is None else id + num
+
+    d['i'][s1:e1] = -2
+    d['i'][s2:e2] = -3
+    mask1 = np.invert(np.isnan(d['x'][s1:e1]))
+    mask2 = np.invert(np.isnan(d['x'][s2:e2]))
+    if np.count_nonzero(mask1) > 1 and np.count_nonzero(mask2) > 1:
+        b1, m1 = polyfit(d['x'][s1:e1][mask1], d['y'][s1:e1][mask1], 1)
+        b2, m2 = polyfit(d['x'][s2:e2][mask2], d['y'][s2:e2][mask2], 1)
+        px = (b2 - b1) / (m1 - m2)
+        py = px * m1 + b1
+        return np.array([
+            (px, py, -1), (0, b1, -4),
+            (100, 100 * m1 + b1, -4),
+            (0, b2, -5),
+            (100, 100 * m2 + b2, -5)],
+            dtype=dtype)
+    else:
+        return np.array([], dtype=dtype)
 
 
 def test_interpolate():
@@ -107,38 +149,71 @@ def test_local_max():
     assert len(pos) == 1
     assert pos[0] == 5
 
-def cross_all(d: np.array, id, num):
-    for i in range(len(d)):
-        if i < id - num:
-            d[i][2] = -2
-        elif i > id + num:
-            d[i][2] = -3
-    mask1 = np.invert(np.isnan(d['x'][:id - num]))
-    mask2 = np.invert(np.isnan(d['x'][id + num:]))
-    if np.any(mask1) and np.any(mask2):
-        b1, m1 = polyfit(d['x'][:id - num][mask1], d['y'][:id - num][mask1], 1)
-        b2, m2 = polyfit(d['x'][id + num:][mask2], d['y'][id + num:][mask2], 1)
-        px = (b2 - b1) / (m1 - m2)
-        py = px * m1 + b1
-        return np.array([(px, py, -1), (0, b1, -4), (100, 100 * m1 + b1, -4), (0, b2, -5), (100, 100 * m2 + b2, -5)], dtype=dtype)
-    else:
-        return np.array([], dtype=dtype)
 
+def test_cross():
+    d = np.array([], dtype=dtype)
+    cross(d, 10, delta=5)
 
-def cross(d: np.array, id, delta, num):
-    d1 = d[id - delta + 1:id - num]
-    d2 = d[id + num + 1:id + delta]
-    for i in range(len(d1)):
-        d1[i][2] = -2
-    for i in range(len(d2)):
-        d2[i][2] = -3
-    mask1 = np.invert(np.isnan(d['x'][id - delta + 1:id - num]))
-    mask2 = np.invert(np.isnan(d['x'][id + num + 1:id + delta]))
-    if np.any(mask1) and np.any(mask2):
-        b1, m1 = polyfit(d['x'][id - delta + 1:id - num][mask1], d['y'][id - delta + 1:id - num][mask1], 1)
-        b2, m2 = polyfit(d['x'][id + num + 1:id + delta][mask2], d['y'][id + num + 1:id + delta][mask2], 1)
-        px = (b2 - b1) / (m1 - m2)
-        py = px * m1 + b1
-        return np.array([(px, py, -1), (0, b1, -4), (100, 100 * m1 + b1, -4), (0, b2, -5), (100, 100 * m2 + b2, -5)], dtype=dtype)
-    else:
-        return np.array([], dtype=dtype)
+    l1 = [(i, i, 0) for i in range(10)]
+    l2 = [(10 - i, i, 0) for i in range(10, -1, -1)]
+
+    d = np.array(l1 + l2, dtype=dtype)
+    # test delta
+    cross(d, 10, delta=5)
+    for i in range(21):
+        if i < 5:
+            assert d[i][2] == -2
+        elif i > 15:
+            assert d[i][2] == -3
+        else:
+            assert d[i][2] == 0
+
+    d = np.array(l1 + l2, dtype=dtype)
+    # test delta = 0
+    ret = cross(d, 10, delta=0)
+    assert round(ret[0][0]) == 5 and round(ret[0][1]) == 5
+    for i in range(21):
+        if i < 10:
+            assert d[i][2] == -2
+        elif i == 10:
+            assert d[i][2] == 0
+        else:
+            assert d[i][2] == -3
+
+    d = np.array(l1 + l2, dtype=dtype)
+    # test num
+    ret = cross(d, 10, delta=5, num=8)
+    assert round(ret[0][0]) == 5 and round(ret[0][1]) == 5
+    for i in range(21):
+        if i < 3:
+            assert d[i][2] == 0
+        elif i >= 3 and i < 5:
+            assert d[i][2] == -2
+        elif i >= 5 and i < 16:
+            assert d[i][2] == 0
+        elif i >= 16 and i < 18:
+            assert d[i][2] == -3
+        else:
+            assert d[i][2] == 0
+
+    d = np.array(l1 + l2, dtype=dtype)
+    # test num when only one point is selected
+    ret = cross(d, 10, delta=5, num=7)
+    assert ret.size == 0
+    for i in range(21):
+        if i < 4:
+            assert d[i][2] == 0
+        elif i == 4:
+            assert d[i][2] == -2
+        elif i > 4 and i < 16:
+            assert d[i][2] == 0
+        elif i == 16:
+            assert d[i][2] == -3
+        else:
+            assert d[i][2] == 0
+
+    d = np.array(l1 + l2, dtype=dtype)
+    # test num < delta
+    cross(d, 10, delta=5, num=3)
+    for i in range(21):
+        assert d[i][2] == 0
