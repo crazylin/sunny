@@ -12,8 +12,8 @@ target_link_libraries(server PkgConfig::MODBUS)
 
 add_test(
   NAME server_client
-  COMMAND sh -c "sleep 5; $<TARGET_FILE:client>& $<TARGET_FILE:server>")
+  COMMAND sh -c "$<TARGET_FILE:server>& sleep 5; $<TARGET_FILE:client>; wait")
 
 add_test(
   NAME bandwidth
-  COMMAND sh -c "sleep 5; $<TARGET_FILE:bandwidth-client>& $<TARGET_FILE:bandwidth-server>")
+  COMMAND sh -c "$<TARGET_FILE:bandwidth-server>& sleep 5; $<TARGET_FILE:bandwidth-client>; wait")

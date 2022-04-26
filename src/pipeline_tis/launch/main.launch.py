@@ -1,4 +1,5 @@
-"""Generate a launch description.
+"""
+Generate a launch description.
 
 This launch configuration gathers a bunch of node into a pipeline:
 It parses the underlay config: .params.yaml and overlay config: params.yaml.
@@ -122,7 +123,8 @@ def generate_launch_description():
         executable='config_tis_node',
         on_exit=launch.actions.Shutdown())
 
-    return launch.LaunchDescription([container,
+    return launch.LaunchDescription([
+        container,
         seam_tracking_node,
         modbus_node,
         gpio_raspberry_node,

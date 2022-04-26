@@ -22,6 +22,7 @@ namespace gpio_raspberry
 {
 
 using rcl_interfaces::msg::ParameterDescriptor;
+using rcl_interfaces::msg::SetParametersResult;
 
 GpioRaspberry::GpioRaspberry(const rclcpp::NodeOptions & options)
 : Node("gpio_raspberry_node", options),
