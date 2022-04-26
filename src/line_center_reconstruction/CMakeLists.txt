@@ -22,25 +22,25 @@ find_package(rclcpp_components REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(OpenCV REQUIRED)
 
-add_library(line_center_reconstruction SHARED src/line_center_reconstruction.cpp)
+add_library(${PROJECT_NAME} SHARED src/${PROJECT_NAME}.cpp)
 
-target_include_directories(line_center_reconstruction
+target_include_directories(${PROJECT_NAME}
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
 )
 
-ament_target_dependencies(line_center_reconstruction
+ament_target_dependencies(${PROJECT_NAME}
   rclcpp
   rclcpp_components
   sensor_msgs
 )
 
-target_link_libraries(line_center_reconstruction ${OpenCV_LIBS})
+target_link_libraries(${PROJECT_NAME} ${OpenCV_LIBS})
 
-rclcpp_components_register_node(line_center_reconstruction
-  PLUGIN "line_center_reconstruction::LineCenterReconstruction"
-  EXECUTABLE line_center_reconstruction_node
+rclcpp_components_register_node(${PROJECT_NAME}
+  PLUGIN "${PROJECT_NAME}::LineCenterReconstruction"
+  EXECUTABLE ${PROJECT_NAME}_node
 )
 
 if(BUILD_TESTING)
@@ -54,12 +54,12 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 endif()
 
-install(TARGETS line_center_reconstruction EXPORT export_line_center_reconstruction DESTINATION lib)
-install(DIRECTORY include/ DESTINATION include)
+install(TARGETS ${PROJECT_NAME} EXPORT export_${PROJECT_NAME} DESTINATION lib)
+install(DIRECTORY include/${PROJECT_NAME} DESTINATION include)
 install(DIRECTORY launch DESTINATION share/${PROJECT_NAME})
 install(DIRECTORY config DESTINATION share/${PROJECT_NAME})
 
-ament_export_targets(export_line_center_reconstruction HAS_LIBRARY_TARGET)
+ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
 
 ament_package()
 

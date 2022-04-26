@@ -1,3 +1,4 @@
+# For more details, see https://docs.github.com/en/actions
 name: Build sunny-tis images
 
 # Controls when the workflow will run
@@ -7,9 +8,10 @@ defaults:
   run:
     shell: bash
 
+# For more details, see https://github.com/docker/build-push-action
 jobs:
-  build:
-    name: Build image
+  runtime:
+    name: Runtime
     runs-on: ubuntu-20.04
     steps:
       -
@@ -20,7 +22,7 @@ jobs:
         uses: docker/setup-buildx-action@v1
       -
         name: Login to DockerHub
-        uses: docker/login-action@v1 
+        uses: docker/login-action@v1
         with:
           username: ${{ secrets.DOCKER_HUB_USER_NAME }}
           password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
@@ -28,10 +30,91 @@ jobs:
         name: Build and push
         uses: docker/build-push-action@v2
         with:
-          file: Dockerfile/sunny-tis
+          target: runtime
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: crazylin007/sunny-tis:latest
-          cache-from: type=registry,ref=crazylin007/sunny-tis:latest
+          tags: zhuoqiw/sunny-tis:runtime
+          cache-from: type=registry,ref=zhuoqiw/sunny-tis:runtime
           cache-to: type=inline
-
+  dev:
+    name: Development
+    runs-on: ubuntu-20.04
+    needs: [runtime]
+    steps:
+      -
+        name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+      -
+        name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+      -
+        name: Login to DockerHub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKER_HUB_USER_NAME }}
+          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+      -
+        name: Build and push
+        uses: docker/build-push-action@v2
+        with:
+          target: dev
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: zhuoqiw/sunny-tis:dev
+          cache-from: type=registry,ref=zhuoqiw/sunny-tis:runtime
+          cache-to: type=inline
+  deploy:
+    name: Deployment
+    runs-on: ubuntu-20.04
+    needs: [dev]
+    steps:
+      -
+        name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+      -
+        name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+      -
+        name: Login to DockerHub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKER_HUB_USER_NAME }}
+          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+      -
+        name: Build and push
+        uses: docker/build-push-action@v2
+        with:
+          target: deploy
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: zhuoqiw/sunny-tis:deploy
+          cache-from: |
+            type=registry,ref=zhuoqiw/sunny-tis:runtime
+            type=registry,ref=zhuoqiw/sunny-tis:dev
+          cache-to: type=inline
+  desktop:
+    name: Desktop
+    runs-on: ubuntu-20.04
+    steps:
+      -
+        name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+      -
+        name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+      -
+        name: Login to DockerHub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKER_HUB_USER_NAME }}
+          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+      -
+        name: Build and push
+        uses: docker/build-push-action@v2
+        with:
+          target: desktop
+          platforms: linux/amd64
+          push: true
+          tags: zhuoqiw/sunny-tis:desktop
+          cache-from: type=registry,ref=zhuoqiw/sunny-tis:desktop
+          cache-to: type=inline

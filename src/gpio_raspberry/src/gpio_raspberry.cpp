@@ -16,59 +16,33 @@
 
 #include <gpiod.h>
 
-#include <fstream>
-#include <memory>
-#include <string>
 #include <vector>
 
 namespace gpio_raspberry
 {
 
 using rcl_interfaces::msg::ParameterDescriptor;
-
-class GpioRaspberry::_Impl
-{
-public:
-  _Impl()
-  : _chip(gpiod_chip_open_by_name("gpiochip0"), gpiod_chip_close),
-    _line_26(gpiod_chip_get_line(_chip.get(), 26), gpiod_line_release),
-    _line_6(gpiod_chip_get_line(_chip.get(), 6), gpiod_line_release)
-  {
-    gpiod_line_request_output(_line_26.get(), "ros", 0);
-    gpiod_line_request_output(_line_6.get(), "ros", 1);
-  }
-
-  ~_Impl()
-  {
-  }
-
-  int laser(bool f)
-  {
-    if (f) {
-      return gpiod_line_set_value(_line_26.get(), 1);
-    } else {
-      return gpiod_line_set_value(_line_26.get(), 0);
-    }
-  }
-
-private:
-  std::unique_ptr<gpiod_chip, void (*)(gpiod_chip *)> _chip;
-  std::unique_ptr<gpiod_line, void (*)(gpiod_line *)> _line_26;
-  std::unique_ptr<gpiod_line, void (*)(gpiod_line *)> _line_6;
-};
+using rcl_interfaces::msg::SetParametersResult;
 
 GpioRaspberry::GpioRaspberry(const rclcpp::NodeOptions & options)
-: Node("gpio_raspberry_node", options), _impl(new _Impl)
+: Node("gpio_raspberry_node", options),
+  _chip(gpiod_chip_open_by_name("gpiochip0"), gpiod_chip_close),
+  _line_26(gpiod_chip_get_line(_chip.get(), 26), gpiod_line_release),
+  _line_6(gpiod_chip_get_line(_chip.get(), 6), gpiod_line_release)
 {
+  // To enforce start with laser off
   this->declare_parameter("laser", false, ParameterDescriptor(), true);
+
+  gpiod_line_request_output(_line_26.get(), "ros", 0);
+  gpiod_line_request_output(_line_6.get(), "ros", 1);
 
   _handle = this->add_on_set_parameters_callback(
     [this](const std::vector<rclcpp::Parameter> & parameters) {
-      rcl_interfaces::msg::SetParametersResult result;
+      SetParametersResult result;
       result.successful = true;
       for (const auto & p : parameters) {
         if (p.get_name() == "laser") {
-          auto ret = this->_impl->laser(p.as_bool());
+          auto ret = this->_laser(p.as_bool());
           if (ret) {
             result.successful = false;
             result.reason = "Failed to set laser";
@@ -85,13 +59,20 @@ GpioRaspberry::GpioRaspberry(const rclcpp::NodeOptions & options)
 GpioRaspberry::~GpioRaspberry()
 {
   try {
-    _impl.reset();
-
     RCLCPP_INFO(this->get_logger(), "Destroyed successfully");
   } catch (const std::exception & e) {
     RCLCPP_FATAL(this->get_logger(), "Exception in destructor: %s", e.what());
   } catch (...) {
     RCLCPP_FATAL(this->get_logger(), "Exception in destructor: unknown");
+  }
+}
+
+int GpioRaspberry::_laser(bool f)
+{
+  if (f) {
+    return gpiod_line_set_value(_line_26.get(), 1);
+  } else {
+    return gpiod_line_set_value(_line_26.get(), 0);
   }
 }
 

@@ -1,5 +1,22 @@
+#!/usr/bin/env python3
+
+# Copyright 2019 Zhushi Tech, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import rclpy
 import json
+import yaml
 import tkinter as tk
 from threading import Thread
 from threading import Lock
@@ -10,6 +27,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolb
 from custom_figure import CustomFigure
 from custom_dialog import dialog_delta, dialog_center, dialog_line_filter, dialog_seam_filter
 from datetime import datetime
+
 
 class App(tk.Tk):
     """Toplevel window."""
@@ -35,8 +53,8 @@ class App(tk.Tk):
             'laser_line_center_node': {
                 'ksize': 5,
                 'threshold': 35,
-                'width_min': 1,
-                'width_max': 30},
+                'width_min': 1.,
+                'width_max': 30.},
             'laser_line_filter_node': {
                 'enable': False,
                 'window_size': 10,
@@ -49,8 +67,7 @@ class App(tk.Tk):
         self._params_cb = {
             'camera_tis_node': {'power': self._params_cb_power},
             'gpio_raspberry_node': {'laser': self._params_cb_laser},
-            'seam_tracking_node': {'task': self._params_cb_task},
-            'laser_line_filter_node': {}
+            'seam_tracking_node': {'task': self._params_cb_task}
         }
 
         self.title('Seam Tracking GUI')
@@ -74,7 +91,7 @@ class App(tk.Tk):
         self.columnconfigure(1, weight=3)
 
         self.ros = RosNode(self._params)
-        self.ros.sub_pnts(self._ros_cb_pnts)
+        # self.ros.sub_pnts(self._ros_cb_pnts)
         self.ros.sub_seam(self._ros_cb_seam)
         self.ros.sub_log(self._ros_cb_log)
 
@@ -106,33 +123,88 @@ class App(tk.Tk):
         frame.rowconfigure(0, weight=1)
         frame.columnconfigure(0, weight=1)
 
-        self.bind('<<RosSubPnts>>', self.fig.update_pnts)
-        self.bind('<<RosSubPnts>>', lambda e: canvas.draw_idle(), add='+')
+        # self.bind('<<RosSubPnts>>', self.fig.update_pnts)
+        # self.bind('<<RosSubPnts>>', lambda e: canvas.draw_idle(), add='+')
         self.bind('<<RosSubSeam>>', self.fig.update_seam)
         self.bind('<<RosSubSeam>>', lambda e: canvas.draw_idle(), add='+')
         return frame
 
     def _init_list(self):
-        frame = ttk.Frame(self, padding=(10,0,10,0))
+        frame = ttk.Frame(self, padding=(10, 0, 10, 0))
 
-        self.btn_task = ttk.Button(frame, text='Task:', width=10, command=self._cb_btn_task)
-        self.btn_previous = ttk.Button(frame, text='Previous', width=10, command=self._cb_btn_previous)
-        self.btn_next = ttk.Button(frame, text='Next', width=10, command=self._cb_btn_next)
-        self.btn_refresh = ttk.Button(frame, text='Refresh', width=10, command=self._cb_btn_refresh)
+        self.btn_task = ttk.Button(
+            frame,
+            text='Task:',
+            width=10,
+            command=self._cb_btn_task)
 
-        self.texts = ScrolledText(frame, wrap = 'none')
+        self.btn_previous = ttk.Button(
+            frame,
+            text='Previous',
+            width=10,
+            command=self._cb_btn_previous)
 
-        self.btn_laser = ttk.Button(frame, text='Laser on', width=10, command=self._cb_btn_laser)
-        self.btn_power = ttk.Button(frame, text='Camera on', width=10, command=self._cb_btn_power)
+        self.btn_next = ttk.Button(
+            frame,
+            text='Next',
+            width=10,
+            command=self._cb_btn_next)
 
-        self.btn_append = ttk.Button(frame, text='Append', width=10, command=self._cb_btn_append)
-        self.btn_delete = ttk.Button(frame, text='Delete', width=10, command=self._cb_btn_delete)
-        self.btn_modify = ttk.Button(frame, text='Modify', width=10, command=self._cb_btn_modify)
-    
-        self.btn_commit = ttk.Button(frame, text='Commit', width=10, command=self._cb_btn_commit)
+        self.btn_refresh = ttk.Button(
+            frame,
+            text='Refresh',
+            width=10,
+            command=self._cb_btn_refresh)
 
-        self.btn_backup = ttk.Button(frame, text='Backup...', width=10, command=self._cb_btn_backup)
-        self.btn_upload = ttk.Button(frame, text='Upload...', width=10, command=self._cb_btn_upload)
+        self.texts = ScrolledText(frame, wrap='none')
+
+        self.btn_laser = ttk.Button(
+            frame,
+            text='Laser on',
+            width=10,
+            command=self._cb_btn_laser)
+
+        self.btn_power = ttk.Button(
+            frame,
+            text='Camera on',
+            width=10,
+            command=self._cb_btn_power)
+
+        self.btn_append = ttk.Button(
+            frame,
+            text='Append',
+            width=10,
+            command=self._cb_btn_append)
+
+        self.btn_delete = ttk.Button(
+            frame,
+            text='Delete',
+            width=10,
+            command=self._cb_btn_delete)
+
+        self.btn_modify = ttk.Button(
+            frame,
+            text='Modify',
+            width=10,
+            command=self._cb_btn_modify)
+
+        self.btn_commit = ttk.Button(
+            frame,
+            text='Commit',
+            width=10,
+            command=self._cb_btn_commit)
+
+        self.btn_backup = ttk.Button(
+            frame,
+            text='Backup...',
+            width=10,
+            command=self._cb_btn_backup)
+
+        self.btn_upload = ttk.Button(
+            frame,
+            text='Upload...',
+            width=10,
+            command=self._cb_btn_upload)
 
         frame.grid(row=0, column=0, sticky=tk.NSEW)
 
@@ -179,16 +251,18 @@ class App(tk.Tk):
         menu_edit.add_command(label='Center...', command=self._cb_menu_center)
         menu_edit.add_command(label='Line filter...', command=self._cb_menu_line_filter)
         menu_edit.add_command(label='Seam filter...', command=self._cb_menu_seam_filter)
-        
+        menu_edit.add_command(label='Preserve config', command=self._cb_menu_preserve_config)
+        menu_edit.add_command(label='Reboot defaults', command=self._cb_menu_reboot_defaults)
+
         menu_help = tk.Menu(menubar)
 
         menubar.add_cascade(menu=menu_file, label='File')
         menubar.add_cascade(menu=menu_edit, label='Edit')
         menubar.add_cascade(menu=menu_help, label='Help')
 
-    def _ros_cb_pnts(self, msg):
-        self.fig.msg_to_pnts(msg)
-        self.event_generate('<<RosSubPnts>>', when='tail')
+    # def _ros_cb_pnts(self, msg):
+    #     self.fig.msg_to_pnts(msg)
+    #     self.event_generate('<<RosSubPnts>>', when='tail')
 
     def _ros_cb_seam(self, msg):
         self.fig.msg_to_seam(msg)
@@ -213,8 +287,8 @@ class App(tk.Tk):
             res = future.result().results
             for r, k in zip(res, d):
                 if r.successful:
-                    if (cb := self._params_cb[n].get(k)) is not None:
-                        cb(d[k])
+                    if n in self._params_cb and k in self._params_cb[n]:
+                        self._params_cb[n][k](d[k])
                     if self._params[n][k] != d[k]:
                         self._params[n][k] = d[k]
                         self._msg(f'[{n}] [{k}] set to: {d[k]}')
@@ -229,8 +303,8 @@ class App(tk.Tk):
             values = future.result().values
             for p, k in zip(values, l):
                 v = from_parameter_value(p)
-                if (cb := self._params_cb[n].get(k)) is not None:
-                    cb(v)
+                if n in self._params_cb and k in self._params_cb[n]:
+                    self._params_cb[n][k](v)
                 if self._params[n][k] != v:
                     self._params[n][k] = v
                     self._msg(f'[{n}] [{k}] set to: {v}')
@@ -295,6 +369,16 @@ class App(tk.Tk):
         else:
             self._msg('Service [seam_tracking_node] is not ready!', level='Warn')
 
+    def _cb_menu_preserve_config(self, *args):
+        self._msg('Menu [Preserve config] clicked')
+        msg = yaml.dump(self._params)
+        self.ros.pub_config(msg)
+
+    def _cb_menu_reboot_defaults(self, *args):
+        self._msg('Menu [Reboot defaults] clicked')
+        self.ros.pub_config('')
+        self.ros.pub_config('restart')
+
     def _params_cb_power(self, b: bool):
         if b:
             self.btn_power['text'] = 'Camera off'
@@ -334,20 +418,21 @@ class App(tk.Tk):
                 self._msg('Service [camera_tis_node] is not ready!', level='Warn')
 
     def _cb_btn_laser(self, *args):
+        gpn = 'gpio_raspberry_node'
         if self.btn_laser['text'] == 'Laser on':
             self._msg('Button [Laser on] clicked')
-            future = self.ros.set_params('gpio_raspberry_node', {'laser': True})
+            future = self.ros.set_params(gpn, {'laser': True})
             if future is not None:
                 future.add_done_callback(
-                    lambda f: self._cb_set_params_done(f, {'gpio_raspberry_node': {'laser': True}}))
+                    lambda f: self._cb_set_params_done(f, {gpn: {'laser': True}}))
             else:
                 self._msg('Service [gpio_raspberry_node] is not ready!', level='Warn')
         else:
             self._msg('Button [Laser off] clicked')
-            future = self.ros.set_params('gpio_raspberry_node', {'laser': False})
+            future = self.ros.set_params(gpn, {'laser': False})
             if future is not None:
                 future.add_done_callback(
-                    lambda f: self._cb_set_params_done(f, {'gpio_raspberry_node': {'laser': False}}))
+                    lambda f: self._cb_set_params_done(f, {gpn: {'laser': False}}))
             else:
                 self._msg('Service [gpio_raspberry_node] is not ready!', level='Warn')
 
@@ -380,11 +465,17 @@ class App(tk.Tk):
             title='Backup codes',
             initialfile='codes.json',
             defaultextension='json',
-            filetypes=[('JSON JavaScript Object Notation', '.json')])
+            filetypes=[('JSON JavaScript Object Notation', '.json'),
+                       ("YAML Ain't Markup Language", '.yaml .yml')])
         if filename:
             try:
                 fp = open(filename, 'w')
-                json.dump(codes, fp)
+                if filename.endswith('.json'):
+                    json.dump(codes, fp)
+                elif filename.endswith(('.yaml', '.yml')):
+                    yaml.dump(codes, fp)
+                else:
+                    raise TypeError('Only JSON or YAML files are supported')
                 self._msg('Backup done!')
             except Exception as e:
                 self._msg(f'{str(e)}', level='Error')
@@ -402,11 +493,17 @@ class App(tk.Tk):
             title='Upload codes',
             initialfile='codes.json',
             defaultextension='json',
-            filetypes=[('JSON JavaScript Object Notation', '.json')])
+            filetypes=[('JSON JavaScript Object Notation', '.json'),
+                       ("YAML Ain't Markup Language", '.yaml .yml')])
         if filename:
             try:
                 fp = open(filename)
-                codes[:] = json.load(fp)
+                if filename.endswith('.json'):
+                    codes[:] = json.load(fp)
+                elif filename.endswith(('.yaml', '.yml')):
+                    codes[:] = yaml.load(fp)
+                else:
+                    raise TypeError('Only JSON or YAML files are supported')
                 self._update_codes()
                 self._msg('Upload done!')
             except Exception as e:
@@ -488,7 +585,7 @@ class App(tk.Tk):
     def _update_codes(self):
         codes = self._params['seam_tracking_node']['codes']
 
-        if len(codes) == 0:
+        if not codes:
             self.btn_task['text'] = 'Task:     '
             self.btn_previous.state(['disabled'])
             self.btn_next.state(['disabled'])
@@ -520,17 +617,18 @@ class App(tk.Tk):
 
     def _code_modified(self):
         codes = self._params['seam_tracking_node']['codes']
-        if len(codes) == 0 or codes[self._task].rstrip() == self.texts.get('1.0', 'end').rstrip():
+        if not codes or codes[self._task].rstrip() == self.texts.get('1.0', 'end').rstrip():
             return False
         else:
             return True
 
-    def _msg(self, s: str, *, level = 'Info'):
+    def _msg(self, s: str, *, level='Info'):
         with self._lock:
             n = datetime.now()
             t = n.strftime("%m/%d/%Y %H:%M:%S")
             s = f'[{t}] [{level:^10}]  {s}\n'
             self.status.insert('1.0', s)
+
 
 if __name__ == '__main__':
     rclpy.init()

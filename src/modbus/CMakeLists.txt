@@ -20,7 +20,6 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
 find_package(rcl_interfaces REQUIRED)
-find_package(sensor_msgs REQUIRED)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(MODBUS REQUIRED IMPORTED_TARGET libmodbus)
 
@@ -28,7 +27,7 @@ add_library(modbus SHARED src/modbus.cpp)
 
 target_include_directories(modbus PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include> $<INSTALL_INTERFACE:include>)
 
-ament_target_dependencies(modbus rclcpp rclcpp_components rcl_interfaces sensor_msgs)
+ament_target_dependencies(modbus rclcpp rclcpp_components rcl_interfaces)
 
 target_link_libraries(modbus PkgConfig::MODBUS)
 
@@ -43,6 +42,7 @@ if(BUILD_TESTING)
   # uncomment the line when this package is not in a git repo
   #set(ament_cmake_cpplint_FOUND TRUE)
   ament_lint_auto_find_test_dependencies()
+  add_subdirectory(test)
 endif()
 
 install(TARGETS modbus EXPORT export_modbus DESTINATION lib)

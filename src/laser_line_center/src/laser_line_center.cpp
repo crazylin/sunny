@@ -14,73 +14,117 @@
 
 #include "laser_line_center/laser_line_center.hpp"
 
-#include <deque>
-#include <exception>
-#include <future>
-#include <map>
 #include <memory>
-#include <string>
 #include <utility>
 #include <vector>
 
 #include "opencv2/opencv.hpp"
+#include "impl/center.hpp"
 
 namespace laser_line_center
 {
 
-using sensor_msgs::msg::Image;
-using sensor_msgs::msg::PointCloud2;
-using sensor_msgs::msg::PointField;
+using rcl_interfaces::msg::SetParametersResult;
 
-const std::vector<std::string> KEYS = {"ksize", "threshold", "width_min", "width_max"};
-
-const std::map<int, double> SCALAR = {
-  {1, 1.},
-  {3, 1. / 4.},
-  {5, 1. / 48.},
-  {7, 1. / 640.},
-  {-1, 1. / 16.},
-};
-
-struct Params
+/**
+ * @brief Construct ROS point cloud message from vector of floats.
+ *
+ * @param pnts A sequence of floats as points' row coordinate.
+ * @return PointCloud2::UniquePtr Point cloud message to publish.
+ */
+PointCloud2::UniquePtr to_pc2(const std::vector<float> & pnts)
 {
-  explicit Params(LaserLineCenter * node)
-  {
-    const auto & vp = node->get_parameters(KEYS);
-    for (const auto & p : vp) {
-      if (p.get_name() == "ksize") {
-        ksize = p.as_int();
-      } else if (p.get_name() == "threshold") {
-        threshold = p.as_int();
-      } else if (p.get_name() == "width_min") {
-        width_min = p.as_int();
-      } else if (p.get_name() == "width_max") {
-        width_max = p.as_int();
-      }
+  auto ptr = std::make_unique<PointCloud2>();
+  if (pnts.empty()) {return ptr;}
+
+  auto num = pnts.size();
+
+  ptr->height = 1;
+  ptr->width = num;
+
+  ptr->fields.resize(1);
+
+  ptr->fields[0].name = "u";
+  ptr->fields[0].offset = 0;
+  ptr->fields[0].datatype = 7;
+  ptr->fields[0].count = 1;
+
+  ptr->is_bigendian = false;
+  ptr->point_step = 4;
+  ptr->row_step = num * 4;
+
+  ptr->data.resize(num * 4);
+
+  ptr->is_dense = true;
+
+  memcpy(ptr->data.data(), pnts.data(), num * 4);
+
+  return ptr;
+}
+
+/**
+ * @brief Given an image, a point cloud is returned.
+ *
+ * @param ptr ROS image
+ * @param buf Buffer for sobel
+ * @param pm Zipped input parameters
+ * @return PointCloud2::UniquePtr ROS point cloud
+ */
+PointCloud2::UniquePtr execute(Image::UniquePtr ptr, cv::Mat & buf, const Params & pm)
+{
+  if (ptr->header.frame_id == "-1" || ptr->data.empty()) {
+    auto line = std::make_unique<PointCloud2>();
+    line->header = ptr->header;
+    return line;
+  }
+  cv::Mat img(ptr->height, ptr->width, CV_8UC1, ptr->data.data());
+  auto pnts = center(img, buf, pm.ksize, pm.threshold, pm.width_min, pm.width_max);
+  auto line = to_pc2(pnts);
+  line->header = ptr->header;
+  return line;
+}
+
+/**
+ * @brief Extract extra 'worker' parameter from ROS node options.
+ *
+ * @param options Encapsulation of options for node initialization.
+ * @return int Number of workers.
+ */
+int workers(const rclcpp::NodeOptions & options)
+{
+  for (const auto & p : options.parameter_overrides()) {
+    if (p.get_name() == "workers") {
+      return p.as_int();
     }
   }
+  return 1;
+}
 
-  int ksize = 5;
-  int threshold = 35;
-  int width_min = 1;
-  int width_max = 30;
-};
-
-class LaserLineCenter::_Impl
+LaserLineCenter::LaserLineCenter(const rclcpp::NodeOptions & options)
+: Node("laser_line_center_node", options)
 {
-public:
-  explicit _Impl(LaserLineCenter * ptr, int w)
-  : _node(ptr), _workers(w)
-  {
-    declare_parameters();
-    for (int i = 0; i < w; ++i) {
-      _threads.push_back(std::thread(&_Impl::worker, this));
-    }
-    _threads.push_back(std::thread(&_Impl::manager, this));
+  _pub = this->create_publisher<PointCloud2>(_pub_name, rclcpp::SensorDataQoS());
 
-    _handle = _node->add_on_set_parameters_callback(
+  _declare_parameters();
+
+  _workers = workers(options);
+  for (int i = 0; i < _workers; ++i) {
+    _threads.push_back(std::thread(&LaserLineCenter::_worker, this));
+  }
+  _threads.push_back(std::thread(&LaserLineCenter::_manager, this));
+
+  _sub = this->create_subscription<Image>(
+    _sub_name,
+    rclcpp::SensorDataQoS(),
+    [this](Image::UniquePtr ptr)
+    {
+      _push_back_image(std::move(ptr));
+    }
+  );
+
+  _handle = this->add_on_set_parameters_callback(
     [this](const std::vector<rclcpp::Parameter> & vp) {
-      rcl_interfaces::msg::SetParametersResult result;
+      SetParametersResult result;
       result.successful = true;
       for (const auto & p : vp) {
         if (p.get_name() == "ksize") {
@@ -97,13 +141,13 @@ public:
             return result;
           }
         } else if (p.get_name() == "width_min") {
-          if (p.as_int() <= 0) {
+          if (p.as_double() <= 0) {
             result.successful = false;
             result.reason = "Failed to set width_min";
             return result;
           }
         } else if (p.get_name() == "width_max") {
-          if (p.as_int() <= 0) {
+          if (p.as_double() <= 0) {
             result.successful = false;
             result.reason = "Failed to set width_max";
             return result;
@@ -111,213 +155,6 @@ public:
         }
       }
       return result;
-    });
-
-    RCLCPP_INFO(_node->get_logger(), "Employ %d workers successfully", w);
-  }
-
-  ~_Impl()
-  {
-    _images_con.notify_all();
-    _futures_con.notify_one();
-    for (auto & t : _threads) {
-      t.join();
-    }
-  }
-
-  void declare_parameters()
-  {
-    _node->declare_parameter("ksize", 5);
-    _node->declare_parameter("threshold", 35);
-    _node->declare_parameter("width_min", 1);
-    _node->declare_parameter("width_max", 30);
-  }
-
-  void push_back_image(Image::UniquePtr & ptr)
-  {
-    std::unique_lock<std::mutex> lk(_images_mut);
-    _images.emplace_back(std::move(ptr));
-    auto s = static_cast<int>(_images.size());
-    if (s > _workers + 1) {
-      _images.pop_front();
-    }
-    lk.unlock();
-    _images_con.notify_all();
-  }
-
-  void push_back_future(std::future<PointCloud2::UniquePtr> f)
-  {
-    std::unique_lock<std::mutex> lk(_futures_mut);
-    _futures.emplace_back(std::move(f));
-    lk.unlock();
-    _futures_con.notify_one();
-  }
-
-  void manager()
-  {
-    while (rclcpp::ok()) {
-      std::unique_lock<std::mutex> lk(_futures_mut);
-      if (_futures.empty() == false) {
-        auto f = std::move(_futures.front());
-        _futures.pop_front();
-        lk.unlock();
-        auto ptr = f.get();
-        _node->publish(ptr);
-      } else {
-        _futures_con.wait(lk);
-      }
-    }
-  }
-
-  void worker()
-  {
-    cv::Mat buf;
-    while (rclcpp::ok()) {
-      std::unique_lock<std::mutex> lk(_images_mut);
-      if (_images.empty() == false) {
-        auto ptr = std::move(_images.front());
-        _images.pop_front();
-        std::promise<PointCloud2::UniquePtr> prom;
-        push_back_future(prom.get_future());
-        auto pms = Params(_node);
-        lk.unlock();
-        if (ptr->header.frame_id == "-1" || ptr->data.empty()) {
-          auto line = std::make_unique<PointCloud2>();
-          line->header = ptr->header;
-          prom.set_value(std::move(line));
-        } else {
-          cv::Mat img(ptr->height, ptr->width, CV_8UC1, ptr->data.data());
-          auto line = execute(img, buf, pms);
-          line->header = ptr->header;
-          prom.set_value(std::move(line));
-        }
-      } else {
-        _images_con.wait(lk);
-      }
-    }
-  }
-
-  PointCloud2::UniquePtr execute(const cv::Mat & img, cv::Mat & buf, const Params & pms)
-  {
-    std::vector<float> pnts;
-    pnts.reserve(img.rows * 2);
-
-    cv::Sobel(img, buf, CV_16S, 1, 0, pms.ksize, SCALAR.at(pms.ksize));
-    for (decltype(img.rows) r = 0; r < img.rows; ++r) {
-      auto pRow = buf.ptr<short>(r);  // NOLINT
-      auto minmax = std::minmax_element(pRow, pRow + img.cols);
-
-      auto minEle = minmax.first;
-      auto maxEle = minmax.second;
-
-      auto minVal = *minEle;
-      auto maxVal = *maxEle;
-
-      auto minPos = minEle - pRow;
-      auto minP = minPos == 0 ? pRow[minPos + 1] : pRow[minPos - 1];
-      auto minN = minPos == img.cols - 1 ? pRow[minPos - 1] : pRow[minPos + 1];
-
-      auto maxPos = maxEle - pRow;
-      auto maxP = maxPos == 0 ? pRow[maxPos + 1] : pRow[maxPos - 1];
-      auto maxN = maxPos == img.cols - 1 ? pRow[maxPos - 1] : pRow[maxPos + 1];
-
-      auto width = minPos - maxPos;
-
-      auto a1 = maxP + maxN - maxVal * 2;
-      auto b1 = maxP - maxN;
-      auto s1 = (a1 < 0 ? 0.5 * b1 / a1 : 0.5 * b1);
-
-      auto a2 = minP + minN - minVal * 2;
-      auto b2 = minP - minN;
-      auto s2 = (a2 > 0 ? 0.5 * b2 / a2 : 0.5 * b2);
-
-      auto c = (maxPos + minPos + s1 + s2) / 2.;
-
-      if (
-        maxVal > pms.threshold &&
-        minVal < -pms.threshold &&
-        width > pms.width_min &&
-        width < pms.width_max &&
-        maxPos > 0 &&
-        minPos < img.cols - 1)
-      {
-        pnts.push_back(c);
-      } else {
-        pnts.push_back(-1.);
-      }
-    }
-
-    return to_pc2(pnts);
-  }
-
-  PointCloud2::UniquePtr to_pc2(const std::vector<float> & pnts)
-  {
-    auto num = pnts.size();
-    auto ptr = std::make_unique<PointCloud2>();
-
-    ptr->height = 1;
-    ptr->width = num;
-
-    ptr->fields.resize(1);
-
-    ptr->fields[0].name = "u";
-    ptr->fields[0].offset = 0;
-    ptr->fields[0].datatype = 7;
-    ptr->fields[0].count = 1;
-
-    ptr->is_bigendian = false;
-    ptr->point_step = 4;
-    ptr->row_step = num * 4;
-
-    ptr->data.resize(num * 4);
-
-    ptr->is_dense = true;
-
-    memcpy(ptr->data.data(), pnts.data(), num * 4);
-
-    return ptr;
-  }
-
-private:
-  LaserLineCenter * _node;
-  int _workers;
-
-  std::mutex _images_mut;
-  std::condition_variable _images_con;
-  std::deque<Image::UniquePtr> _images;
-
-  std::mutex _futures_mut;
-  std::condition_variable _futures_con;
-  std::deque<std::future<PointCloud2::UniquePtr>> _futures;
-
-  std::vector<std::thread> _threads;
-
-  OnSetParametersCallbackHandle::SharedPtr _handle;
-};
-
-int workers(const rclcpp::NodeOptions & options)
-{
-  for (const auto & p : options.parameter_overrides()) {
-    if (p.get_name() == "workers") {
-      return p.as_int();
-    }
-  }
-  return 1;
-}
-
-LaserLineCenter::LaserLineCenter(const rclcpp::NodeOptions & options)
-: Node("laser_line_center_node", options)
-{
-  _pub = this->create_publisher<PointCloud2>(_pub_name, rclcpp::SensorDataQoS());
-
-  _impl = std::make_unique<_Impl>(this, workers(options));
-
-  _sub = this->create_subscription<Image>(
-    _sub_name,
-    rclcpp::SensorDataQoS(),
-    [this](Image::UniquePtr ptr)
-    {
-      _impl->push_back_image(ptr);
     }
   );
 
@@ -328,7 +165,12 @@ LaserLineCenter::~LaserLineCenter()
 {
   try {
     _sub.reset();
-    _impl.reset();
+    _handle.reset();
+    _images_con.notify_all();
+    _futures_con.notify_one();
+    for (auto & t : _threads) {
+      t.join();
+    }
     _pub.reset();
 
     RCLCPP_INFO(this->get_logger(), "Destroyed successfully");
@@ -337,6 +179,89 @@ LaserLineCenter::~LaserLineCenter()
   } catch (...) {
     RCLCPP_ERROR(this->get_logger(), "Exception in destructor: unknown");
   }
+}
+
+void LaserLineCenter::_declare_parameters()
+{
+  Params pm;
+  this->declare_parameter("ksize", pm.ksize);
+  this->declare_parameter("threshold", pm.threshold);
+  this->declare_parameter("width_min", pm.width_min);
+  this->declare_parameter("width_max", pm.width_max);
+}
+
+Params LaserLineCenter::_update_parameters()
+{
+  Params pm;
+  const auto & vp = this->get_parameters(KEYS);
+  for (const auto & p : vp) {
+    if (p.get_name() == "ksize") {
+      pm.ksize = p.as_int();
+    } else if (p.get_name() == "threshold") {
+      pm.threshold = p.as_int();
+    } else if (p.get_name() == "width_min") {
+      pm.width_min = p.as_double();
+    } else if (p.get_name() == "width_max") {
+      pm.width_max = p.as_double();
+    }
+  }
+  return pm;
+}
+
+void LaserLineCenter::_worker()
+{
+  cv::Mat buf;
+  while (rclcpp::ok()) {
+    std::unique_lock<std::mutex> lk(_images_mut);
+    if (_images.empty() == false) {
+      auto ptr = std::move(_images.front());
+      _images.pop_front();
+      std::promise<PointCloud2::UniquePtr> prom;
+      _push_back_future(prom.get_future());
+      auto pm = _update_parameters();
+      lk.unlock();
+      auto line = execute(std::move(ptr), buf, pm);
+      prom.set_value(std::move(line));
+    } else {
+      _images_con.wait(lk);
+    }
+  }
+}
+
+void LaserLineCenter::_manager()
+{
+  while (rclcpp::ok()) {
+    std::unique_lock<std::mutex> lk(_futures_mut);
+    if (_futures.empty() == false) {
+      auto f = std::move(_futures.front());
+      _futures.pop_front();
+      lk.unlock();
+      auto ptr = f.get();
+      _pub->publish(std::move(ptr));
+    } else {
+      _futures_con.wait(lk);
+    }
+  }
+}
+
+void LaserLineCenter::_push_back_image(Image::UniquePtr ptr)
+{
+  std::unique_lock<std::mutex> lk(_images_mut);
+  _images.emplace_back(std::move(ptr));
+  auto s = static_cast<int>(_images.size());
+  while (s > _workers + 1) {
+    _images.pop_front();
+  }
+  lk.unlock();
+  _images_con.notify_all();
+}
+
+void LaserLineCenter::_push_back_future(std::future<PointCloud2::UniquePtr> fut)
+{
+  std::unique_lock<std::mutex> lk(_futures_mut);
+  _futures.emplace_back(std::move(fut));
+  lk.unlock();
+  _futures_con.notify_one();
 }
 
 }  // namespace laser_line_center

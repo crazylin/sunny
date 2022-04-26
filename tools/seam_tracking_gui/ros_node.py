@@ -1,10 +1,26 @@
-﻿from rclpy.node import Node
+﻿# Copyright 2019 Zhushi Tech, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+from rclpy.node import Node
 from rclpy.qos import qos_profile_sensor_data
+from std_msgs.msg import String
 from sensor_msgs.msg import PointCloud2
-from shared_interfaces.srv import GetCode
-from shared_interfaces.srv import SetCode
+# from shared_interfaces.srv import GetCode
+# from shared_interfaces.srv import SetCode
 from rcl_interfaces.srv import GetParameters, SetParameters
 from rcl_interfaces.msg import Parameter, ParameterType, ParameterValue, Log
+
 
 def from_parameter_value(p: ParameterValue):
     if p.type == ParameterType.PARAMETER_NOT_SET:
@@ -28,6 +44,7 @@ def from_parameter_value(p: ParameterValue):
     else:
         return None
 
+
 def to_parameter_value(v):
     if type(v) is int:
         return ParameterValue(type=ParameterType.PARAMETER_INTEGER, integer_value=v)
@@ -39,7 +56,9 @@ def to_parameter_value(v):
         return ParameterValue(type=ParameterType.PARAMETER_STRING, string_value=v)
     elif type(v) is list:
         if type(v[0]) is int:
-            return ParameterValue(type=ParameterType.PARAMETER_INTEGER_ARRAY, integer_array_value=v)
+            return ParameterValue(
+                type=ParameterType.PARAMETER_INTEGER_ARRAY,
+                integer_array_value=v)
         elif type(v[0]) is float:
             return ParameterValue(type=ParameterType.PARAMETER_DOUBLE_ARRAY, double_array_value=v)
         elif type(v[0]) is bool:
@@ -49,12 +68,14 @@ def to_parameter_value(v):
     else:
         return None
 
+
 class RosNode(Node):
     """Ros node."""
 
     def __init__(self, params: dict):
         super().__init__('seam_tracking_gui')
 
+        self._pub = {}
         self._sub = {}
         self._cli = {}
         self._cli_get = {}
@@ -64,8 +85,14 @@ class RosNode(Node):
             self._cli_get[k] = self.create_client(GetParameters, f'/{k}/get_parameters')
             self._cli_set[k] = self.create_client(SetParameters, f'/{k}/set_parameters')
 
-        self._create_client('get_code', GetCode, '/seam_tracking_node/get_code')
-        self._create_client('set_code', SetCode, '/seam_tracking_node/set_code')
+        self._create_publisher('config', String, '/config_tis_node/config', 10)
+        # self._create_client('get_code', GetCode, '/seam_tracking_node/get_code')
+        # self._create_client('set_code', SetCode, '/seam_tracking_node/set_code')
+
+    def pub_config(self, msg: str):
+        s = String()
+        s.data = msg
+        self._pub['config'].publish(s)
 
     def sub_pnts(self, cb):
         qos = qos_profile_sensor_data
@@ -95,24 +122,24 @@ class RosNode(Node):
             cb,
             10)
 
-    def get_code(self, index: int):
-        cli = self._cli['get_code']
-        if cli.service_is_ready():
-            request = GetCode.Request()
-            request.index = index
-            return cli.call_async(request)
-        else:
-            return None
+    # def get_code(self, index: int):
+    #     cli = self._cli['get_code']
+    #     if cli.service_is_ready():
+    #         request = GetCode.Request()
+    #         request.index = index
+    #         return cli.call_async(request)
+    #     else:
+    #         return None
 
-    def set_code(self, index: int, code: str):
-        cli = self._cli['set_code']
-        if cli.service_is_ready():
-            request = SetCode.Request()
-            request.index = index
-            request.code = code
-            return cli.call_async(request)
-        else:
-            return None
+    # def set_code(self, index: int, code: str):
+    #     cli = self._cli['set_code']
+    #     if cli.service_is_ready():
+    #         request = SetCode.Request()
+    #         request.index = index
+    #         request.code = code
+    #         return cli.call_async(request)
+    #     else:
+    #         return None
 
     def get_params(self, name: str, params: list):
         cli = self._cli_get[name]
@@ -134,6 +161,11 @@ class RosNode(Node):
         else:
             return None
 
+    def _create_publisher(self, pub_name: str, *args, **kwargs):
+        if pub_name in self._pub:
+            self.destroy_publisher(self._pub[pub_name])
+        self._pub[pub_name] = self.create_publisher(*args, **kwargs)
+
     def _create_subscription(self, sub_name: str, *args, **kwargs):
         if sub_name in self._sub:
             self.destroy_subscription(self._sub[sub_name])
@@ -143,6 +175,10 @@ class RosNode(Node):
         if cli_name in self._cli:
             self.destroy_client(self._cli[cli_name])
         self._cli[cli_name] = self.create_client(*args, **kwargs)
+
+    def _remove_publisher(self, pub_name: str):
+        if pub_name in self._pub:
+            del self._pub[pub_name]
 
     def _remove_subscription(self, sub_name: str):
         if sub_name in self._sub:

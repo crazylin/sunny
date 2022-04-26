@@ -19,19 +19,70 @@
 
 #include "rclcpp/rclcpp.hpp"
 
+struct gpiod_chip;
+struct gpiod_line;
+
 namespace gpio_raspberry
 {
 
+/**
+ * @brief Control GPIO, and laser by using libgpiod.
+ *
+ */
 class GpioRaspberry : public rclcpp::Node
 {
 public:
+  /**
+   * @brief Construct a new Gpio Raspberry object.
+   * Open gpiochip0.
+   * Get line 26 for laser.
+   * Get line 6 for led.
+   * Set laser off.
+   * Set led on.
+   *
+   * @param options Encapsulation of options for node initialization.
+   */
   explicit GpioRaspberry(const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
+
+  /**
+   * @brief Destroy the Gpio Raspberry object.
+   *
+   * Release inner implementation.
+   * Throw no exception.
+   */
   virtual ~GpioRaspberry();
 
 private:
-  class _Impl;
-  std::unique_ptr<_Impl> _impl;
+  /**
+   * @brief Set the laser's state: on or off.
+   *
+   * @param f true to power on laser.
+   * @return int 0 if success.
+   */
+  int _laser(bool f);
 
+  /**
+   * @brief The handle to gpio chip.
+   *
+   */
+  std::unique_ptr<gpiod_chip, void (*)(gpiod_chip *)> _chip;
+
+  /**
+   * @brief The handle to gpio line 26.
+   *
+   */
+  std::unique_ptr<gpiod_line, void (*)(gpiod_line *)> _line_26;
+
+  /**
+   * @brief The handle to gpio line 6.
+   *
+   */
+  std::unique_ptr<gpiod_line, void (*)(gpiod_line *)> _line_6;
+
+  /**
+   * @brief ROS parameter callback handle.
+   *
+   */
   OnSetParametersCallbackHandle::SharedPtr _handle;
 };
 

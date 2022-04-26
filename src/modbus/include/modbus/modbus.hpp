@@ -15,35 +15,81 @@
 #ifndef MODBUS__MODBUS_HPP_
 #define MODBUS__MODBUS_HPP_
 
-#include <map>
 #include <memory>
-#include <string>
 
 #include "rclcpp/rclcpp.hpp"
-#include "sensor_msgs/msg/point_cloud2.hpp"
 
 namespace modbus
 {
 
+/**
+ * @brief Modbus protocal wrapped from libmodbus-dev.
+ *
+ */
 class Modbus : public rclcpp::Node
 {
 public:
+  /**
+   * @brief Construct a new Modbus object.
+   *
+   * Create an inner implementation.
+   * Initialize subscription.
+   * Initialize parameter client for camera.
+   * Initialize parameter client for gpio.
+   * Print success if all done.
+   * @param options Encapsulation of options for node initialization.
+   */
   explicit Modbus(const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
+
+  /**
+   * @brief Destroy the Modbus:: Modbus object.
+   *
+   * Release parameter client for camera.
+   * Release parameter client for gpio.
+   * Release subscription.
+   * Release inner implementation.
+   * Print success if all done.
+   * Throw no exception.
+   */
   ~Modbus();
 
-  void gpio_laser(bool);
-  void camera_power(bool);
+private:
+  /**
+   * @brief Control laser on of off.
+   *
+   */
+  void _gpio_laser(bool);
 
+  /**
+   * @brief Control camera capture or not.
+   *
+   */
+  void _camera_power(bool);
+
+  /**
+   * @brief Control camera capture or not.
+   *
+   */
+  void _modbus(int);
 
 private:
-  class _Impl;
-  std::unique_ptr<_Impl> _impl;
-
-  const char * _sub_name = "~/seam";
-  rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr _sub;
-
+  /**
+   * @brief Parameter client for camera.
+   *
+   */
   std::shared_ptr<rclcpp::AsyncParametersClient> _param_camera;
+
+  /**
+   * @brief Parameter client for gpio.
+   *
+   */
   std::shared_ptr<rclcpp::AsyncParametersClient> _param_gpio;
+
+  /**
+   * @brief Thread for communication through modbus tcp.
+   *
+   */
+  std::thread _thread;
 };
 
 }  // namespace modbus

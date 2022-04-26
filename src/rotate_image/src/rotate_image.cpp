@@ -14,124 +14,19 @@
 
 #include "rotate_image/rotate_image.hpp"
 
-#include <deque>
-#include <exception>
-#include <future>
-#include <map>
-#include <memory>
 #include <utility>
-#include <vector>
 
 #include "opencv2/opencv.hpp"
 
 namespace rotate_image
 {
 
-using sensor_msgs::msg::Image;
-
-class RotateImage::_Impl
-{
-public:
-  explicit _Impl(RotateImage * ptr, int w)
-  : _node(ptr), _workers(w)
-  {
-    for (int i = 0; i < w; ++i) {
-      _threads.push_back(std::thread(&_Impl::worker, this));
-    }
-    _threads.push_back(std::thread(&_Impl::manager, this));
-
-    RCLCPP_INFO(_node->get_logger(), "Employ %d workers successfully", w);
-  }
-
-  ~_Impl()
-  {
-    _images_con.notify_all();
-    _futures_con.notify_one();
-    for (auto & t : _threads) {
-      t.join();
-    }
-  }
-
-  void push_back_image(Image::UniquePtr ptr)
-  {
-    std::unique_lock<std::mutex> lk(_images_mut);
-    _images.emplace_back(std::move(ptr));
-    auto s = static_cast<int>(_images.size());
-    if (s > _workers + 1) {
-      _images.pop_front();
-    }
-    lk.unlock();
-    _images_con.notify_all();
-  }
-
-  void push_back_future(std::future<Image::UniquePtr> f)
-  {
-    std::unique_lock<std::mutex> lk(_futures_mut);
-    _futures.emplace_back(std::move(f));
-    lk.unlock();
-    _futures_con.notify_one();
-  }
-
-  void manager()
-  {
-    while (rclcpp::ok()) {
-      std::unique_lock<std::mutex> lk(_futures_mut);
-      if (_futures.empty() == false) {
-        auto f = std::move(_futures.front());
-        _futures.pop_front();
-        lk.unlock();
-        auto ptr = f.get();
-        _node->publish(ptr);
-      } else {
-        _futures_con.wait(lk);
-      }
-    }
-  }
-
-  void worker()
-  {
-    Image::_data_type buf;
-    while (rclcpp::ok()) {
-      std::unique_lock<std::mutex> lk(_images_mut);
-      if (_images.empty() == false) {
-        auto ptr = std::move(_images.front());
-        _images.pop_front();
-        std::promise<Image::UniquePtr> prom;
-        push_back_future(prom.get_future());
-        lk.unlock();
-        if (ptr->header.frame_id == "-1" || ptr->data.empty()) {
-          prom.set_value(std::move(ptr));
-        } else {
-          buf.resize(ptr->data.size());
-          cv::Mat src(ptr->height, ptr->width, CV_8UC1, ptr->data.data());
-          cv::Mat dst(ptr->width, ptr->height, CV_8UC1, buf.data());
-          cv::rotate(src, dst, cv::ROTATE_90_CLOCKWISE);
-          std::swap(ptr->data, buf);
-          std::swap(ptr->width, ptr->height);
-          ptr->step = ptr->width;
-          prom.set_value(std::move(ptr));
-        }
-      } else {
-        _images_con.wait(lk);
-      }
-    }
-  }
-
-private:
-  RotateImage * _node;
-  int _workers;
-
-  std::mutex _images_mut;
-  std::condition_variable _images_con;
-  std::deque<Image::UniquePtr> _images;
-
-  std::mutex _futures_mut;
-  std::condition_variable _futures_con;
-  std::deque<std::future<Image::UniquePtr>> _futures;
-
-  std::vector<std::thread> _threads;
-};
-
+/**
+ * @brief Extract extra 'worker' parameter from ROS node options.
+ *
+ * @param options Encapsulation of options for node initialization.
+ * @return int Number of workers.
+ */
 int workers(const rclcpp::NodeOptions & options)
 {
   for (const auto & p : options.parameter_overrides()) {
@@ -147,14 +42,20 @@ RotateImage::RotateImage(const rclcpp::NodeOptions & options)
 {
   _pub = this->create_publisher<Image>(_pub_name, rclcpp::SensorDataQoS());
 
-  _impl = std::make_unique<_Impl>(this, workers(options));
+  this->declare_parameter("mode", 0);
+  _mode = this->get_parameter("mode").as_int();
+  _workers = workers(options);
+  for (int i = 0; i < _workers; ++i) {
+    _threads.push_back(std::thread(&RotateImage::_worker, this));
+  }
+  _threads.push_back(std::thread(&RotateImage::_manager, this));
 
   _sub = this->create_subscription<Image>(
     _sub_name,
     rclcpp::SensorDataQoS(),
     [this](Image::UniquePtr ptr)
     {
-      _impl->push_back_image(std::move(ptr));
+      _push_back_image(std::move(ptr));
     }
   );
 
@@ -165,7 +66,11 @@ RotateImage::~RotateImage()
 {
   try {
     _sub.reset();
-    _impl.reset();
+    _images_con.notify_all();
+    _futures_con.notify_one();
+    for (auto & t : _threads) {
+      t.join();
+    }
     _pub.reset();
 
     RCLCPP_INFO(this->get_logger(), "Destroyed successfully");
@@ -174,6 +79,72 @@ RotateImage::~RotateImage()
   } catch (...) {
     RCLCPP_ERROR(this->get_logger(), "Exception in destructor: unknown");
   }
+}
+
+void RotateImage::_worker()
+{
+  Image::_data_type buf;
+  while (rclcpp::ok()) {
+    std::unique_lock<std::mutex> lk(_images_mut);
+    if (_images.empty() == false) {
+      auto ptr = std::move(_images.front());
+      _images.pop_front();
+      std::promise<Image::UniquePtr> prom;
+      _push_back_future(prom.get_future());
+      lk.unlock();
+      if (ptr->header.frame_id == "-1" || ptr->data.empty()) {
+        prom.set_value(std::move(ptr));
+      } else {
+        buf.resize(ptr->data.size());
+        cv::Mat src(ptr->height, ptr->width, CV_8UC1, ptr->data.data());
+        cv::Mat dst(ptr->width, ptr->height, CV_8UC1, buf.data());
+        // cv::rotate(src, dst, cv::ROTATE_90_CLOCKWISE);
+        cv::rotate(src, dst, _mode);
+        std::swap(ptr->data, buf);
+        std::swap(ptr->width, ptr->height);
+        ptr->step = ptr->width;
+        prom.set_value(std::move(ptr));
+      }
+    } else {
+      _images_con.wait(lk);
+    }
+  }
+}
+
+void RotateImage::_manager()
+{
+  while (rclcpp::ok()) {
+    std::unique_lock<std::mutex> lk(_futures_mut);
+    if (_futures.empty() == false) {
+      auto f = std::move(_futures.front());
+      _futures.pop_front();
+      lk.unlock();
+      auto ptr = f.get();
+      _pub->publish(std::move(ptr));
+    } else {
+      _futures_con.wait(lk);
+    }
+  }
+}
+
+void RotateImage::_push_back_image(Image::UniquePtr ptr)
+{
+  std::unique_lock<std::mutex> lk(_images_mut);
+  _images.emplace_back(std::move(ptr));
+  auto s = static_cast<int>(_images.size());
+  while (s > _workers + 1) {
+    _images.pop_front();
+  }
+  lk.unlock();
+  _images_con.notify_all();
+}
+
+void RotateImage::_push_back_future(std::future<Image::UniquePtr> f)
+{
+  std::unique_lock<std::mutex> lk(_futures_mut);
+  _futures.emplace_back(std::move(f));
+  lk.unlock();
+  _futures_con.notify_one();
 }
 
 }  // namespace rotate_image

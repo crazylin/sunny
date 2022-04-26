@@ -1,5 +1,0 @@
-# Build enviroments
-FROM zhuoqiw/sunny-test
-
-# Remove source code
-RUN rm -r build/ src/

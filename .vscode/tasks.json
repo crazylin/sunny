@@ -1,0 +1,73 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "colcon build (remote)",
+            "detail": "Build workspace packages",
+            "type": "shell",
+            "command": "colcon build --cmake-args '-DCMAKE_BUILD_TYPE=Release' --packages-up-to ${input:packages}",
+            "problemMatcher": [],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
+            "label": "colcon test (remote)",
+            "detail": "Run all unit tests and show results.",
+            "type": "shell",
+            "command": "colcon test --event-handlers console_direct+ --packages-up-to ${input:packages}",
+            "problemMatcher": [],
+            "group": {
+                "kind": "test",
+                "isDefault": true
+            }
+        },
+        {
+            "label": "pytest (remote)",
+            "detail": "Run pytest and show results.",
+            "type": "shell",
+            "command": "cd ./${input:packages} && python3 -m pytest",
+            "problemMatcher": [],
+            "group": {
+                "kind": "test",
+                "isDefault": false
+            }
+        },
+        {
+            "label": "clean (remote)",
+            "detail": "Run the clean target",
+            "type": "shell",
+            "command": "colcon build --cmake-target clean --packages-up-to ${input:packages}",
+            "problemMatcher": []
+        },
+        {
+            "label": "purge",
+            "detail": "Purge workspace by deleting all generated files.",
+            "type": "shell",
+            "command": "rm -rf build install log",
+            "problemMatcher": []
+        },
+        {
+            "label": "Run GUI (host)",
+            "detail": "Test GUI use ros2 galactic desktop",
+            "type": "shell",
+            "command": "docker run --rm --network=host --env=DISPLAY -v /tmp/.X11-unix -v $(pwd)/tools/seam_tracking_gui:/gui zhuoqiw/sunny-tis:desktop /gui/main.py",
+            "problemMatcher": [],
+            "group": {
+                "kind": "none",
+                "isDefault": false
+            }
+        }
+    ],
+    "inputs": [
+        {
+          "id": "packages",
+          "type": "promptString",
+          "description": "Package names"
+          // type specific configuration attributes
+        }
+      ]
+}

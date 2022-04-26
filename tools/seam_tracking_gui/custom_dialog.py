@@ -1,7 +1,24 @@
-﻿import tkinter as tk
+﻿# Copyright 2019 Zhushi Tech, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import tkinter as tk
 from tkinter.simpledialog import Dialog
 
+
 class DialogDelta(Dialog):
+    """Dialog for offset."""
+
     def __init__(self, parent, title, *, initialvalue: dict):
         self._ok = True
         self._x = initialvalue['delta_x']
@@ -35,7 +52,7 @@ class DialogDelta(Dialog):
         try:
             self._x = float(self.x_box.get())
             self._y = float(self.y_box.get())
-        except Exception as e:
+        except Exception:
             pass
         else:
             self.destroy()
@@ -52,11 +69,15 @@ class DialogDelta(Dialog):
         self.bind('<Return>', lambda event: self.ok_pressed())
         self.bind('<Escape>', lambda event: self.cancel_pressed())
 
+
 def dialog_delta(app, *, initialvalue: dict):
     d = DialogDelta(title='Offset', parent=app, initialvalue=initialvalue)
     return {'delta_x': d._x, 'delta_y': d._y} if d._ok else None
 
+
 class DialogLineFilter(Dialog):
+    """Dialog for laser line filter."""
+
     def __init__(self, parent, title, *, initialvalue: dict):
         self._ok = True
         self._b = initialvalue['enable']
@@ -120,7 +141,12 @@ class DialogLineFilter(Dialog):
 
         self.enable = tk.BooleanVar()
         self.enable.set(self._b)
-        enable_btn = tk.Checkbutton(frame, width=10, text='Enable filter', variable=self.enable, command=self.toggle)
+        enable_btn = tk.Checkbutton(
+            frame,
+            width=10,
+            text='Enable filter',
+            variable=self.enable,
+            command=self.toggle)
         enable_btn.pack(side=tk.RIGHT)
 
         self.toggle()
@@ -136,7 +162,7 @@ class DialogLineFilter(Dialog):
                 self._dev = float(self.dev_box.get())
                 self._step = float(self.step_box.get())
                 self._length = int(self.length_box.get())
-        except Exception as e:
+        except Exception:
             pass
         else:
             self.destroy()
@@ -167,6 +193,7 @@ class DialogLineFilter(Dialog):
             self.step_box.configure(state=['disabled'])
             self.length_box.configure(state=['disabled'])
 
+
 def dialog_line_filter(app, *, initialvalue: dict):
     d = DialogLineFilter(title='Laser line filter', parent=app, initialvalue=initialvalue)
     return {
@@ -178,7 +205,10 @@ def dialog_line_filter(app, *, initialvalue: dict):
         'length': d._length
         } if d._ok else None
 
+
 class DialogCenter(Dialog):
+    """Dialog for laser line center."""
+
     def __init__(self, parent, title, *, initialvalue: dict):
         self._ok = True
         self._ksize = initialvalue['ksize']
@@ -202,7 +232,7 @@ class DialogCenter(Dialog):
         self.threshold_label = tk.Label(threshold, width=10, text='threshold:', anchor=tk.E)
         self.threshold_label.pack(side=tk.LEFT)
         self.threshold_box = tk.Entry(threshold, width=15)
-        self.threshold_box.insert(tk.END, str(self._threshold) if self._threshold is not None else '')
+        self.threshold_box.insert(tk.END, '' if self._threshold is None else str(self._threshold))
         self.threshold_box.pack(side=tk.LEFT)
         self.threshold_unit = tk.Label(threshold, width=15, text='0~255', anchor=tk.W)
         self.threshold_unit.pack(side=tk.LEFT)
@@ -234,9 +264,9 @@ class DialogCenter(Dialog):
         try:
             self._ksize = int(self.ksize_box.get())
             self._threshold = int(self.threshold_box.get())
-            self._wmin = int(self.wmin_box.get())
-            self._wmax = int(self.wmax_box.get())
-        except Exception as e:
+            self._wmin = float(self.wmin_box.get())
+            self._wmax = float(self.wmax_box.get())
+        except Exception:
             pass
         else:
             self.destroy()
@@ -253,6 +283,7 @@ class DialogCenter(Dialog):
         self.bind('<Return>', lambda event: self.ok_pressed())
         self.bind('<Escape>', lambda event: self.cancel_pressed())
 
+
 def dialog_center(app, *, initialvalue: dict):
     d = DialogCenter(title='Laser line center', parent=app, initialvalue=initialvalue)
     return {
@@ -262,7 +293,10 @@ def dialog_center(app, *, initialvalue: dict):
         'width_max': d._wmax
         } if d._ok else None
 
+
 class DialogSeamFilter(Dialog):
+    """Dialog for seam tracking."""
+
     def __init__(self, parent, title, *, initialvalue: dict):
         self._ok = True
         self._b = initialvalue['enable']
@@ -315,7 +349,12 @@ class DialogSeamFilter(Dialog):
 
         self.enable = tk.BooleanVar()
         self.enable.set(self._b)
-        enable_btn = tk.Checkbutton(frame, width=10, text='Enable filter', variable=self.enable, command=self.toggle)
+        enable_btn = tk.Checkbutton(
+            frame,
+            width=10,
+            text='Enable filter',
+            variable=self.enable,
+            command=self.toggle)
         enable_btn.pack(side=tk.RIGHT)
 
         self.toggle()
@@ -330,7 +369,7 @@ class DialogSeamFilter(Dialog):
                 self._gap = int(self.gap_box.get())
                 self._step = float(self.step_box.get())
                 self._length = int(self.length_box.get())
-        except Exception as e:
+        except Exception:
             pass
         else:
             self.destroy()
@@ -358,6 +397,7 @@ class DialogSeamFilter(Dialog):
             self.gap_box.configure(state=['disabled'])
             self.step_box.configure(state=['disabled'])
             self.length_box.configure(state=['disabled'])
+
 
 def dialog_seam_filter(app, *, initialvalue: dict):
     d = DialogSeamFilter(title='Seam tracking filter', parent=app, initialvalue=initialvalue)

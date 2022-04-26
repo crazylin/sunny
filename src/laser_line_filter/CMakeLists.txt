@@ -21,23 +21,23 @@ find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
 find_package(sensor_msgs REQUIRED)
 
-add_library(laser_line_filter SHARED src/laser_line_filter.cpp)
+add_library(${PROJECT_NAME} SHARED src/${PROJECT_NAME}.cpp)
 
-target_include_directories(laser_line_filter
+target_include_directories(${PROJECT_NAME}
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
 )
 
-ament_target_dependencies(laser_line_filter
+ament_target_dependencies(${PROJECT_NAME}
   rclcpp
   rclcpp_components
   sensor_msgs
 )
 
-rclcpp_components_register_node(laser_line_filter
-  PLUGIN "laser_line_filter::LaserLineFilter"
-  EXECUTABLE laser_line_filter_node
+rclcpp_components_register_node(${PROJECT_NAME}
+  PLUGIN "${PROJECT_NAME}::LaserLineFilter"
+  EXECUTABLE ${PROJECT_NAME}_node
 )
 
 if(BUILD_TESTING)
@@ -49,13 +49,14 @@ if(BUILD_TESTING)
   # uncomment the line when this package is not in a git repo
   #set(ament_cmake_cpplint_FOUND TRUE)
   ament_lint_auto_find_test_dependencies()
+  add_subdirectory(test)
 endif()
 
-install(TARGETS laser_line_filter EXPORT export_laser_line_filter DESTINATION lib)
-install(DIRECTORY include/ DESTINATION include)
+install(TARGETS ${PROJECT_NAME} EXPORT export_${PROJECT_NAME} DESTINATION lib)
+install(DIRECTORY include/${PROJECT_NAME} DESTINATION include)
 install(DIRECTORY launch DESTINATION share/${PROJECT_NAME})
 install(DIRECTORY config DESTINATION share/${PROJECT_NAME})
 
-ament_export_targets(export_laser_line_filter HAS_LIBRARY_TARGET)
+ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
 
 ament_package()
