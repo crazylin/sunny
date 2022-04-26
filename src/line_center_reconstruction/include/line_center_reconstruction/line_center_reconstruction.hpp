@@ -136,7 +136,7 @@ private:
    * @brief Shared pointer to publisher.
    *
    */
-  rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr _pub;
+  rclcpp::Publisher<PointCloud2>::SharedPtr _pub;
 
   /**
    * @brief Subscription name.
@@ -148,7 +148,7 @@ private:
    * @brief Shared pointer to subscription.
    *
    */
-  rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr _sub;
+  rclcpp::Subscription<PointCloud2>::SharedPtr _sub;
 
   /**
    * @brief Number of co-workers.

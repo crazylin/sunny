@@ -24,6 +24,8 @@
 namespace laser_line_center
 {
 
+using rcl_interfaces::msg::SetParametersResult;
+
 /**
  * @brief Construct ROS point cloud message from vector of floats.
  *
@@ -122,7 +124,7 @@ LaserLineCenter::LaserLineCenter(const rclcpp::NodeOptions & options)
 
   _handle = this->add_on_set_parameters_callback(
     [this](const std::vector<rclcpp::Parameter> & vp) {
-      rcl_interfaces::msg::SetParametersResult result;
+      SetParametersResult result;
       result.successful = true;
       for (const auto & p : vp) {
         if (p.get_name() == "ksize") {

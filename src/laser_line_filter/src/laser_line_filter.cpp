@@ -28,6 +28,8 @@
 namespace laser_line_filter
 {
 
+using rcl_interfaces::msg::SetParametersResult;
+
 PointCloud2::UniquePtr execute(PointCloud2::UniquePtr ptr, const Params & pm)
 {
   if (ptr->header.frame_id == "-1" || ptr->data.empty() || pm.enable == false) {return ptr;}
@@ -86,7 +88,7 @@ LaserLineFilter::LaserLineFilter(const rclcpp::NodeOptions & options)
 
   _handle = this->add_on_set_parameters_callback(
     [this](const std::vector<rclcpp::Parameter> & vp) {
-      rcl_interfaces::msg::SetParametersResult result;
+      SetParametersResult result;
       result.successful = true;
       for (const auto & p : vp) {
         if (p.get_name() == "window_size") {
