@@ -30,30 +30,27 @@ seam_tracking_node:
         - "import numpy as np\nfrom numpy.polynomial.polynomial import polyfit\n\ndtype =\
           \ [('x', np.float32), ('y', np.float32), ('i', np.float32)]\n\ndef fn(d):\n    return\
           \ d\n    #d = interpolate(d)\n    #id = local_max(d, delta=60)\n    #if len(id):\n\
-          \    #    p = cross(d, id[0], delta=60, num=280)\n    #    return np.concatenate((p,d))\n\
+          \        #p = cross(d, id[0], delta=60, num=280)\n        #return np.concatenate((p,d))\n\
           \    #return d\n\ndef interpolate(d: np.array):\n    if d.size == 0:\n        return\
-          \ np.array([], dtype=dtype)\n    t = []\n    for i in range(len(d) - 1):\n     \
-          \   t.append((d['x'][i], d['y'][i], d['i'][i]))\n        steps = int(round(d['i'][i\
-          \ + 1] - d['i'][i]))\n        if steps > 1:\n            for s in range(1, steps):\n\
-          \                t.append((None, None, i + s))\n    t.append((d['x'][-1], d['y'][-1],\
-          \ d['i'][-1]))\n    return np.array(t, dtype=dtype)\n\n\ndef local_max(d: np.array,\
-          \ *, delta: int):\n    md = []\n    id = []\n    for i in range(0, len(d), delta):\n\
-          \        mask = ~np.isnan(d['y'][i:i + delta])\n        if np.any(mask):\n     \
-          \       id.append(np.nanargmax(d['y'][i:i + delta]) + i)\n    for i in id:\n   \
-          \     if i - delta + 1 < 0 or i + delta > d.size:\n            continue\n      \
-          \  m = np.nanargmax(d['y'][i - delta + 1:i + delta]) + i - delta + 1\n        if\
-          \ i == m:\n            md.append(m)\n    return md\n\n\ndef local_min(d: np.array,\
-          \ *, delta: int):\n    md = []\n    id = []\n    for i in range(0, len(d), delta):\n\
-          \        mask = ~np.isnan(d['y'][i:i + delta])\n        if np.any(mask):\n     \
-          \       id.append(np.nanargmin(d['y'][i:i + delta]) + i)\n    for i in id:\n   \
-          \     if i - delta + 1 < 0 or i + delta > d.size:\n            continue\n      \
-          \  m = np.nanargmin(d['y'][i - delta + 1:i + delta]) + i - delta + 1\n        if\
-          \ i == m:\n            md.append(m)\n    return md\n\n\ndef cross(d: np.array, id:\
-          \ int, *, delta: int, num: int = None):\n    s1 = None if num is None or id - num\
-          \ + 1 < 0 else id - num + 1\n    e1 = 0 if id - delta < 0 else id - delta\n    s2\
-          \ = id + delta + 1\n    e2 = None if num is None else id + num\n\n    d['i'][s1:e1]\
-          \ = -2\n    d['i'][s2:e2] = -3\n    mask1 = ~np.isnan(d['x'][s1:e1])\n    mask2\
-          \ = ~np.isnan(d['x'][s2:e2])\n    if np.count_nonzero(mask1) > 1 and np.count_nonzero(mask2)\
+          \ np.array([], dtype=dtype)\n    length = int(np.max(d['i']))\n    ret = np.full((length\
+          \ + 1,), np.nan, dtype=dtype)\n    ret[d['i'].astype(np.int)] = d\n    return ret\n\
+          \n\ndef local_max(d: np.array, *, delta: int):\n    md = []\n    id = []\n    for\
+          \ i in range(0, len(d), delta):\n        mask = ~np.isnan(d['y'][i:i + delta])\n\
+          \        if np.any(mask):\n            id.append(np.nanargmax(d['y'][i:i + delta])\
+          \ + i)\n    for i in id:\n        if i - delta + 1 < 0 or i + delta > d.size:\n\
+          \            continue\n        m = np.nanargmax(d['y'][i - delta + 1:i + delta])\
+          \ + i - delta + 1\n        if i == m:\n            md.append(m)\n    return md\n\
+          \n\ndef local_min(d: np.array, *, delta: int):\n    md = []\n    id = []\n    for\
+          \ i in range(0, len(d), delta):\n        mask = ~np.isnan(d['y'][i:i + delta])\n\
+          \        if np.any(mask):\n            id.append(np.nanargmin(d['y'][i:i + delta])\
+          \ + i)\n    for i in id:\n        if i - delta + 1 < 0 or i + delta > d.size:\n\
+          \            continue\n        m = np.nanargmin(d['y'][i - delta + 1:i + delta])\
+          \ + i - delta + 1\n        if i == m:\n            md.append(m)\n    return md\n\
+          \n\ndef cross(d: np.array, id: int, *, delta: int, num: int = None):\n    s1 = None\
+          \ if num is None or id - num + 1 < 0 else id - num + 1\n    e1 = 0 if id - delta\
+          \ < 0 else id - delta\n    s2 = id + delta + 1\n    e2 = None if num is None else\
+          \ id + num\n\n    d['i'][s1:e1] = -2\n    d['i'][s2:e2] = -3\n    mask1 = ~np.isnan(d['x'][s1:e1])\n\
+          \    mask2 = ~np.isnan(d['x'][s2:e2])\n    if np.count_nonzero(mask1) > 1 and np.count_nonzero(mask2)\
           \ > 1:\n        b1, m1 = polyfit(d['x'][s1:e1][mask1], d['y'][s1:e1][mask1], 1)\n\
           \        b2, m2 = polyfit(d['x'][s2:e2][mask2], d['y'][s2:e2][mask2], 1)\n     \
           \   px = (b2 - b1) / (m1 - m2)\n        py = px * m1 + b1\n        return np.array([\n\

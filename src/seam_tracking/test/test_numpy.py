@@ -21,15 +21,10 @@ dtype = [('x', np.float32), ('y', np.float32), ('i', np.float32)]
 def interpolate(d: np.array):
     if d.size == 0:
         return np.array([], dtype=dtype)
-    t = []
-    for i in range(len(d) - 1):
-        t.append((d['x'][i], d['y'][i], d['i'][i]))
-        steps = int(round(d['i'][i + 1] - d['i'][i]))
-        if steps > 1:
-            for s in range(1, steps):
-                t.append((None, None, i + s))
-    t.append((d['x'][-1], d['y'][-1], d['i'][-1]))
-    return np.array(t, dtype=dtype)
+    length = int(np.max(d['i']))
+    ret = np.full((length + 1,), np.nan, dtype=dtype)
+    ret[d['i'].astype(np.int)] = d
+    return ret
 
 
 def local_max(d: np.array, *, delta: int):
@@ -94,11 +89,11 @@ def test_interpolate():
     ret = interpolate(d)
     assert len(ret) == 0
 
-    d = np.array([(1, 2, 0), (1, 2, 10)], dtype=dtype)
+    d = np.array([(1, 2, 0), (1, 2, 9)], dtype=dtype)
     ret = interpolate(d)
-    assert len(ret) == 11
-    for i in range(11):
-        assert ret[i][2] == i
+    assert len(ret) == 10
+    assert ret[0] == np.array([(1, 2, 0)], dtype=dtype)
+    assert ret[9] == np.array([(1, 2, 9)], dtype=dtype)
 
 
 def test_local_max():
