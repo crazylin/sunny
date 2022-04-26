@@ -19,6 +19,9 @@
 
 #include "rclcpp/rclcpp.hpp"
 
+struct gpiod_chip;
+struct gpiod_line;
+
 namespace gpio_raspberry
 {
 
@@ -31,6 +34,11 @@ class GpioRaspberry : public rclcpp::Node
 public:
   /**
    * @brief Construct a new Gpio Raspberry object.
+   * Open gpiochip0.
+   * Get line 26 for laser.
+   * Get line 6 for led.
+   * Set laser off.
+   * Set led on.
    *
    * @param options Encapsulation of options for node initialization.
    */
@@ -39,21 +47,37 @@ public:
   /**
    * @brief Destroy the Gpio Raspberry object.
    *
+   * Release inner implementation.
+   * Throw no exception.
    */
   virtual ~GpioRaspberry();
 
 private:
   /**
-   * @brief Forward declaration for inner implementation.
+   * @brief Set the laser's state: on or off.
    *
+   * @param f true to power on laser.
+   * @return int 0 if success.
    */
-  class _Impl;
+  int _laser(bool f);
 
   /**
-   * @brief Unique pointer to inner implementation.
+   * @brief The handle to gpio chip.
    *
    */
-  std::unique_ptr<_Impl> _impl;
+  std::unique_ptr<gpiod_chip, void (*)(gpiod_chip *)> _chip;
+
+  /**
+   * @brief The handle to gpio line 26.
+   *
+   */
+  std::unique_ptr<gpiod_line, void (*)(gpiod_line *)> _line_26;
+
+  /**
+   * @brief The handle to gpio line 6.
+   *
+   */
+  std::unique_ptr<gpiod_line, void (*)(gpiod_line *)> _line_6;
 
   /**
    * @brief ROS parameter callback handle.

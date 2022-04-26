@@ -103,14 +103,6 @@ gboolean set_property(_GstElement * pipeline, const char * property, int value)
   return ret;
 }
 
-/**
- * @brief Construct a new Camera Tis object.
- *
- * Initialize publisher.
- * Create an inner implementation.
- * Print success if all done.
- * @param options Encapsulation of options for node initialization.
- */
 CameraTis::CameraTis(const rclcpp::NodeOptions & options)
 : Node("camera_tis_node", options)
 {
@@ -120,14 +112,6 @@ CameraTis::CameraTis(const rclcpp::NodeOptions & options)
   RCLCPP_INFO(this->get_logger(), "Initialized successfully");
 }
 
-/**
- * @brief Destroy the Camera Tis object.
- *
- * Release inner implementation.
- * Release publisher.
- * Print success if all done.
- * Throw no exception.
- */
 CameraTis::~CameraTis()
 {
   try {

@@ -36,6 +36,9 @@ public:
   /**
    * @brief Construct a new Camera Tis object.
    *
+   * Initialize publisher.
+   * Create an inner implementation.
+   * Print success if all done.
    * @param options Encapsulation of options for node initialization.
    */
   explicit CameraTis(const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
@@ -43,6 +46,10 @@ public:
   /**
    * @brief Destroy the Camera Tis object.
    *
+   * Release inner implementation.
+   * Release publisher.
+   * Print success if all done.
+   * Throw no exception.
    */
   virtual ~CameraTis();
 
@@ -122,10 +129,22 @@ private:
    */
   rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr _pub;
 
+  /**
+   * @brief The handle to the camera pipeline
+   *
+   */
   _GstElement * _pipeline;
 
+  /**
+   * @brief Thread spin infinitely to capture images.
+   *
+   */
   std::thread _thread;
 
+  /**
+   * @brief Callback handle for parameters.
+   *
+   */
   OnSetParametersCallbackHandle::SharedPtr _handle;
 };
 
