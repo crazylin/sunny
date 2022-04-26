@@ -24,7 +24,6 @@ namespace camera_tis
 {
 
 using sensor_msgs::msg::Image;
-using rcl_interfaces::msg::ParameterDescriptor;
 
 /**
  * @brief The imaging souce camera library (tiscamera), warpped in ROS2.
@@ -127,7 +126,7 @@ private:
    * @brief Shared pointer to publisher.
    *
    */
-  rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr _pub;
+  rclcpp::Publisher<Image>::SharedPtr _pub;
 
   /**
    * @brief The handle to the camera pipeline

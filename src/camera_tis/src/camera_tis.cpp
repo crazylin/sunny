@@ -26,6 +26,9 @@
 namespace camera_tis
 {
 
+using rcl_interfaces::msg::ParameterDescriptor;
+using rcl_interfaces::msg::SetParametersResult;
+
 /**
  * @brief Gstreamer pipeline.
  *
@@ -164,7 +167,7 @@ void CameraTis::_initialize_camera()
   // ROS parameter callback handle.
   _handle = this->add_on_set_parameters_callback(
     [this](const std::vector<rclcpp::Parameter> & parameters) {
-      rcl_interfaces::msg::SetParametersResult result;
+      SetParametersResult result;
       result.successful = true;
       for (const auto & p : parameters) {
         if (p.get_name() == "exposure_time") {
