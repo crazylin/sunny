@@ -16,9 +16,7 @@
 #define LASER_LINE_FILTER__LASER_LINE_FILTER_HPP_
 
 #include <deque>
-#include <memory>
 #include <string>
-#include <utility>
 #include <vector>
 
 #include "rclcpp/rclcpp.hpp"

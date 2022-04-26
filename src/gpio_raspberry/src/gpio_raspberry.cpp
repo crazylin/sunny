@@ -37,7 +37,7 @@ GpioRaspberry::GpioRaspberry(const rclcpp::NodeOptions & options)
 
   _handle = this->add_on_set_parameters_callback(
     [this](const std::vector<rclcpp::Parameter> & parameters) {
-      rcl_interfaces::msg::SetParametersResult result;
+      SetParametersResult result;
       result.successful = true;
       for (const auto & p : parameters) {
         if (p.get_name() == "laser") {

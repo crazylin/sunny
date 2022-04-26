@@ -14,12 +14,7 @@
 
 #include "line_center_reconstruction/line_center_reconstruction.hpp"
 
-#include <deque>
-#include <exception>
-#include <future>
-#include <map>
 #include <memory>
-#include <string>
 #include <utility>
 #include <vector>
 

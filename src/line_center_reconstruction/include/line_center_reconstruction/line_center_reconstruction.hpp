@@ -16,9 +16,7 @@
 #define LINE_CENTER_RECONSTRUCTION__LINE_CENTER_RECONSTRUCTION_HPP_
 
 #include <deque>
-#include <memory>
 #include <string>
-#include <utility>
 #include <vector>
 
 #include "rclcpp/rclcpp.hpp"
