@@ -322,7 +322,7 @@ class SeamTracking(Node):
 
         try:
             self._sock.sendall(s)
-            self._sock.recv(32)
+            self._sock.recv(256)
         except Exception as e:
             if self._error != str(e):
                 self.get_logger().error(str(e))
