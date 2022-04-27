@@ -12,9 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <stdlib.h>
-#include <unistd.h>
-
 #undef NDEBUG
 #include <cassert>
 
@@ -22,6 +19,7 @@
 #include <future>
 #include <iostream>
 #include <vector>
+#include <utility>
 
 bool _ok = true;
 
@@ -81,10 +79,10 @@ void _push_back_image(int ptr)
 {
   std::unique_lock<std::mutex> lk(_images_mut);
   _images.emplace_back(ptr);
-  // auto s = static_cast<int>(_images.size());
-  // if (s > _workers + 1) {
-  //   _images.pop_front();
-  // }
+  auto s = static_cast<int>(_images.size());
+  if (s > _workers + 1) {
+    _images.pop_front();
+  }
   lk.unlock();
   _images_con.notify_all();
 }
@@ -108,7 +106,7 @@ void _worker()
       std::promise<int> prom;
       _push_back_future(prom.get_future());
       lk.unlock();
-      sleep(1);
+      std::this_thread::sleep_for(std::chrono::milliseconds(60));
       ++count;
       prom.set_value(ptr);
     } else {
@@ -142,14 +140,12 @@ int main()
   }
   _threads.push_back(std::thread(_manager));
 
-  sleep(1);
-  
   for (auto i = 0; i < 50; ++i) {
     _push_back_image(i);
+    std::this_thread::sleep_for(std::chrono::milliseconds(20));
   }
 
-  sleep(15);
-  std::cout << "wake up" << std::endl;
+  std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
   _ok = false;
   _images_con.notify_all();
@@ -160,13 +156,7 @@ int main()
   }
 
   for (size_t i = 0; i < _ret.size(); ++i) {
-    std::cout << _ret[i] << " ";
-  }
-
-  std::cout << "\n";
-
-  for (size_t i = 0; i < _num.size(); ++i) {
-    std::cout << _num[i] << " ";
+    assert(_ret[i] == static_cast<int>(i));
   }
 
   std::cout << std::endl;
