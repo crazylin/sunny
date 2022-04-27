@@ -1,4 +1,17 @@
-import socket
+# Copyright 2019 Zhushi Tech, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 
 def modbus_msg(id: str, valid: bool, u: float, v: float):
     id = int(id) % 0x10000
@@ -22,11 +35,44 @@ def modbus_msg(id: str, valid: bool, u: float, v: float):
 
     return s
 
-def main():
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.connect_ex(("127.0.0.1", 2345))
-    s = modbus_msg("123", True, 0.01, 0.02)
-    sock.sendall(s)
 
-if __name__ == '__main__':
-    main()
+def test_modbus_msg():
+    s = modbus_msg('123', True, 0.01, 0.02)
+    assert s == bytes([
+        0x00, 0x7b, 0x00, 0x00,
+        0x00, 0x0d, 0x01, 0x10,
+        0x00, 0x02, 0x00, 0x03,
+        0x06, 0x00, 0xff, 0x00,
+        0x01, 0x00, 0x02])
+
+    s = modbus_msg('123', False, 0.01, 0.02)
+    assert s == bytes([
+        0x00, 0x7b, 0x00, 0x00,
+        0x00, 0x0d, 0x01, 0x10,
+        0x00, 0x02, 0x00, 0x03,
+        0x06, 0x00, 0x00, 0x00,
+        0x01, 0x00, 0x02])
+
+    s = modbus_msg('65537', False, 0.01, 0.02)
+    assert s == bytes([
+        0x00, 0x01, 0x00, 0x00,
+        0x00, 0x0d, 0x01, 0x10,
+        0x00, 0x02, 0x00, 0x03,
+        0x06, 0x00, 0x00, 0x00,
+        0x01, 0x00, 0x02])
+
+    s = modbus_msg('65537', False, 655, 0.02)
+    assert s == bytes([
+        0x00, 0x01, 0x00, 0x00,
+        0x00, 0x0d, 0x01, 0x10,
+        0x00, 0x02, 0x00, 0x03,
+        0x06, 0x00, 0x00, 0xff,
+        0xdc, 0x00, 0x02])
+
+    s = modbus_msg('65537', False, 656, 0.02)
+    assert s == bytes([
+        0x00, 0x01, 0x00, 0x00,
+        0x00, 0x0d, 0x01, 0x10,
+        0x00, 0x02, 0x00, 0x03,
+        0x06, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00])

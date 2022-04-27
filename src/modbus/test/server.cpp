@@ -81,8 +81,8 @@ int main()
           break;
         } else if (ret > 0) {
           ret = modbus_reply(ctx, query, ret, mb_mapping);
-          for (auto i = 0; i < 3; ++i) {
-            assert(mb_mapping->tab_registers[i] == i + 1);
+          for (auto i = 2; i < 5; ++i) {
+            assert(mb_mapping->tab_registers[i] == i - 1);
           }
           assert(ret != -1);
         }
