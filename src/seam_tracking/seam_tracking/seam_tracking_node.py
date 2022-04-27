@@ -311,13 +311,13 @@ class SeamTracking(Node):
         b = bytes([0x00, 0xff]) if valid else bytes([0x00, 0x00])
 
         try:
-            v = bytes()
-            v += round(u * 100).to_bytes(2, 'big')
-            v += round(v * 100).to_bytes(2, 'big')
+            t = bytes()
+            t += round(u * 100).to_bytes(2, 'big')
+            t += round(v * 100).to_bytes(2, 'big')
         except Exception:
             s += bytes([0x00, 0x00, 0x00, 0x00, 0x00, 0x00])
         else:
-            s += b + v
+            s += b + t
 
         try:
             self._sock.sendall(s)

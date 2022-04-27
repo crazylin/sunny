@@ -25,7 +25,7 @@
 
 int main()
 {
-  std::vector<unsigned char> d = {0, 1, 0, 0, 0, 13, 1, 16, 0, 0, 0, 3, 6, 0, 1, 0, 2, 0, 3};
+  std::vector<unsigned char> d = {0, 1, 0, 0, 0, 13, 1, 16, 0, 2, 0, 3, 6, 0, 1, 0, 2, 0, 3};
 
   int socket_desc;
   struct sockaddr_in server;
