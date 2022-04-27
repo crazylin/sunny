@@ -189,6 +189,12 @@ void Modbus::_modbus(int port)
             }
           }
           ret = modbus_reply(ctx, query, ret, mb_mapping);
+          RCLCPP_INFO(this->get_logger(), "0: %d, 1: %d, 2: %d, 3: %d, 4: %d",
+          (int) mb_mapping->tab_registers[0],
+          (int) mb_mapping->tab_registers[1],
+          (int) mb_mapping->tab_registers[2],
+          (int) mb_mapping->tab_registers[3],
+          (int) mb_mapping->tab_registers[4]);
           if (ret == -1) {
             RCLCPP_ERROR(this->get_logger(), "Failed to reply.");
             break;
