@@ -133,14 +133,9 @@ class SeamTracking(Node):
         self._q = queue.Queue(30)
         t = threading.Thread(target=self._socket, daemon=True)
         t.start()
-        self._q.put(('123', True, 0.01, 0.02))
-        self._q.put(('123', True, 0.03, 0.04))
-        self._q.put(('123', True, 0.05, 0.06))
         self.get_logger().info('Initialized successfully')
 
     def __del__(self):
-        if self._sock:
-            self._sock.close()
         self.get_logger().info('Destroyed successfully')
 
     def _socket(self):
@@ -148,14 +143,15 @@ class SeamTracking(Node):
             while True:
                 try:
                     s.connect(("127.0.0.1", 2345))
-                except TimeoutError:
-                    continue
+                    break
+                except Exception:
+                    time.sleep(5)
 
-                while True:
-                    f, b, u, v = self._q.get()
-                    msg = self._modbus_msg(f, b, u, v)
-                    s.sendall(msg)
-                    s.recv(256)
+            while True:
+                f, b, u, v = self._q.get()
+                msg = self._modbus_msg(f, b, u, v)
+                s.sendall(msg)
+                s.recv(256)
 
     def _on_set_parameters(self, params):
         result = SetParametersResult()
