@@ -21,6 +21,8 @@ A python ROS node to subscribe from upstream topic.
 import socket
 import time
 import rclpy
+import threading
+import queue
 
 from collections import deque
 from rclpy.node import Node
@@ -115,26 +117,45 @@ class SeamTracking(Node):
 
         self.add_on_set_parameters_callback(self._on_set_parameters)
 
-        self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        for i in range(10):
-            ret = self._sock.connect_ex(("127.0.0.1", 2345))
-            if ret == 0:
-                self._sock.settimeout(0.5)
-                self.get_logger().info('Connect to local server successfully')
-                break
-            else:
-                time.sleep(0.5)
-        else:
-            # Failed to connect to server.
-            self._sock = None
-            self.get_logger().warn('Failed to connect to local server')
-
+        # self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        # for i in range(10):
+        #     ret = self._sock.connect_ex(("127.0.0.1", 2345))
+        #     if ret == 0:
+        #         self._sock.settimeout(0.5)
+        #         self.get_logger().info('Connect to local server successfully')
+        #         break
+        #     else:
+        #         time.sleep(0.5)
+        # else:
+        #     # Failed to connect to server.
+        #     self._sock = None
+        #     self.get_logger().warn('Failed to connect to local server')
+        self._q = queue.Queue(30)
+        t = threading.Thread(target=self._socket, daemon=True)
+        t.start()
+        self._q.put(('123', True, 0.01, 0.02))
+        self._q.put(('123', True, 0.03, 0.04))
+        self._q.put(('123', True, 0.05, 0.06))
         self.get_logger().info('Initialized successfully')
 
     def __del__(self):
         if self._sock:
             self._sock.close()
         self.get_logger().info('Destroyed successfully')
+
+    def _socket(self):
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            while True:
+                try:
+                    s.connect(("127.0.0.1", 2345))
+                except TimeoutError:
+                    continue
+
+                while True:
+                    f, b, u, v = self._q.get()
+                    msg = self._modbus_msg(f, b, u, v)
+                    s.sendall(msg)
+                    s.recv(256)
 
     def _on_set_parameters(self, params):
         result = SetParametersResult()
@@ -242,7 +263,7 @@ class SeamTracking(Node):
                 if self._error != str(e):
                     self.get_logger().error(str(e))
                     self._error = str(e)
-        self._modbus_msg(ret.header.frame_id, valid, u, v)
+        self._q.put((ret.header.frame_id, valid, u, v))
         self.pub.publish(ret)
 
     def _filter(self, r: np.ndarray):
@@ -299,8 +320,6 @@ class SeamTracking(Node):
         return r[mask]
 
     def _modbus_msg(self, id: str, valid: bool, u: float, v: float):
-        if self._sock is None:
-            return
         id = int(id) % 0x10000
         # Transaction identifier
         s = id.to_bytes(2, 'big')
@@ -320,13 +339,7 @@ class SeamTracking(Node):
         else:
             s += b + t
 
-        try:
-            self._sock.sendall(s)
-            self._sock.recv(256)
-        except Exception as e:
-            if self._error != str(e):
-                self.get_logger().error(str(e))
-                self._error = str(e)
+        return s
 
 
 def main(args=None):

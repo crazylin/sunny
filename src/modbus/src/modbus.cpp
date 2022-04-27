@@ -196,6 +196,7 @@ void Modbus::_modbus(int port)
           }
 
           ret = modbus_reply(ctx, query, ret, mb_mapping);
+          // std::cout << mb_mapping->tab_registers[2] << " " << mb_mapping->tab_registers[3] << " " << mb_mapping->tab_registers[4] << "\n";
           if (ret == -1) {
             RCLCPP_ERROR(this->get_logger(), "Failed to reply.");
             break;
