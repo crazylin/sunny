@@ -256,7 +256,7 @@ void LineCenterReconstruction::_push_back_point(PointCloud2::UniquePtr ptr)
   std::unique_lock<std::mutex> lk(_points_mut);
   _points.emplace_back(std::move(ptr));
   auto s = static_cast<int>(_points.size());
-  while (s > _workers + 1) {
+  if (s > _workers + 1) {
     _points.pop_front();
   }
   lk.unlock();

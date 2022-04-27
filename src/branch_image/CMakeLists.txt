@@ -59,4 +59,3 @@ install(DIRECTORY config DESTINATION share/${PROJECT_NAME})
 ament_export_targets(export_branch_image HAS_LIBRARY_TARGET)
 
 ament_package()
-
