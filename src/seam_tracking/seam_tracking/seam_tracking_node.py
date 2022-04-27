@@ -308,7 +308,7 @@ class SeamTracking(Node):
         # Start address 2, number of registers, number of bytes
         s += bytes([0x00, 0x02, 0x00, 0x03, 0x06])
 
-        b = bytes([0xff, 0xff]) if valid else bytes([0x00, 0x00])
+        b = bytes([0x00, 0xff]) if valid else bytes([0x00, 0x00])
 
         try:
             v = bytes()
