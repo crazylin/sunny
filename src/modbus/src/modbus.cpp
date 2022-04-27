@@ -14,8 +14,8 @@
 
 #include "modbus/modbus.hpp"
 
-#include <netinet/in.h>
-#include <sys/socket.h>
+// #include <netinet/in.h>
+// #include <sys/socket.h>
 // #include <sys/socket.h>
 // #include <errno.h>
 #include <modbus.h>
@@ -155,11 +155,11 @@ void Modbus::_modbus(int port)
 
       if (fd == sock) {
         // A client is asking a new connection
-        struct sockaddr_in clientaddr;
-        socklen_t addrlen = sizeof(clientaddr);
-        memset(&clientaddr, 0, sizeof(clientaddr));
-        ret = accept(sock, (struct sockaddr *)&clientaddr, &addrlen);
-        // ret = modbus_tcp_accept(ctx, &sock);
+        // struct sockaddr_in clientaddr;
+        // socklen_t addrlen = sizeof(clientaddr);
+        // memset(&clientaddr, 0, sizeof(clientaddr));
+        // ret = accept(sock, (struct sockaddr *)&clientaddr, &addrlen);
+        ret = modbus_tcp_accept(ctx, &sock);
         if (ret != -1) {
           FD_SET(ret, &refset);
           fds.insert(fds.end(), ret);
@@ -194,14 +194,7 @@ void Modbus::_modbus(int port)
               _gpio_laser(false);
             }
           }
-          // if (ret == 19) {
-          //   RCLCPP_INFO(this->get_logger(), "0: %d, 1: %d, 2: %d, 3: %d, 4: %d",
-          //     (int) mb_mapping->tab_registers[0],
-          //     (int) mb_mapping->tab_registers[1],
-          //     (int) mb_mapping->tab_registers[2],
-          //     (int) mb_mapping->tab_registers[3],
-          //     (int) mb_mapping->tab_registers[4]);
-          // }
+
           ret = modbus_reply(ctx, query, ret, mb_mapping);
           if (ret == -1) {
             RCLCPP_ERROR(this->get_logger(), "Failed to reply.");

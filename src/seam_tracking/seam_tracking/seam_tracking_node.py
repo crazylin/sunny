@@ -119,6 +119,7 @@ class SeamTracking(Node):
         for i in range(10):
             ret = self._sock.connect_ex(("127.0.0.1", 2345))
             if ret == 0:
+                self._sock.settimeout(0.5)
                 self.get_logger().info('Connect to local server successfully')
                 break
             else:
@@ -321,6 +322,7 @@ class SeamTracking(Node):
 
         try:
             self._sock.sendall(s)
+            self._sock.recv(32)
         except Exception as e:
             if self._error != str(e):
                 self.get_logger().error(str(e))
