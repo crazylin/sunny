@@ -185,6 +185,16 @@ void Modbus::_modbus(int port)
           ret = 0;
         } else if (ret > 0) {
           // Client request
+          if (ret == 19 && query[7] == 0x10) {
+            auto ptr = reinterpret_cast<uint8_t *> (mb_mapping->tab_registers);
+            ptr[5] = query[13];
+            ptr[4] = query[14];
+            ptr[7] = query[15];
+            ptr[6] = query[16];
+            ptr[9] = query[17];
+            ptr[8] = query[18];
+            continue;
+          }
           if (ret > 14 && query[7] == 0x10 && query[8] == 0x01 && query[9] == 0x01) {
             if (query[14]) {
               _gpio_laser(true);
@@ -193,10 +203,6 @@ void Modbus::_modbus(int port)
               _camera_power(false);
               _gpio_laser(false);
             }
-            RCLCPP_INFO(this->get_logger(), "b: %d, u: %d, v: %d",
-              int(mb_mapping->tab_registers[2]),
-              int(mb_mapping->tab_registers[3]),
-              int(mb_mapping->tab_registers[4]));
           }
 
           ret = modbus_reply(ctx, query, ret, mb_mapping);

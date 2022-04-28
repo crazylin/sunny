@@ -151,10 +151,9 @@ class SeamTracking(Node):
             self.get_logger().info('Socket connect successfully')
             while True:
                 try:
-                    f, b, u, v = self._q.get()
+                    f, b, u, v = self._q.get(block=True)
                     msg = self._modbus_msg(f, b, u, v)
                     s.sendall(msg)
-                    s.recv(256)
                 except Exception as e:
                     if self._error != str(e):
                         self.get_logger().error(str(e))
@@ -246,6 +245,7 @@ class SeamTracking(Node):
         """
         ret = PointCloud2()
         ret.header = msg.header
+        
         valid = False
         u = 0.
         v = 0.
@@ -266,7 +266,12 @@ class SeamTracking(Node):
                 if self._error != str(e):
                     self.get_logger().error(str(e))
                     self._error = str(e)
-        self._q.put(('123', True, 0.01, 0.02))
+        try:
+            self._q.put((ret.header.frame_id, valid, u, v), block=False)
+        except Exception as e:
+            if self._error != str(e):
+                self.get_logger().error(str(e))
+                self._error = str(e)
         self.pub.publish(ret)
 
     def _filter(self, r: np.ndarray):
