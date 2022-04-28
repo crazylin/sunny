@@ -25,7 +25,7 @@
 
 int main()
 {
-  std::vector<unsigned char> d = {0, 1, 0, 0, 0, 13, 1, 16, 0, 0, 0, 3, 6, 0, 1, 0, 2, 0, 3};
+  std::vector<unsigned char> d = {0, 1, 0, 0, 0, 13, 1, 16, 0, 2, 0, 3, 6, 0, 1, 0, 2, 0, 3};
 
   int socket_desc;
   struct sockaddr_in server;
@@ -43,9 +43,11 @@ int main()
   int ret = connect(socket_desc, (struct sockaddr *)&server, sizeof(server));
   assert(ret != -1);
 
+  uint8_t query[MODBUS_TCP_MAX_ADU_LENGTH];
   // Send some data
   // message = "GET / HTTP/1.1\r\n\r\n";
   assert(send(socket_desc, d.data(), d.size(), 0) == 19);
+  assert(recv(socket_desc, query, MODBUS_TCP_MAX_ADU_LENGTH, 0) == 12);
   // modbus_t * ctx = modbus_new_tcp("127.0.0.1", 2345);
 
   // auto sock = modbus_connect(ctx);

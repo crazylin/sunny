@@ -21,6 +21,8 @@ A python ROS node to subscribe from upstream topic.
 import socket
 import time
 import rclpy
+import threading
+import queue
 
 from collections import deque
 from rclpy.node import Node
@@ -115,25 +117,48 @@ class SeamTracking(Node):
 
         self.add_on_set_parameters_callback(self._on_set_parameters)
 
-        self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        for i in range(10):
-            ret = self._sock.connect_ex(("127.0.0.1", 2345))
-            if ret == 0:
-                self.get_logger().info('Connect to local server successfully')
-                break
-            else:
-                time.sleep(0.5)
-        else:
-            # Failed to connect to server.
-            self._sock = None
-            self.get_logger().warn('Failed to connect to local server')
-
+        # self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        # for i in range(10):
+        #     ret = self._sock.connect_ex(("127.0.0.1", 2345))
+        #     if ret == 0:
+        #         self._sock.settimeout(0.5)
+        #         self.get_logger().info('Connect to local server successfully')
+        #         break
+        #     else:
+        #         time.sleep(0.5)
+        # else:
+        #     # Failed to connect to server.
+        #     self._sock = None
+        #     self.get_logger().warn('Failed to connect to local server')
+        self._q = queue.Queue(30)
+        t = threading.Thread(target=self._socket, daemon=True)
+        t.start()
         self.get_logger().info('Initialized successfully')
 
     def __del__(self):
-        if self._sock:
-            self._sock.close()
         self.get_logger().info('Destroyed successfully')
+
+    def _socket(self):
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.settimeout(0.5)
+            while True:
+                try:
+                    s.connect(("127.0.0.1", 1502))
+                    break
+                except Exception:
+                    time.sleep(5)
+
+            self.get_logger().info('Socket connect successfully')
+            while True:
+                try:
+                    f, b, u, v = self._q.get(block=True)
+                    msg = self._modbus_msg(f, b, u, v)
+                    s.sendall(msg)
+                    s.recv(256)
+                except Exception as e:
+                    if self._error != str(e):
+                        self.get_logger().error(str(e))
+                        self._error = str(e)
 
     def _on_set_parameters(self, params):
         result = SetParametersResult()
@@ -221,6 +246,7 @@ class SeamTracking(Node):
         """
         ret = PointCloud2()
         ret.header = msg.header
+
         valid = False
         u = 0.
         v = 0.
@@ -233,15 +259,20 @@ class SeamTracking(Node):
                 pnts_xyi = self._notnan(pnts_xyi)
                 if pnts_xyi[0][2] == -1:
                     valid = True
-                    u = pnts_xyi[0][0]
-                    v = pnts_xyi[0][1]
+                    u = float(pnts_xyi[0][0])
+                    v = float(pnts_xyi[0][1])
                 ret = rnp.msgify(PointCloud2, pnts_xyi)
                 ret.header = msg.header
             except Exception as e:
                 if self._error != str(e):
                     self.get_logger().error(str(e))
                     self._error = str(e)
-        self._modbus_msg(ret.header.frame_id, valid, u, v)
+        try:
+            self._q.put((ret.header.frame_id, valid, u, v), block=False)
+        except Exception as e:
+            if self._error != str(e):
+                self.get_logger().error(str(e))
+                self._error = str(e)
         self.pub.publish(ret)
 
     def _filter(self, r: np.ndarray):
@@ -298,8 +329,6 @@ class SeamTracking(Node):
         return r[mask]
 
     def _modbus_msg(self, id: str, valid: bool, u: float, v: float):
-        if self._sock is None:
-            return
         id = int(id) % 0x10000
         # Transaction identifier
         s = id.to_bytes(2, 'big')
@@ -308,23 +337,18 @@ class SeamTracking(Node):
         # Start address 2, number of registers, number of bytes
         s += bytes([0x00, 0x02, 0x00, 0x03, 0x06])
 
-        b = bytes([0xff, 0xff]) if valid else bytes([0x00, 0x00])
+        b = bytes([0x00, 0xff]) if valid else bytes([0x00, 0x00])
 
         try:
-            v = bytes()
-            v += round(u * 100).to_bytes(2, 'big')
-            v += round(v * 100).to_bytes(2, 'big')
+            t = bytes()
+            t += round(u * 100).to_bytes(2, 'big')
+            t += round(v * 100).to_bytes(2, 'big')
         except Exception:
             s += bytes([0x00, 0x00, 0x00, 0x00, 0x00, 0x00])
         else:
-            s += b + v
+            s += b + t
 
-        try:
-            self._sock.sendall(s)
-        except Exception as e:
-            if self._error != str(e):
-                self.get_logger().error(str(e))
-                self._error = str(e)
+        return s
 
 
 def main(args=None):

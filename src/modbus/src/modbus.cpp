@@ -14,6 +14,8 @@
 
 #include "modbus/modbus.hpp"
 
+// #include <netinet/in.h>
+// #include <sys/socket.h>
 // #include <sys/socket.h>
 // #include <errno.h>
 #include <modbus.h>
@@ -37,7 +39,7 @@ Modbus::Modbus(const rclcpp::NodeOptions & options)
   _param_camera = std::make_shared<rclcpp::AsyncParametersClient>(this, "camera_tis_node");
   _param_gpio = std::make_shared<rclcpp::AsyncParametersClient>(this, "gpio_raspberry_node");
 
-  this->declare_parameter("port", 2345);
+  this->declare_parameter("port", 1502);
   auto port = this->get_parameter("port").as_int();
   _thread = std::thread(&Modbus::_modbus, this, port);
 
@@ -141,7 +143,7 @@ void Modbus::_modbus(int port)
     ret = select(fdmax + 1, &rdset, NULL, NULL, &tv);
     if (ret == -1) {
       RCLCPP_ERROR(this->get_logger(), "Failed to select.");
-      break;
+      continue;
     } else if (ret == 0) {
       // time out.
       continue;
@@ -153,6 +155,10 @@ void Modbus::_modbus(int port)
 
       if (fd == sock) {
         // A client is asking a new connection
+        // struct sockaddr_in clientaddr;
+        // socklen_t addrlen = sizeof(clientaddr);
+        // memset(&clientaddr, 0, sizeof(clientaddr));
+        // ret = accept(sock, (struct sockaddr *)&clientaddr, &addrlen);
         ret = modbus_tcp_accept(ctx, &sock);
         if (ret != -1) {
           FD_SET(ret, &refset);
@@ -179,6 +185,22 @@ void Modbus::_modbus(int port)
           ret = 0;
         } else if (ret > 0) {
           // Client request
+          // if (ret == 19 && query[7] == 0x10) {
+          //   auto ptr = reinterpret_cast<uint8_t *> (mb_mapping->tab_registers);
+          //   ptr[5] = query[13];
+          //   ptr[4] = query[14];
+          //   ptr[7] = query[15];
+          //   ptr[6] = query[16];
+          //   ptr[9] = query[17];
+          //   ptr[8] = query[18];
+          //   // if (++ccc % 30 == 0) {
+          //   //   RCLCPP_INFO(this->get_logger(), "%d %d %d",
+          //   //     int(mb_mapping->tab_registers[2]),
+          //   //     int(mb_mapping->tab_registers[3]),
+          //   //     int(mb_mapping->tab_registers[4]));
+          //   // }
+          //   continue;
+          // }
           if (ret > 14 && query[7] == 0x10 && query[8] == 0x01 && query[9] == 0x01) {
             if (query[14]) {
               _gpio_laser(true);
@@ -188,7 +210,9 @@ void Modbus::_modbus(int port)
               _gpio_laser(false);
             }
           }
+
           ret = modbus_reply(ctx, query, ret, mb_mapping);
+
           if (ret == -1) {
             RCLCPP_ERROR(this->get_logger(), "Failed to reply.");
             break;

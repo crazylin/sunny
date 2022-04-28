@@ -249,7 +249,7 @@ void LaserLineCenter::_push_back_image(Image::UniquePtr ptr)
   std::unique_lock<std::mutex> lk(_images_mut);
   _images.emplace_back(std::move(ptr));
   auto s = static_cast<int>(_images.size());
-  while (s > _workers + 1) {
+  if (s > _workers + 1) {
     _images.pop_front();
   }
   lk.unlock();
