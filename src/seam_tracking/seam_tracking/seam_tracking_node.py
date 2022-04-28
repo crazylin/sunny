@@ -140,6 +140,7 @@ class SeamTracking(Node):
 
     def _socket(self):
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.settimeout(0.5)
             while True:
                 try:
                     s.connect(("127.0.0.1", 2345))
@@ -147,6 +148,7 @@ class SeamTracking(Node):
                 except Exception:
                     time.sleep(5)
 
+            self.get_logger().info('Socket connect successfully')
             while True:
                 try:
                     f, b, u, v = self._q.get()
@@ -264,7 +266,7 @@ class SeamTracking(Node):
                 if self._error != str(e):
                     self.get_logger().error(str(e))
                     self._error = str(e)
-        self._q.put((ret.header.frame_id, valid, u, v))
+        self._q.put(('123', True, 0.01, 0.02))
         self.pub.publish(ret)
 
     def _filter(self, r: np.ndarray):
