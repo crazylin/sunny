@@ -126,7 +126,6 @@ void Modbus::_modbus(int port)
     return;
   }
 
-  int ccc = 0;
   std::set<int> fds {sock};
 
   fd_set refset;
@@ -186,22 +185,22 @@ void Modbus::_modbus(int port)
           ret = 0;
         } else if (ret > 0) {
           // Client request
-          if (ret == 19 && query[7] == 0x10) {
-            auto ptr = reinterpret_cast<uint8_t *> (mb_mapping->tab_registers);
-            ptr[5] = query[13];
-            ptr[4] = query[14];
-            ptr[7] = query[15];
-            ptr[6] = query[16];
-            ptr[9] = query[17];
-            ptr[8] = query[18];
-            if (++ccc % 30 == 0) {
-              RCLCPP_INFO(this->get_logger(), "%d %d %d",
-                int(mb_mapping->tab_registers[2]),
-                int(mb_mapping->tab_registers[3]),
-                int(mb_mapping->tab_registers[4]));
-            }
-            continue;
-          }
+          // if (ret == 19 && query[7] == 0x10) {
+          //   auto ptr = reinterpret_cast<uint8_t *> (mb_mapping->tab_registers);
+          //   ptr[5] = query[13];
+          //   ptr[4] = query[14];
+          //   ptr[7] = query[15];
+          //   ptr[6] = query[16];
+          //   ptr[9] = query[17];
+          //   ptr[8] = query[18];
+          //   // if (++ccc % 30 == 0) {
+          //   //   RCLCPP_INFO(this->get_logger(), "%d %d %d",
+          //   //     int(mb_mapping->tab_registers[2]),
+          //   //     int(mb_mapping->tab_registers[3]),
+          //   //     int(mb_mapping->tab_registers[4]));
+          //   // }
+          //   continue;
+          // }
           if (ret > 14 && query[7] == 0x10 && query[8] == 0x01 && query[9] == 0x01) {
             if (query[14]) {
               _gpio_laser(true);
@@ -213,7 +212,7 @@ void Modbus::_modbus(int port)
           }
 
           ret = modbus_reply(ctx, query, ret, mb_mapping);
-          
+
           // std::cout << mb_mapping->tab_registers[2] << " " << mb_mapping->tab_registers[3] << " " << mb_mapping->tab_registers[4] << "\n";
           if (ret == -1) {
             RCLCPP_ERROR(this->get_logger(), "Failed to reply.");

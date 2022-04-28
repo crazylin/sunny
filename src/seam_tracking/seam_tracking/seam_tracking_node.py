@@ -154,6 +154,7 @@ class SeamTracking(Node):
                     f, b, u, v = self._q.get(block=True)
                     msg = self._modbus_msg(f, b, u, v)
                     s.sendall(msg)
+                    s.recv(256)
                 except Exception as e:
                     if self._error != str(e):
                         self.get_logger().error(str(e))
@@ -245,7 +246,7 @@ class SeamTracking(Node):
         """
         ret = PointCloud2()
         ret.header = msg.header
-        
+
         valid = False
         u = 0.
         v = 0.
@@ -258,8 +259,8 @@ class SeamTracking(Node):
                 pnts_xyi = self._notnan(pnts_xyi)
                 if pnts_xyi[0][2] == -1:
                     valid = True
-                    u = pnts_xyi[0][0]
-                    v = pnts_xyi[0][1]
+                    u = float(pnts_xyi[0][0])
+                    v = float(pnts_xyi[0][1])
                 ret = rnp.msgify(PointCloud2, pnts_xyi)
                 ret.header = msg.header
             except Exception as e:
