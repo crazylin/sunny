@@ -14,8 +14,8 @@
 
 #include "modbus/modbus.hpp"
 
-#include <netinet/in.h>
-#include <sys/socket.h>
+// #include <netinet/in.h>
+// #include <sys/socket.h>
 // #include <sys/socket.h>
 // #include <errno.h>
 #include <modbus.h>
@@ -39,7 +39,7 @@ Modbus::Modbus(const rclcpp::NodeOptions & options)
   _param_camera = std::make_shared<rclcpp::AsyncParametersClient>(this, "camera_tis_node");
   _param_gpio = std::make_shared<rclcpp::AsyncParametersClient>(this, "gpio_raspberry_node");
 
-  this->declare_parameter("port", 2345);
+  this->declare_parameter("port", 1502);
   auto port = this->get_parameter("port").as_int();
   _thread = std::thread(&Modbus::_modbus, this, port);
 
@@ -155,11 +155,11 @@ void Modbus::_modbus(int port)
 
       if (fd == sock) {
         // A client is asking a new connection
-        struct sockaddr_in clientaddr;
-        socklen_t addrlen = sizeof(clientaddr);
-        memset(&clientaddr, 0, sizeof(clientaddr));
-        ret = accept(sock, (struct sockaddr *)&clientaddr, &addrlen);
-        // ret = modbus_tcp_accept(ctx, &sock);
+        // struct sockaddr_in clientaddr;
+        // socklen_t addrlen = sizeof(clientaddr);
+        // memset(&clientaddr, 0, sizeof(clientaddr));
+        // ret = accept(sock, (struct sockaddr *)&clientaddr, &addrlen);
+        ret = modbus_tcp_accept(ctx, &sock);
         if (ret != -1) {
           FD_SET(ret, &refset);
           fds.insert(fds.end(), ret);
@@ -213,7 +213,6 @@ void Modbus::_modbus(int port)
 
           ret = modbus_reply(ctx, query, ret, mb_mapping);
 
-          // std::cout << mb_mapping->tab_registers[2] << " " << mb_mapping->tab_registers[3] << " " << mb_mapping->tab_registers[4] << "\n";
           if (ret == -1) {
             RCLCPP_ERROR(this->get_logger(), "Failed to reply.");
             break;

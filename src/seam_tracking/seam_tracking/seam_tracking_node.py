@@ -143,7 +143,7 @@ class SeamTracking(Node):
             s.settimeout(0.5)
             while True:
                 try:
-                    s.connect(("127.0.0.1", 2345))
+                    s.connect(("127.0.0.1", 1502))
                     break
                 except Exception:
                     time.sleep(5)

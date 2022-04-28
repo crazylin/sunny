@@ -67,7 +67,7 @@ seam_tracking_node:
     length: 5                   # int in count
 
 modbus_node:
-    port: 2345                  # int
+    port: 1502                  # int
 
 gpio_raspberry_node:
     test: TODO
