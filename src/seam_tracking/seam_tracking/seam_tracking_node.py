@@ -148,10 +148,15 @@ class SeamTracking(Node):
                     time.sleep(5)
 
             while True:
-                f, b, u, v = self._q.get()
-                msg = self._modbus_msg(f, b, u, v)
-                s.sendall(msg)
-                s.recv(256)
+                try:
+                    f, b, u, v = self._q.get()
+                    msg = self._modbus_msg(f, b, u, v)
+                    s.sendall(msg)
+                    s.recv(256)
+                except Exception as e:
+                    if self._error != str(e):
+                        self.get_logger().error(str(e))
+                        self._error = str(e)
 
     def _on_set_parameters(self, params):
         result = SetParametersResult()
