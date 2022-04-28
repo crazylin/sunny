@@ -193,6 +193,10 @@ void Modbus::_modbus(int port)
               _camera_power(false);
               _gpio_laser(false);
             }
+            RCLCPP_INFO(this->get_logger(), "b: %d, u: %d, v: %d",
+              int(mb_mapping->tab_registers[2]),
+              int(mb_mapping->tab_registers[3]),
+              int(mb_mapping->tab_registers[4]));
           }
 
           ret = modbus_reply(ctx, query, ret, mb_mapping);
