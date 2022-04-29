@@ -19,6 +19,8 @@ from sensor_msgs.msg import PointCloud2
 import numpy as np
 import ros2_numpy as rnp
 
+dtype = [(x, np.float32) for x in 'xyi']
+
 
 def _lock(f):
     """Decorater to protect from data race."""
@@ -34,49 +36,48 @@ class SeamData():
 
     def __init__(self):
         self._lock = Lock()
-        self._x = []
-        self._y = []
-        self._i = []
-        self._f = None
-        self._h = Header()
-        self._d = np.full((5000, ), np.nan, dtype=[(x, np.float32) for x in 'xyi'])
+        self._d = np.array([], dtype=dtype)
+        self._pid = 0
+        self._fps = None
+        self._header = Header()
+        self._traj = np.full((1800, ), np.nan, dtype=dtype)
 
     @_lock
     def from_msg(self, msg: PointCloud2):
-        id = int(msg.header.frame_id) % 5000
+        id = int(msg.header.frame_id) % 1800
         if msg.data:
-            d = rnp.numpify(msg)
-            self._x = d['x'].tolist()
-            self._y = d['y'].tolist()
-            self._i = d['i'].tolist()
-            self._d[id][0], self._d[id][1], self._d[id][2] = d[0]
+            self._d = rnp.numpify(msg)
+            self._traj[id] = self._d[0]
         else:
-            self._x = []
-            self._y = []
-            self._i = []
-            self._d[id][0], self._d[id][1], self._d[id][2] = (np.nan, np.nan, np.nan)
-        self._cal_fps(msg.header)
+            self._d = np.array([], dtype=dtype)
+            self._traj[id] = (np.nan, np.nan, np.nan)
+        
+        if id < self._pid:
+            self._traj[self._pid + 1:] = (np.nan, np.nan, np.nan)
+            self._traj[:id] = (np.nan, np.nan, np.nan)
+        else:
+            self._traj[self._pid + 1:id] = (np.nan, np.nan, np.nan)
+        self._pid = id
+        self._fps = self._cal_fps(msg.header)
+        self._header = msg.header
 
     def _cal_fps(self, h: Header):
         try:
-            dt_sec = h.stamp.sec - self._h.stamp.sec
-            dt_nano = h.stamp.nanosec - self._h.stamp.nanosec
+            dt_sec = h.stamp.sec - self._header.stamp.sec
+            dt_nano = h.stamp.nanosec - self._header.stamp.nanosec
             dt = dt_sec + dt_nano * 1e-9
-            df = int(h.frame_id) - int(self._h.frame_id)
-            self._f = df / dt
+            df = int(h.frame_id) - int(self._header.frame_id)
+            return df / dt
         except Exception:
-            self._f = None
-        self._h = h
+            return None
 
     @_lock
     def get(self):
-        return self._x, self._y, self._i, self._h.frame_id, self._f
+        return self._d, self._header.frame_id, self._fps
 
     @_lock
     def get_trajectory(self):
-        mask_a, = np.nonzero(self._d['i'] == -1)
-        mask_b, = np.nonzero(self._d['i'] == -8)
-        return self._d[mask_a], mask_a, self._d[mask_b], mask_b
+        return self._traj.copy()
 
 # class SeamData():
 

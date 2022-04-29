@@ -114,6 +114,7 @@ class App(tk.Tk):
 
         tabsystem.add(frame_p, text='   graph    ')
         tabsystem.add(frame_t, text=' trajectory ')
+        self._nb = tabsystem
         return tabsystem
 
     def _init_plot_graph(self, parent):
@@ -136,7 +137,7 @@ class App(tk.Tk):
         # self.bind('<<RosSubPnts>>', self.fig.update_pnts)
         # self.bind('<<RosSubPnts>>', lambda e: canvas.draw_idle(), add='+')
         self.bind('<<RosSubSeam>>', fig.update_seam)
-        self.bind('<<RosSubSeam>>', lambda e: canvas.draw_idle(), add='+')
+        # self.bind('<<RosSubSeam>>', lambda e: canvas.draw_idle(), add='+')
 
         return frame
 
@@ -158,7 +159,7 @@ class App(tk.Tk):
         frame.columnconfigure(0, weight=1)
 
         self.bind('<<RosSubTraj>>', fig.update_seam)
-        self.bind('<<RosSubTraj>>', lambda e: canvas.draw_idle(), add='+')
+        # self.bind('<<RosSubTraj>>', lambda e: canvas.draw_idle(), add='+')
 
         return frame
 
@@ -299,8 +300,10 @@ class App(tk.Tk):
 
     def _ros_cb_seam(self, msg):
         msg_to_seam(msg)
-        self.event_generate('<<RosSubSeam>>', when='tail')
-        self.event_generate('<<RosSubTraj>>', when='tail')
+        if self._nb.index('current') == 0:
+            self.event_generate('<<RosSubSeam>>', when='tail')
+        else:
+            self.event_generate('<<RosSubTraj>>', when='tail')
 
     def _ros_cb_log(self, msg):
         if msg.level == 10:

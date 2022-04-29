@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import numpy as np
 from matplotlib.figure import Figure
 from point_data import SeamData
 
@@ -30,9 +31,9 @@ class CustomFigure(Figure):
 
         self._pd = {
             "laser": {
-                "cb": lambda i: i >= 0,
-                "x": [],
-                "y": [],
+                # "cb": lambda i: i >= 0,
+                # "x": [],
+                # "y": [],
                 "fmt": ".b",
                 "kwargs": {
                     "label": "Laser",
@@ -40,9 +41,9 @@ class CustomFigure(Figure):
                 }
             },
             "pick": {
-                "cb": lambda i: i == -1,
-                "x": [],
-                "y": [],
+                # "cb": lambda i: i == -1,
+                # "x": [],
+                # "y": [],
                 "fmt": "sr",
                 "kwargs": {
                     "label": "Pick",
@@ -50,9 +51,9 @@ class CustomFigure(Figure):
                 }
             },
             "pnts_a": {
-                "cb": lambda i: i == -2,
-                "x": [],
-                "y": [],
+                # "cb": lambda i: i == -2,
+                # "x": [],
+                # "y": [],
                 "fmt": "om",
                 "kwargs": {
                     "label": "Points A",
@@ -60,9 +61,9 @@ class CustomFigure(Figure):
                 }
             },
             "pnts_b": {
-                "cb": lambda i: i == -3,
-                "x": [],
-                "y": [],
+                # "cb": lambda i: i == -3,
+                # "x": [],
+                # "y": [],
                 "fmt": "oy",
                 "kwargs": {
                     "label": "Points B",
@@ -70,9 +71,9 @@ class CustomFigure(Figure):
                 }
             },
             "line_a": {
-                "cb": lambda i: i == -4,
-                "x": [],
-                "y": [],
+                # "cb": lambda i: i == -4,
+                # "x": [],
+                # "y": [],
                 "fmt": "-m",
                 "kwargs": {
                     "label": "Line A",
@@ -80,9 +81,9 @@ class CustomFigure(Figure):
                 }
             },
             "line_b": {
-                "cb": lambda i: i == -5,
-                "x": [],
-                "y": [],
+                # "cb": lambda i: i == -5,
+                # "x": [],
+                # "y": [],
                 "fmt": "-y",
                 "kwargs": {
                     "label": "Line B",
@@ -105,25 +106,37 @@ class CustomFigure(Figure):
         ax.legend()
 
     def update_seam(self, *args):
-        x, y, i, id, fps = seam_data.get()
+        d, id, fps = seam_data.get()
 
-        for v in self._pd.values():
-            v['x'] = [a for a, b in zip(x, i) if v['cb'](b)]
-            v['y'] = [a for a, b in zip(y, i) if v['cb'](b)]
-            v["handle"].set_data(v['x'], v['y'])
-            x = [a for a, b in zip(x, i) if not v['cb'](b)]
-            y = [a for a, b in zip(y, i) if not v['cb'](b)]
-            i = [a for a in i if not v['cb'](a)]
+        mask = d['i'] >= 0
+        self._pd['laser']['handle'].set_data(d['x'][mask], d['y'][mask])
+
+        mask = d['i'] == -2
+        self._pd['pnts_a']['handle'].set_data(d['x'][mask], d['y'][mask])
+
+        mask = d['i'] == -3
+        self._pd['pnts_b']['handle'].set_data(d['x'][mask], d['y'][mask])
+
+        mask = d['i'] == -4
+        self._pd['line_a']['handle'].set_data(d['x'][mask], d['y'][mask])
+
+        mask = d['i'] == -5
+        self._pd['line_b']['handle'].set_data(d['x'][mask], d['y'][mask])
+
+        if d.size and d[0][2] == -1:
+            self._pd['pick']['handle'].set_data(d['x'][:1], d['y'][:1])
+            self._xxyy.set_text(
+                f"X: {d['x'][0]:>8.2f}\nY: {d['y'][0]:>8.2f}")
+        else:
+            self._pd['pick']['handle'].set_data([], [])
+            self._xxyy.set_text(f"X:\nY:")
 
         if fps is None:
             self._info.set_text(f'frames: {id:>9}\nfps:')
         else:
             self._info.set_text(f'frames: {id:>9}\nfps: {fps:>16.2f}')
-        if self._pd['pick']['x'] and self._pd['pick']['y']:
-            self._xxyy.set_text(
-                f"X: {self._pd['pick']['x'][0]:>8.2f}\nY: {self._pd['pick']['y'][0]:>8.2f}")
-        else:
-            self._xxyy.set_text(f"X:\nY:")
+
+        self.canvas.draw_idle()
 
 
 class CustomFigureT(Figure):
@@ -135,26 +148,44 @@ class CustomFigureT(Figure):
         ax = super().add_subplot(211)
         ax.set_ylabel("X axis (mm)")
         ax.set_title('Trajectory')
-        ax.set_xlim(0, 5000)
+        ax.set_xlim(0, 1800)
         ax.set_ylim(-30, 160)
-        self.plot_x_pick, = ax.plot([], [], '.b', label='pushed', markersize=5)
-        self.plot_x_move, = ax.plot([], [], 'sr', label='moved')
+        self.plot_x_pick, = ax.plot([], [], '.b', label='pushed', markersize=3)
+        self.plot_x_move, = ax.plot([], [], 'sr', label='moved', markersize=3)
         ax.legend()
 
         ay = super().add_subplot(212)
         ay.set_xlabel("Frame ID")
         ay.set_ylabel("Y axis (mm)")
-        ay.set_xlim(0, 5000)
+        ay.set_xlim(0, 1800)
         ay.set_ylim(-20, 420)
-        self.plot_y_pick, = ay.plot([], [], '.b', label='pushed', markersize=5)
-        self.plot_y_move, = ay.plot([], [], 'sr', label='moved')
+        self.plot_y_pick, = ay.plot([], [], '.b', label='pushed', markersize=3)
+        self.plot_y_move, = ay.plot([], [], 'sr', label='moved', markersize=3)
         ay.legend()
 
     def update_seam(self, *args):
-        data_pick, mask_pick, data_move, mask_move = seam_data.get_trajectory()
-        if mask_pick.size:
-            self.plot_x_pick.set_data(mask_pick, data_pick['x'])
-            self.plot_y_pick.set_data(mask_pick, data_pick['y'])
-        if mask_move.size:
-            self.plot_x_move.set_data(mask_pick, data_move['x'])
-            self.plot_y_move.set_data(mask_pick, data_move['y'])
+        d = seam_data.get_trajectory()
+        mask, = np.nonzero(d['i'] == -1)
+        if mask.size:
+            self.plot_x_pick.set_data(mask, d['x'][mask])
+            self.plot_y_pick.set_data(mask, d['y'][mask])
+        else:
+            self.plot_x_pick.set_data([], [])
+            self.plot_y_pick.set_data([], [])
+        
+        mask, = np.nonzero(d['i'] == -8)
+        if mask.size:
+            self.plot_x_move.set_data(mask, d['x'][mask])
+            self.plot_y_move.set_data(mask, d['y'][mask])
+        else:
+            self.plot_x_move.set_data([], [])
+            self.plot_y_move.set_data([], [])
+
+        self.canvas.draw_idle()
+        # data_pick, mask_pick, data_move, mask_move = seam_data.get_trajectory()
+        # if mask_pick.size:
+        #     self.plot_x_pick.set_data(mask_pick, data_pick['x'])
+        #     self.plot_y_pick.set_data(mask_pick, data_pick['y'])
+        # if mask_move.size:
+        #     self.plot_x_move.set_data(mask_move, data_move['x'])
+        #     self.plot_y_move.set_data(mask_move, data_move['y'])
