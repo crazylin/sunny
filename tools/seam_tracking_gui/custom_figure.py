@@ -172,7 +172,7 @@ class CustomFigureT(Figure):
         else:
             self.plot_x_pick.set_data([], [])
             self.plot_y_pick.set_data([], [])
-        
+
         mask, = np.nonzero(d['i'] == -8)
         if mask.size:
             self.plot_x_move.set_data(mask, d['x'][mask])

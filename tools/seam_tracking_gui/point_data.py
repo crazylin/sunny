@@ -51,7 +51,7 @@ class SeamData():
         else:
             self._d = np.array([], dtype=dtype)
             self._traj[id] = (np.nan, np.nan, np.nan)
-        
+
         if id < self._pid:
             self._traj[self._pid + 1:] = (np.nan, np.nan, np.nan)
             self._traj[:id] = (np.nan, np.nan, np.nan)
