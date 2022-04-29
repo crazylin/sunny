@@ -15,7 +15,7 @@
 import numpy as np
 from numpy.polynomial.polynomial import polyfit
 
-dtype = [('x', np.float32), ('y', np.float32), ('i', np.float32)]
+dtype = [(x, np.float32) for x in 'xyi']
 
 
 def interpolate(d: np.array):
@@ -30,7 +30,7 @@ def interpolate(d: np.array):
 def local_max(d: np.array, *, delta: int):
     md = []
     id = []
-    for i in range(0, len(d), delta):
+    for i in range(0, d.size, delta):
         mask = ~np.isnan(d['y'][i:i + delta])
         if np.any(mask):
             id.append(np.nanargmax(d['y'][i:i + delta]) + i)
@@ -46,7 +46,7 @@ def local_max(d: np.array, *, delta: int):
 def local_min(d: np.array, *, delta: int):
     md = []
     id = []
-    for i in range(0, len(d), delta):
+    for i in range(0, d.size, delta):
         mask = ~np.isnan(d['y'][i:i + delta])
         if np.any(mask):
             id.append(np.nanargmin(d['y'][i:i + delta]) + i)
@@ -87,11 +87,11 @@ def cross(d: np.array, id: int, *, delta: int, num: int = None):
 def test_interpolate():
     d = np.array([], dtype=dtype)
     ret = interpolate(d)
-    assert len(ret) == 0
+    assert ret.size == 0
 
     d = np.array([(1, 2, 0), (1, 2, 9)], dtype=dtype)
     ret = interpolate(d)
-    assert len(ret) == 10
+    assert ret.size == 10
     assert ret[0] == np.array([(1, 2, 0)], dtype=dtype)
     assert ret[9] == np.array([(1, 2, 9)], dtype=dtype)
 

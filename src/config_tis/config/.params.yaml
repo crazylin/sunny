@@ -28,7 +28,7 @@ line_center_reconstruction_node:
 seam_tracking_node:
     codes:
         - "import numpy as np\nfrom numpy.polynomial.polynomial import polyfit\n\ndtype =\
-          \ [('x', np.float32), ('y', np.float32), ('i', np.float32)]\n\ndef fn(d):\n    return\
+          \ [(x, np.float32) for x in 'xyi']\n\ndef fn(d):\n    return\
           \ d\n    #d = interpolate(d)\n    #id = local_max(d, delta=60)\n    #if len(id):\n\
           \        #p = cross(d, id[0], delta=60, num=280)\n        #return np.concatenate((p,d))\n\
           \    #return d\n\ndef interpolate(d: np.array):\n    if d.size == 0:\n        return\

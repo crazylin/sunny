@@ -15,6 +15,12 @@
 from matplotlib.figure import Figure
 from point_data import SeamData
 
+seam_data = SeamData()
+
+
+def msg_to_seam(msg):
+    seam_data.from_msg(msg)
+
 
 class CustomFigure(Figure):
     """A figure with a text watermark."""
@@ -85,8 +91,6 @@ class CustomFigure(Figure):
             }
         }
 
-        self.seam_data = SeamData()
-
         ax = super().add_subplot()
         ax.set_xlabel("X axis (mm)")
         ax.set_ylabel("Y axis (mm)")
@@ -101,7 +105,7 @@ class CustomFigure(Figure):
         ax.legend()
 
     def update_seam(self, *args):
-        x, y, i, id, fps = self.seam_data.get()
+        x, y, i, id, fps = seam_data.get()
 
         for v in self._pd.values():
             v['x'] = [a for a, b in zip(x, i) if v['cb'](b)]
@@ -121,5 +125,36 @@ class CustomFigure(Figure):
         else:
             self._xxyy.set_text(f"X:\nY:")
 
-    def msg_to_seam(self, msg):
-        self.seam_data.from_msg(msg)
+
+class CustomFigureT(Figure):
+    """A figure with a text watermark."""
+
+    def __init__(self):
+        super().__init__()
+
+        ax = super().add_subplot(211)
+        ax.set_ylabel("X axis (mm)")
+        ax.set_title('Trajectory')
+        ax.set_xlim(0, 5000)
+        ax.set_ylim(-30, 160)
+        self.plot_x_pick, = ax.plot([], [], '.b', label='pushed', markersize=5)
+        self.plot_x_move, = ax.plot([], [], 'sr', label='moved')
+        ax.legend()
+
+        ay = super().add_subplot(212)
+        ay.set_xlabel("Frame ID")
+        ay.set_ylabel("Y axis (mm)")
+        ay.set_xlim(0, 5000)
+        ay.set_ylim(-20, 420)
+        self.plot_y_pick, = ay.plot([], [], '.b', label='pushed', markersize=5)
+        self.plot_y_move, = ay.plot([], [], 'sr', label='moved')
+        ay.legend()
+
+    def update_seam(self, *args):
+        data_pick, mask_pick, data_move, mask_move = seam_data.get_trajectory()
+        if mask_pick.size:
+            self.plot_x_pick.set_data(mask_pick, data_pick['x'])
+            self.plot_y_pick.set_data(mask_pick, data_pick['y'])
+        if mask_move.size:
+            self.plot_x_move.set_data(mask_pick, data_move['x'])
+            self.plot_y_move.set_data(mask_pick, data_move['y'])

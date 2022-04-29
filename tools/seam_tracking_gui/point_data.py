@@ -16,6 +16,7 @@ from functools import wraps
 from threading import Lock
 from std_msgs.msg import Header
 from sensor_msgs.msg import PointCloud2
+import numpy as np
 import ros2_numpy as rnp
 
 
@@ -38,18 +39,22 @@ class SeamData():
         self._i = []
         self._f = None
         self._h = Header()
+        self._d = np.full((5000, ), np.nan, dtype=[(x, np.float32) for x in 'xyi'])
 
     @_lock
     def from_msg(self, msg: PointCloud2):
+        id = int(msg.header.frame_id) % 5000
         if msg.data:
             d = rnp.numpify(msg)
             self._x = d['x'].tolist()
             self._y = d['y'].tolist()
             self._i = d['i'].tolist()
+            self._d[id][0], self._d[id][1], self._d[id][2] = d[0]
         else:
             self._x = []
             self._y = []
             self._i = []
+            self._d[id][0], self._d[id][1], self._d[id][2] = (np.nan, np.nan, np.nan)
         self._cal_fps(msg.header)
 
     def _cal_fps(self, h: Header):
@@ -66,6 +71,12 @@ class SeamData():
     @_lock
     def get(self):
         return self._x, self._y, self._i, self._h.frame_id, self._f
+
+    @_lock
+    def get_trajectory(self):
+        mask_a, = np.nonzero(self._d['i'] == -1)
+        mask_b, = np.nonzero(self._d['i'] == -8)
+        return self._d[mask_a], mask_a, self._d[mask_b], mask_b
 
 # class SeamData():
 

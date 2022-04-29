@@ -276,16 +276,15 @@ class SeamTracking(Node):
         self.pub.publish(ret)
 
     def _filter(self, r: np.ndarray):
-        if len(r) and r[0][2] == -1:
+        if r.size and r[0][2] == -1:
             self._deq.appendleft(r[0][1])
         else:
             self._deq.appendleft(None)
-            return r
 
         while len(self._deq) > self._ws:
             self._deq.pop()
 
-        if not self._enable:
+        if not self._enable or self._deq[0] is None:
             return r
 
         i = 0
@@ -296,18 +295,17 @@ class SeamTracking(Node):
             if self._deq[j] is None:
                 j += 1
                 continue
-            du = abs(self._deq[j][0] - self._deq[i][0]) / (j - i)
-            dv = abs(self._deq[j][1] - self._deq[i][1]) / (j - i)
-            if du > self._step or dv > self._step:
+            d = abs(self._deq[j] - self._deq[i]) / (j - i)
+            if d > self._step:
                 j += 1
-                continue
-            i = j
-            j += 1
+            else:
+                i = j
+                j += 1
 
         if i >= self._length:
             return r
         else:
-            r[0][2] = -99
+            r[0][2] = -8
             return r
 
     def _offset(self, r: np.ndarray):

@@ -24,7 +24,7 @@ from tkinter import ttk, simpledialog, messagebox, filedialog
 from tkinter.scrolledtext import ScrolledText
 from ros_node import RosNode, from_parameter_value
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
-from custom_figure import CustomFigure
+from custom_figure import CustomFigure, CustomFigureT, msg_to_seam
 from custom_dialog import dialog_delta, dialog_center, dialog_line_filter, dialog_seam_filter
 from datetime import datetime
 
@@ -107,11 +107,21 @@ class App(tk.Tk):
         self.destroy()
 
     def _init_plot(self):
-        frame = ttk.Frame(self)
+        tabsystem = ttk.Notebook(self)
 
-        self.fig = CustomFigure()
+        frame_p = self._init_plot_graph(tabsystem)
+        frame_t = self._init_plot_trajectory(tabsystem)
 
-        canvas = FigureCanvasTkAgg(self.fig, master=frame)
+        tabsystem.add(frame_p, text='   graph    ')
+        tabsystem.add(frame_t, text=' trajectory ')
+        return tabsystem
+
+    def _init_plot_graph(self, parent):
+        frame = ttk.Frame(parent)
+
+        fig = CustomFigure()
+
+        canvas = FigureCanvasTkAgg(fig, master=frame)
 
         tool = ttk.Frame(frame)
         NavigationToolbar2Tk(canvas, tool)
@@ -125,8 +135,31 @@ class App(tk.Tk):
 
         # self.bind('<<RosSubPnts>>', self.fig.update_pnts)
         # self.bind('<<RosSubPnts>>', lambda e: canvas.draw_idle(), add='+')
-        self.bind('<<RosSubSeam>>', self.fig.update_seam)
+        self.bind('<<RosSubSeam>>', fig.update_seam)
         self.bind('<<RosSubSeam>>', lambda e: canvas.draw_idle(), add='+')
+
+        return frame
+
+    def _init_plot_trajectory(self, parent):
+        frame = ttk.Frame(parent)
+
+        fig = CustomFigureT()
+
+        canvas = FigureCanvasTkAgg(fig, master=frame)
+
+        tool = ttk.Frame(frame)
+        NavigationToolbar2Tk(canvas, tool)
+
+        frame.grid(row=0, column=0, sticky=tk.NSEW)
+        canvas.get_tk_widget().grid(row=0, column=0, sticky=tk.NSEW)
+        tool.grid(row=1, column=0, sticky=tk.W)
+
+        frame.rowconfigure(0, weight=1)
+        frame.columnconfigure(0, weight=1)
+
+        self.bind('<<RosSubTraj>>', fig.update_seam)
+        self.bind('<<RosSubTraj>>', lambda e: canvas.draw_idle(), add='+')
+
         return frame
 
     def _init_list(self):
@@ -265,8 +298,9 @@ class App(tk.Tk):
     #     self.event_generate('<<RosSubPnts>>', when='tail')
 
     def _ros_cb_seam(self, msg):
-        self.fig.msg_to_seam(msg)
+        msg_to_seam(msg)
         self.event_generate('<<RosSubSeam>>', when='tail')
+        self.event_generate('<<RosSubTraj>>', when='tail')
 
     def _ros_cb_log(self, msg):
         if msg.level == 10:
