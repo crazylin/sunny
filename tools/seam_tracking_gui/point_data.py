@@ -77,7 +77,7 @@ class SeamData():
 
     @_lock
     def get_trajectory(self):
-        return self._traj.copy()
+        return self._traj.copy(), self._header.frame_id
 
 # class SeamData():
 

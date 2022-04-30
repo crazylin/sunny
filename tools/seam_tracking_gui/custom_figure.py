@@ -107,6 +107,8 @@ class CustomFigure(Figure):
 
     def update_seam(self, *args):
         d, id, fps = seam_data.get()
+        if int(id) % 3 != 0:
+            return
 
         mask = d['i'] >= 0
         self._pd['laser']['handle'].set_data(d['x'][mask], d['y'][mask])
@@ -164,7 +166,10 @@ class CustomFigureT(Figure):
         ay.legend()
 
     def update_seam(self, *args):
-        d = seam_data.get_trajectory()
+        d, id = seam_data.get_trajectory()
+        if int(id) % 3 != 0:
+            return
+
         mask, = np.nonzero(d['i'] == -1)
         if mask.size:
             self.plot_x_pick.set_data(mask, d['x'][mask])
