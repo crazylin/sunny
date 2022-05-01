@@ -103,7 +103,7 @@ class CustomFigure(Figure):
         ax.plot([-20, 33, 110, 152, -20], [400, -12, -12, 400, 400], "--b")
         for v in self._pd.values():
             v['handle'], = ax.plot([], [], v['fmt'], **v['kwargs'])
-        ax.legend()
+        ax.legend(loc='lower left')
 
     def update_seam(self, *args):
         d, id, fps = seam_data.get()
@@ -154,16 +154,16 @@ class CustomFigureT(Figure):
         ax.set_ylim(-30, 160)
         self.plot_x_pick, = ax.plot([], [], '.b', label='pushed', markersize=3)
         self.plot_x_move, = ax.plot([], [], 'sr', label='moved', markersize=3)
-        ax.legend()
+        ax.legend(loc='upper right')
 
-        ay = super().add_subplot(212)
-        ay.set_xlabel("Frame ID")
+        ay = super().add_subplot(212, sharex=ax)
+        # ay.set_xlabel("Frame ID")
         ay.set_ylabel("Y axis (mm)")
-        ay.set_xlim(0, 1800)
+        # ay.set_xlim(0, 1800)
         ay.set_ylim(-20, 420)
         self.plot_y_pick, = ay.plot([], [], '.b', label='pushed', markersize=3)
         self.plot_y_move, = ay.plot([], [], 'sr', label='moved', markersize=3)
-        ay.legend()
+        ay.legend(loc='upper right')
 
     def update_seam(self, *args):
         d, id = seam_data.get_trajectory()

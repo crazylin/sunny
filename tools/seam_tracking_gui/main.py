@@ -87,7 +87,7 @@ class App(tk.Tk):
 
         self.rowconfigure(0, weight=4)
         self.rowconfigure(1, weight=1)
-        self.columnconfigure(0, weight=1)
+        self.columnconfigure(0, weight=1, minsize='8.5i')
         self.columnconfigure(1, weight=3)
 
         self.ros = RosNode(self._params)
@@ -134,10 +134,7 @@ class App(tk.Tk):
         frame.rowconfigure(0, weight=1)
         frame.columnconfigure(0, weight=1)
 
-        # self.bind('<<RosSubPnts>>', self.fig.update_pnts)
-        # self.bind('<<RosSubPnts>>', lambda e: canvas.draw_idle(), add='+')
         self.bind('<<RosSubSeam>>', fig.update_seam)
-        # self.bind('<<RosSubSeam>>', lambda e: canvas.draw_idle(), add='+')
 
         return frame
 
@@ -159,7 +156,6 @@ class App(tk.Tk):
         frame.columnconfigure(0, weight=1)
 
         self.bind('<<RosSubTraj>>', fig.update_seam)
-        # self.bind('<<RosSubTraj>>', lambda e: canvas.draw_idle(), add='+')
 
         return frame
 
