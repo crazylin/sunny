@@ -23,6 +23,10 @@ def msg_to_seam(msg):
     seam_data.from_msg(msg)
 
 
+def export_data(filename: str):
+    seam_data.export_data(filename)
+
+
 class CustomFigure(Figure):
     """A figure with a text watermark."""
 
