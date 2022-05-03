@@ -17,6 +17,12 @@ from matplotlib.figure import Figure
 from point_data import SeamData
 
 seam_data = SeamData()
+bound_x = [0, 118, 175, 260, 0]
+bound_y = [519, 0, 0, 519, 519]
+min_x = 0
+min_y = 0
+max_x = 260
+max_y = 260
 
 
 def msg_to_seam(msg):
@@ -100,11 +106,11 @@ class CustomFigure(Figure):
         ax.set_xlabel("X axis (mm)")
         ax.set_ylabel("Y axis (mm)")
         ax.set_title('Graph')
-        ax.set_xlim(-30, 160)
-        ax.set_ylim(-20, 420)
-        self._info = ax.text(0, 370, 'frames:\nfps:')
-        self._xxyy = ax.text(60, 370, 'X:\nY:')
-        ax.plot([-20, 33, 110, 152, -20], [400, -12, -12, 400, 400], "--b")
+        ax.set_xlim(min_x, max_x)
+        ax.set_ylim(min_y, max_y)
+        self._info = ax.text(min_x + 10, max_y - 40, 'frames:\nfps:')
+        self._xxyy = ax.text(min_x + 50, max_y - 40, 'X:\nY:')
+        ax.plot(bound_x, bound_y, "--b")
         for v in self._pd.values():
             v['handle'], = ax.plot([], [], v['fmt'], **v['kwargs'])
         ax.legend(loc='lower left')
@@ -155,7 +161,7 @@ class CustomFigureT(Figure):
         ax.set_ylabel("X axis (mm)")
         ax.set_title('Trajectory')
         ax.set_xlim(0, 1800)
-        ax.set_ylim(-30, 160)
+        ax.set_ylim(min_x, max_x)
         self.plot_x_pick, = ax.plot([], [], '.b', label='pushed', markersize=3)
         self.plot_x_move, = ax.plot([], [], 'sr', label='moved', markersize=3)
         ax.legend(loc='upper right')
@@ -164,7 +170,7 @@ class CustomFigureT(Figure):
         # ay.set_xlabel("Frame ID")
         ay.set_ylabel("Y axis (mm)")
         # ay.set_xlim(0, 1800)
-        ay.set_ylim(-20, 420)
+        ay.set_ylim(min_y, max_y)
         self.plot_y_pick, = ay.plot([], [], '.b', label='pushed', markersize=3)
         self.plot_y_move, = ay.plot([], [], 'sr', label='moved', markersize=3)
         ay.legend(loc='upper right')
