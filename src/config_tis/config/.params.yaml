@@ -1,5 +1,7 @@
 camera_tis_node:
     exposure_time: 1000         # int, exposure time in in microseconds
+    width: 1536                 # int, width in pixel
+    height: 1024                # int, height in pixel
 
 rotate_image_node:
     mode: 0                     # int, 0 - 90, 1 - 180, 2 - 270
