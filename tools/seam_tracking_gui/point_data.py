@@ -51,6 +51,14 @@ class SeamData():
                 fp.write(f'{d}\n')
 
     @_lock
+    def export_traj(self, filename: str):
+        if filename is None:
+            return
+        with open(filename, 'w') as fp:
+            for d in self._traj:
+                fp.write(f'{d}\n')
+
+    @_lock
     def from_msg(self, msg: PointCloud2):
         id = int(msg.header.frame_id) % 1800
         if msg.data:

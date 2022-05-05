@@ -24,7 +24,7 @@ from tkinter import ttk, simpledialog, messagebox, filedialog
 from tkinter.scrolledtext import ScrolledText
 from ros_node import RosNode, from_parameter_value
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
-from custom_figure import CustomFigure, CustomFigureT, msg_to_seam, export_data
+from custom_figure import CustomFigure, CustomFigureT, msg_to_seam, export_data, export_traj
 from custom_dialog import dialog_delta, dialog_center, dialog_line_filter, dialog_seam_filter
 from datetime import datetime
 
@@ -274,6 +274,7 @@ class App(tk.Tk):
         menu_file.add_command(label='Open...', command=lambda: self.btn_upload.invoke())
         menu_file.add_command(label='Save...', command=lambda: self.btn_backup.invoke())
         menu_file.add_command(label='Export...', command=self._cb_menu_export)
+        menu_file.add_command(label='Traj...', command=self._cb_menu_export_traj)
         menu_file.add_command(label='Close', command=self.__exit)
 
         menu_edit = tk.Menu(menubar)
@@ -352,6 +353,14 @@ class App(tk.Tk):
             defaultextension='txt',
             filetypes=[('ASCII text file', '.txt')])
         export_data(filename)
+
+    def _cb_menu_export_traj(self):
+        filename = filedialog.asksaveasfilename(
+            title='Export points',
+            initialfile='traj.txt',
+            defaultextension='txt',
+            filetypes=[('ASCII text file', '.txt')])
+        export_traj(filename)
 
     def _cb_menu_exposure(self, *args):
         v = self._params['camera_tis_node']['exposure_time']

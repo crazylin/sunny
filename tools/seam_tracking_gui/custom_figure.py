@@ -33,6 +33,10 @@ def export_data(filename: str):
     seam_data.export_data(filename)
 
 
+def export_traj(filename: str):
+    seam_data.export_traj(filename)
+
+
 class CustomFigure(Figure):
     """A figure with a text watermark."""
 
