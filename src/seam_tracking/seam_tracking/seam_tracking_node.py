@@ -21,8 +21,6 @@ A python ROS node to subscribe from upstream topic.
 import socket
 import time
 import rclpy
-import threading
-import queue
 
 from collections import deque
 from rclpy.node import Node
@@ -130,35 +128,42 @@ class SeamTracking(Node):
         #     # Failed to connect to server.
         #     self._sock = None
         #     self.get_logger().warn('Failed to connect to local server')
-        self._q = queue.Queue(30)
-        t = threading.Thread(target=self._socket, daemon=True)
-        t.start()
+        # self._q = queue.Queue(30)
+        # t = threading.Thread(target=self._socket, daemon=True)
+        # t.start()
+        self._s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        while True:
+            try:
+                self._s.connect(("127.0.0.1", 1502))
+                break
+            except Exception:
+                time.sleep(5)
         self.get_logger().info('Initialized successfully')
 
     def __del__(self):
         self.get_logger().info('Destroyed successfully')
 
-    def _socket(self):
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.settimeout(0.5)
-            while True:
-                try:
-                    s.connect(("127.0.0.1", 1502))
-                    break
-                except Exception:
-                    time.sleep(5)
+    # def _socket(self):
+    #     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+    #         s.settimeout(0.5)
+    #         while True:
+    #             try:
+    #                 s.connect(("127.0.0.1", 1502))
+    #                 break
+    #             except Exception:
+    #                 time.sleep(5)
 
-            self.get_logger().info('Socket connect successfully')
-            while True:
-                try:
-                    f, b, u, v = self._q.get(block=True)
-                    msg = self._modbus_msg(f, b, u, v)
-                    s.sendall(msg)
-                    s.recv(256)
-                except Exception as e:
-                    if self._error != str(e):
-                        self.get_logger().error(str(e))
-                        self._error = str(e)
+    #         self.get_logger().info('Socket connect successfully')
+    #         while True:
+    #             try:
+    #                 f, b, u, v = self._q.get(block=True)
+    #                 msg = self._modbus_msg(f, b, u, v)
+    #                 s.sendall(msg)
+    #                 s.recv(256)
+    #             except Exception as e:
+    #                 if self._error != str(e):
+    #                     self.get_logger().error(str(e))
+    #                     self._error = str(e)
 
     def _on_set_parameters(self, params):
         result = SetParametersResult()
@@ -268,7 +273,10 @@ class SeamTracking(Node):
                     self.get_logger().error(str(e))
                     self._error = str(e)
         try:
-            self._q.put((ret.header.frame_id, valid, u, v), block=False)
+            # self._q.put((ret.header.frame_id, valid, u, v), block=False)
+            m = self._modbus_msg(ret.header.frame_id, valid, u, v)
+            self._s.sendall(m)
+            self._s.recv(128)
         except Exception as e:
             if self._error != str(e):
                 self.get_logger().error(str(e))
