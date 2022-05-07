@@ -18,18 +18,17 @@ A python ROS node to subscribe from upstream topic.
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
+import threading
+from select import select
 import socket
 import time
 import rclpy
 
 from collections import deque
 from rclpy.node import Node
-# from rclpy.parameter import Parameter
 from rcl_interfaces.msg import SetParametersResult
-# from std_srvs.srv import Trigger
 from sensor_msgs.msg import PointCloud2
-# from shared_interfaces.srv import GetCode
-# from shared_interfaces.srv import SetCode
 
 from .codes import Codes
 import ros2_numpy as rnp
@@ -46,7 +45,8 @@ class SeamTracking(Node):
 
     def __init__(self):
         Node.__init__(self, 'seam_tracking_node')
-        # self._dtype = [('x', np.float32), ('y', np.float32), ('i', np.float32)]
+
+        self._r, self._w = os.pipe()
         self._deq = deque()
 
         self.declare_parameter('window_size', 10)
@@ -80,8 +80,6 @@ class SeamTracking(Node):
             self._codes.reload(self._task)
         except Exception as e:
             self.get_logger().error(str(e))
-        # finally:
-        #     self.set_parameters([Parameter('codes', Parameter.Type.STRING_ARRAY, self._codes)])
 
         self._error = ''
 
@@ -94,24 +92,6 @@ class SeamTracking(Node):
             '~/pnts',
             self._cb_sub,
             rclpy.qos.qos_profile_sensor_data)
-
-        # self.srv_get_code = self.create_service(
-        #     GetCode,
-        #     '~/get_code',
-        #     self._cb_get_code)
-        # self.srv_set_code = self.create_service(
-        #     SetCode,
-        #     '~/set_code',
-        #     self._cb_set_code)
-
-        # self.srv_dump_codes = self.create_service(
-        #     Trigger,
-        #     '~/dump_codes',
-        #     self._cb_dump_codes)
-        # self.srv_load_codes = self.create_service(
-        #     Trigger,
-        #     '~/load_codes',
-        #     self._cb_load_codes)
 
         self.add_on_set_parameters_callback(self._on_set_parameters)
 
@@ -129,41 +109,39 @@ class SeamTracking(Node):
         #     self._sock = None
         #     self.get_logger().warn('Failed to connect to local server')
         # self._q = queue.Queue(30)
-        # t = threading.Thread(target=self._socket, daemon=True)
-        # t.start()
-        self._s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        while True:
-            try:
-                self._s.connect(("127.0.0.1", 1502))
-                break
-            except Exception:
-                time.sleep(5)
+        t = threading.Thread(target=self._socket, daemon=True)
+        t.start()
+        # self._s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        # while True:
+        #     try:
+        #         self._s.connect(("127.0.0.1", 1502))
+        #         break
+        #     except Exception:
+        #         time.sleep(5)
         self.get_logger().info('Initialized successfully')
 
     def __del__(self):
         self.get_logger().info('Destroyed successfully')
 
-    # def _socket(self):
-    #     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-    #         s.settimeout(0.5)
-    #         while True:
-    #             try:
-    #                 s.connect(("127.0.0.1", 1502))
-    #                 break
-    #             except Exception:
-    #                 time.sleep(5)
+    def _socket(self):
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            while True:
+                try:
+                    s.connect(("127.0.0.1", 1502))
+                    break
+                except Exception:
+                    time.sleep(5)
 
-    #         self.get_logger().info('Socket connect successfully')
-    #         while True:
-    #             try:
-    #                 f, b, u, v = self._q.get(block=True)
-    #                 msg = self._modbus_msg(f, b, u, v)
-    #                 s.sendall(msg)
-    #                 s.recv(256)
-    #             except Exception as e:
-    #                 if self._error != str(e):
-    #                     self.get_logger().error(str(e))
-    #                     self._error = str(e)
+            self.get_logger().info('Socket connect successfully')
+
+            while True:
+                idr, idw, idx = select([self._r, s.fileno()], [], [])
+                for id in idr:
+                    if id == self._r:
+                        t = os.read(id, 19)
+                        s.sendall(t)
+                    elif id == s.fileno():
+                        s.recv(32)
 
     def _on_set_parameters(self, params):
         result = SetParametersResult()
@@ -196,46 +174,6 @@ class SeamTracking(Node):
             elif p.name == 'enable':
                 self._enable = p.value
         return result
-
-    # def _cb_get_code(self, request, response):
-    #     try:
-    #         response.code = self._codes[request.index]
-    #     except Exception as e:
-    #         response.success = False
-    #         response.message = str(e)
-    #     else:
-    #         response.success = True
-    #     return response
-
-    # def _cb_set_code(self, request, response):
-    #     try:
-    #         self._codes[request.index] = request.code
-    #     except Exception as e:
-    #         response.success = False
-    #         response.message = str(e)
-    #     else:
-    #         response.success = True
-    #     return response
-
-    # def _cb_dump_codes(self, request, response):
-    #     try:
-    #         self._codes.dump(self._file)
-    #     except Exception as e:
-    #         response.success = False
-    #         response.message = str(e)
-    #     else:
-    #         response.success = True
-    #     return response
-
-    # def _cb_load_codes(self, request, response):
-    #     try:
-    #         self._codes.load(self._file)
-    #     except Exception as e:
-    #         response.success = False
-    #         response.message = str(e)
-    #     else:
-    #         response.success = True
-    #     return response
 
     def _cb_sub(self, msg: PointCloud2):
         """
@@ -275,8 +213,7 @@ class SeamTracking(Node):
         try:
             # self._q.put((ret.header.frame_id, valid, u, v), block=False)
             m = self._modbus_msg(ret.header.frame_id, valid, u, v)
-            self._s.sendall(m)
-            self._s.recv(128)
+            os.writev(self._w, [m])
         except Exception as e:
             if self._error != str(e):
                 self.get_logger().error(str(e))
@@ -371,7 +308,7 @@ def main(args=None):
         # (optional - otherwise it will be done automatically
         # when the garbage collector destroys the node object)
         seam_tracking.destroy_node()
-        rclpy.shutdown()
+        rclpy.try_shutdown()
 
 
 if __name__ == '__main__':

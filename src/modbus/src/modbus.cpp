@@ -25,7 +25,7 @@
 // #include <climits>
 #include <memory>
 #include <set>
-#include <fstream>
+// #include <fstream>
 // #include <string>
 // #include <utility>
 // #include <vector>
@@ -101,10 +101,10 @@ void Modbus::_camera_power(bool f)
  */
 void Modbus::_modbus(int port)
 {
-  int aaa = 0;
-  auto nnn = std::chrono::system_clock::now();
-  std::vector<double> vvv;
-  vvv.resize(1800);
+  // int aaa = 0;
+  // auto nnn = std::chrono::system_clock::now();
+  // std::vector<double> vvv;
+  // vvv.resize(1800);
   auto ctx = modbus_new_tcp(NULL, port);
   if (!ctx) {
     RCLCPP_ERROR(this->get_logger(), "Failed to create modbus context.");
@@ -215,12 +215,12 @@ void Modbus::_modbus(int port)
               _gpio_laser(false);
             }
           }
-          if (ret == 19) {
-            auto ttt = std::chrono::system_clock::now();
-            std::chrono::duration<double> diff = ttt - nnn;
-            vvv[aaa++ % 1800] = diff.count();
-            nnn = ttt;
-          }
+          // if (ret == 19) {
+          //   auto ttt = std::chrono::system_clock::now();
+          //   std::chrono::duration<double> diff = ttt - nnn;
+          //   vvv[aaa++ % 1800] = diff.count();
+          //   nnn = ttt;
+          // }
           ret = modbus_reply(ctx, query, ret, mb_mapping);
 
           if (ret == -1) {
@@ -238,11 +238,11 @@ void Modbus::_modbus(int port)
   if (ret == -1) {
     rclcpp::shutdown();
   }
-  std::ofstream ofile("/diff.txt");
-  for(auto d : vvv) {
-    ofile << d << "\n";
-  }
-  ofile.close();
+  // std::ofstream ofile("/diff.txt");
+  // for(auto d : vvv) {
+  //   ofile << d << "\n";
+  // }
+  // ofile.close();
 }
 
 }  // namespace modbus
