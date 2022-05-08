@@ -46,7 +46,7 @@ class SeamTracking(Node):
     def __init__(self):
         Node.__init__(self, 'seam_tracking_node')
 
-        self._r, self._w = os.pipe()
+        self._r, self._w = os.pipe2(os.O_NONBLOCK)
         self._deq = deque()
 
         self.declare_parameter('window_size', 10)
@@ -139,6 +139,7 @@ class SeamTracking(Node):
                 for id in idr:
                     if id == self._r:
                         t = os.read(id, 19)
+                        assert len(t) == 19
                         s.sendall(t)
                     elif id == s.fileno():
                         s.recv(32)
@@ -187,38 +188,34 @@ class SeamTracking(Node):
         :param msg: ROS point cloud message.
         :type msg: PointCloud2
         """
-        ret = PointCloud2()
-        ret.header = msg.header
-
-        valid = False
-        u = 0.
-        v = 0.
-        if msg.data:
-            try:
-                pnts_xyi = rnp.numpify(msg)
-                pnts_xyi = self._codes(pnts_xyi)
-                pnts_xyi = self._filter(pnts_xyi)
-                pnts_xyi = self._offset(pnts_xyi)
-                pnts_xyi = self._notnan(pnts_xyi)
-                if pnts_xyi[0][2] == -1:
-                    valid = True
-                    u = float(pnts_xyi[0][0])
-                    v = float(pnts_xyi[0][1])
-                ret = rnp.msgify(PointCloud2, pnts_xyi)
-                ret.header = msg.header
-            except Exception as e:
-                if self._error != str(e):
-                    self.get_logger().error(str(e))
-                    self._error = str(e)
         try:
-            # self._q.put((ret.header.frame_id, valid, u, v), block=False)
-            m = self._modbus_msg(ret.header.frame_id, valid, u, v)
-            os.writev(self._w, [m])
+            pnts_xyi = rnp.numpify(msg)
+            pnts_xyi = self._codes(pnts_xyi)
+            pnts_xyi = self._filter(pnts_xyi)
+            pnts_xyi = self._offset(pnts_xyi)
+            pnts_xyi = self._notnan(pnts_xyi)
+            if pnts_xyi[0][2] == -1:
+                valid = True
+                u = float(pnts_xyi[0][0])
+                v = float(pnts_xyi[0][1])
+            else:
+                valid = False
+                u = 0.
+                v = 0.
+            ret = rnp.msgify(PointCloud2, pnts_xyi)
+            ret.header = msg.header
+            msg = ret
         except Exception as e:
+            m = self._modbus_msg(msg.header.frame_id, False, 0., 0.)
             if self._error != str(e):
                 self.get_logger().error(str(e))
                 self._error = str(e)
-        self.pub.publish(ret)
+        else:
+            m = self._modbus_msg(ret.header.frame_id, valid, u, v)
+        finally:
+            ws = os.write(self._w, m)
+            assert ws == len(m)
+            self.pub.publish(msg)
 
     def _filter(self, r: np.ndarray):
         if r.size and r[0][2] == -1:
