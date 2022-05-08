@@ -121,7 +121,7 @@ class CustomFigure(Figure):
 
     def update_seam(self, *args):
         d, id, fps = seam_data.get()
-        if int(id) % 3 != 0:
+        if int(id) % 2 == 0:
             return
 
         mask = d['i'] >= 0
@@ -181,7 +181,7 @@ class CustomFigureT(Figure):
 
     def update_seam(self, *args):
         d, id = seam_data.get_trajectory()
-        if int(id) % 3 != 0:
+        if int(id) % 2 == 0:
             return
 
         mask, = np.nonzero(d['i'] == -1)
