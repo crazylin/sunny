@@ -18,13 +18,11 @@ A python ROS node to subscribe from upstream topic.
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
-import threading
+from multiprocessing import Process, Pipe
 from select import select
 import socket
 import time
 import rclpy
-
 from collections import deque
 from rclpy.node import Node
 from rcl_interfaces.msg import SetParametersResult
@@ -33,6 +31,9 @@ from sensor_msgs.msg import PointCloud2
 from .codes import Codes
 import ros2_numpy as rnp
 import numpy as np
+
+
+PIPE_IN, PIPE_OUT = Pipe(False)
 
 
 class SeamTracking(Node):
@@ -46,7 +47,6 @@ class SeamTracking(Node):
     def __init__(self):
         Node.__init__(self, 'seam_tracking_node')
 
-        self._r, self._w = os.pipe2(os.O_NONBLOCK)
         self._deq = deque()
 
         self.declare_parameter('window_size', 10)
@@ -109,8 +109,8 @@ class SeamTracking(Node):
         #     self._sock = None
         #     self.get_logger().warn('Failed to connect to local server')
         # self._q = queue.Queue(30)
-        t = threading.Thread(target=self._socket, daemon=True)
-        t.start()
+        # t = threading.Thread(target=self._socket, daemon=True)
+        # t.start()
         # self._s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         # while True:
         #     try:
@@ -122,27 +122,6 @@ class SeamTracking(Node):
 
     def __del__(self):
         self.get_logger().info('Destroyed successfully')
-
-    def _socket(self):
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            while True:
-                try:
-                    s.connect(("127.0.0.1", 1502))
-                    break
-                except Exception:
-                    time.sleep(5)
-
-            self.get_logger().info('Socket connect successfully')
-
-            while True:
-                idr, idw, idx = select([self._r, s.fileno()], [], [])
-                for id in idr:
-                    if id == self._r:
-                        t = os.read(id, 19)
-                        assert len(t) == 19
-                        s.sendall(t)
-                    elif id == s.fileno():
-                        s.recv(32)
 
     def _on_set_parameters(self, params):
         result = SetParametersResult()
@@ -213,8 +192,7 @@ class SeamTracking(Node):
         else:
             m = self._modbus_msg(ret.header.frame_id, valid, u, v)
         finally:
-            ws = os.write(self._w, m)
-            assert ws == len(m)
+            PIPE_OUT.send_bytes(m)
             self.pub.publish(msg)
 
     def _filter(self, r: np.ndarray):
@@ -291,7 +269,35 @@ class SeamTracking(Node):
         return s
 
 
+def _child(r, w):
+    w.close()
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        while True:
+            try:
+                s.connect(("127.0.0.1", 1502))
+                break
+            except Exception:
+                time.sleep(5)
+        try:
+            while True:
+                idr, idw, idx = select([r.fileno(), s.fileno()], [], [])
+                for id in idr:
+                    if id == r.fileno():
+                        t = r.recv_bytes(19)
+                        assert len(t) == 19
+                        s.sendall(t)
+                    elif id == s.fileno():
+                        s.recv(32)
+        except EOFError:
+            pass
+        except KeyboardInterrupt:
+            pass
+
+
 def main(args=None):
+    child = Process(target=_child, args=(PIPE_IN, PIPE_OUT))
+    child.start()
+
     rclpy.init(args=args)
 
     seam_tracking = SeamTracking()
@@ -304,6 +310,8 @@ def main(args=None):
         # Destroy the node explicitly
         # (optional - otherwise it will be done automatically
         # when the garbage collector destroys the node object)
+        PIPE_OUT.close()
+        child.join()
         seam_tracking.destroy_node()
         rclpy.try_shutdown()
 
