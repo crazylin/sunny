@@ -113,7 +113,7 @@ class CustomFigure(Figure):
         ax.set_xlim(min_x, max_x)
         ax.set_ylim(min_y, max_y)
         self._info = ax.text(min_x + 10, max_y - 40, 'frames:\nfps:')
-        self._xxyy = ax.text(min_x + 50, max_y - 40, 'X:\nY:')
+        self._xxyy = ax.text(min_x + 90, max_y - 40, 'X:\nY:')
         ax.plot(bound_x, bound_y, "--b")
         for v in self._pd.values():
             v['handle'], = ax.plot([], [], v['fmt'], **v['kwargs'])
