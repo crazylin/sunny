@@ -26,6 +26,7 @@ from ros_node import RosNode, from_parameter_value
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 from custom_figure import CustomFigure, CustomFigureT, msg_to_seam
 from custom_dialog import dialog_delta, dialog_center, dialog_line_filter, dialog_seam_filter
+from custom_dialog import dialog_homography
 from datetime import datetime
 
 
@@ -36,6 +37,8 @@ class App(tk.Tk):
         super().__init__(*args, **kwargs)
         self._lock = Lock()
         self._task = 0
+        self._src = [(None, None) for i in range(4)]
+        self._dst = [(0, 80), (27.5, 0), (57.5, 0), (85, 80)]
 
         self._params = {
             'camera_tis_node': {'exposure_time': 1000, 'power': False},
@@ -61,7 +64,13 @@ class App(tk.Tk):
                 'gap': 5,
                 'deviate': 5.,
                 'step': 2.,
-                'length': 30}
+                'length': 30},
+            'line_center_reconstruction_node': {
+                'homography_matrix': [
+                    0.302718855716717, 0.2680616514567186, -181.85417936466143,
+                    -0.849229120372951, 0.009089116739800679, 740.9142506876663,
+                    0.006088569213627282, 4.084374210838134e-06, 1.0]
+            }
         }
 
         self._params_cb = {
@@ -128,14 +137,40 @@ class App(tk.Tk):
         NavigationToolbar2Tk(canvas, tool)
 
         frame.grid(row=0, column=0, sticky=tk.NSEW)
-        canvas.get_tk_widget().grid(row=0, column=0, sticky=tk.NSEW)
-        tool.grid(row=1, column=0, sticky=tk.W)
+        canvas.get_tk_widget().grid(row=0, column=0, columnspan=4, sticky=tk.NSEW)
+        tool.grid(row=1, column=0, columnspan=4, sticky=tk.W)
+        label = []
+        for i in range(4):
+            x = tk.Label(frame, text='', anchor=tk.W)
+            y = tk.Label(frame, text='', anchor=tk.W)
+            x.grid(row=2, column=i, sticky=tk.NSEW)
+            y.grid(row=3, column=i, sticky=tk.NSEW)
+            label.append((x, y))
 
         frame.rowconfigure(0, weight=1)
         frame.columnconfigure(0, weight=1)
+        frame.columnconfigure(1, weight=1)
+        frame.columnconfigure(2, weight=1)
+        frame.columnconfigure(3, weight=1)
 
         self.bind('<<RosSubSeam>>', fig.update_seam)
 
+        def on_press(event):
+            for i in range(4):
+                if event.key == str(i + 1):
+                    label[i][0].config(text=f'{event.xdata:>.2f}')
+                    label[i][1].config(text=f'{event.ydata:>.2f}')
+                    self._src[i] = (event.xdata, event.ydata)
+                    self._fig_a.update_src(self._src)
+                elif event.key == 'ctrl+' + str(i + 1):
+                    label[i][0].config(text='')
+                    label[i][1].config(text='')
+                    self._src[i] = (None, None)
+                    self._fig_a.update_src(self._src)
+
+        canvas.mpl_connect('key_press_event', on_press)
+
+        self._fig_a = fig
         return frame
 
     def _init_plot_trajectory(self, parent):
@@ -157,6 +192,7 @@ class App(tk.Tk):
 
         self.bind('<<RosSubTraj>>', fig.update_seam)
 
+        self._fig_b = fig
         return frame
 
     def _init_list(self):
@@ -283,6 +319,7 @@ class App(tk.Tk):
         menu_edit.add_command(label='Center...', command=self._cb_menu_center)
         menu_edit.add_command(label='Line filter...', command=self._cb_menu_line_filter)
         menu_edit.add_command(label='Seam filter...', command=self._cb_menu_seam_filter)
+        menu_edit.add_command(label='Homography...', command=self._cb_menu_homography)
         menu_edit.add_command(label='Preserve config', command=self._cb_menu_preserve_config)
         menu_edit.add_command(label='Reboot defaults', command=self._cb_menu_reboot_defaults)
 
@@ -346,21 +383,21 @@ class App(tk.Tk):
         except Exception as e:
             self._msg(f'{str(e)}', level='Error')
 
-    def _cb_menu_export(self):
-        filename = filedialog.asksaveasfilename(
-            title='Export points',
-            initialfile='line.txt',
-            defaultextension='txt',
-            filetypes=[('ASCII text file', '.txt')])
-        export_data(filename)
+    # def _cb_menu_export(self):
+    #     filename = filedialog.asksaveasfilename(
+    #         title='Export points',
+    #         initialfile='line.txt',
+    #         defaultextension='txt',
+    #         filetypes=[('ASCII text file', '.txt')])
+    #     export_data(filename)
 
-    def _cb_menu_export_traj(self):
-        filename = filedialog.asksaveasfilename(
-            title='Export points',
-            initialfile='traj.txt',
-            defaultextension='txt',
-            filetypes=[('ASCII text file', '.txt')])
-        export_traj(filename)
+    # def _cb_menu_export_traj(self):
+    #     filename = filedialog.asksaveasfilename(
+    #         title='Export points',
+    #         initialfile='traj.txt',
+    #         defaultextension='txt',
+    #         filetypes=[('ASCII text file', '.txt')])
+    #     export_traj(filename)
 
     def _cb_menu_exposure(self, *args):
         v = self._params['camera_tis_node']['exposure_time']
@@ -419,6 +456,19 @@ class App(tk.Tk):
                 lambda f: self._cb_set_params_done(f, {'seam_tracking_node': d}))
         else:
             self._msg('Service [seam_tracking_node] is not ready!', level='Warn')
+
+    def _cb_menu_homography(self, *args):
+        # self._fig_a.update_limit((0, 1024), (0, 1536))
+        # self._fig_b.update_limit((0, 1024), (0, 1536))
+        d = dialog_homography(
+            self,
+            initialvalue=self._params['line_center_reconstruction_node'],
+            src=self._src,
+            dst=self._dst)
+        if d is None:
+            return
+        self._params['line_center_reconstruction_node'].update(d)
+        self._msg(f'New matrix: {d}')
 
     def _cb_menu_preserve_config(self, *args):
         self._msg('Menu [Preserve config] clicked')

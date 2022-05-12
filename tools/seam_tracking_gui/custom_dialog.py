@@ -14,6 +14,7 @@
 
 import tkinter as tk
 from tkinter.simpledialog import Dialog
+from perspect import getNewHomography
 
 
 class DialogDelta(Dialog):
@@ -407,4 +408,82 @@ def dialog_seam_filter(app, *, initialvalue: dict):
         'gap': d._gap,
         'step': d._step,
         'length': d._length
+        } if d._ok else None
+
+
+class DialogHomography(Dialog):
+    """Dialog for Homography."""
+
+    def __init__(self, parent, title, *, initialvalue: dict, src: list, dst: list):
+        self._ok = True
+        self._H = initialvalue['homography_matrix']
+        self._src = src
+        self._dst = dst
+        self._x = []
+        self._y = []
+        super().__init__(parent, title)
+
+    def body(self, frame):
+        for i in range(4):
+            f = tk.Frame(frame)
+            f.grid(row=i * 2, column=0, sticky=tk.NSEW)
+            label = tk.Label(f, width=4, text=f'x{i + 1}:')
+            label.grid(row=0, column=0, sticky=tk.EW)
+            label = tk.Label(f, width=10, text=f'{self._src[i][0]:>.2f}')
+            label.grid(row=0, column=1, sticky=tk.EW)
+            label = tk.Entry(f, width=10)
+            label.insert(tk.END, f'{self._dst[i][0]:>.2f}')
+            label.grid(row=0, column=2, sticky=tk.EW)
+            self._x.append(label)
+            f = tk.Frame(frame)
+            f.grid(row=i * 2 + 1, column=0, sticky=tk.NSEW)
+            label = tk.Label(f, width=4, text=f'y{i + 1}:')
+            label.grid(row=0, column=0, sticky=tk.EW)
+            label = tk.Label(f, width=10, text=f'{self._src[i][1]:>.2f}')
+            label.grid(row=0, column=1, sticky=tk.EW)
+            label = tk.Entry(f, width=10)
+            label.insert(tk.END, f'{self._dst[i][1]:>.2f}')
+            label.grid(row=0, column=2, sticky=tk.EW)
+            self._y.append(label)
+            # l = tk.Label(f, text=f'x{i + 1}:', justify='left')
+            # l.pack(side='left')
+            # l = tk.Label(f, text=f'{self._src[i][0]:>.2f}', anchor=tk.E)
+            # l.pack(side='left')
+            # f.pack()
+            # f = tk.Frame(frame)
+            # l = tk.Label(f, text=f'y{i + 1}:', anchor=tk.W)
+            # l.pack(side='left')
+            # l = tk.Label(f, text=f'{self._src[i][1]:>.2f}', anchor=tk.E)
+            # l.pack(side='left')
+            # f.pack()
+
+        return frame
+
+    def ok_pressed(self):
+        try:
+            dst = []
+            for x, y in zip(self._x, self._y):
+                dst.append((float(x.get()), float(y.get())))
+            self._H = getNewHomography(self._src, dst, self._H, remap=(0, 1024, 0, 1536))
+            self.destroy()
+        except Exception:
+            pass
+
+    def cancel_pressed(self):
+        self._ok = False
+        self.destroy()
+
+    def buttonbox(self):
+        self.ok_button = tk.Button(self, text='OK', width=5, command=self.ok_pressed)
+        self.ok_button.pack(side='left')
+        cancel_button = tk.Button(self, text='Cancel', width=5, command=self.cancel_pressed)
+        cancel_button.pack(side='right')
+        self.bind('<Return>', lambda event: self.ok_pressed())
+        self.bind('<Escape>', lambda event: self.cancel_pressed())
+
+
+def dialog_homography(app, **kwargs):
+    d = DialogHomography(title='Homography matrix', parent=app, **kwargs)
+    return {
+        'homography_matrix': d._H
         } if d._ok else None

@@ -101,7 +101,13 @@ class CustomFigure(Figure):
                 "fmt": "-y",
                 "kwargs": {
                     "label": "Line B",
-                    "linewidth": 1.
+                    "markersize": 3.
+                }
+            },
+            "src": {
+                "fmt": "xr",
+                "kwargs": {
+                    "label": "Source",
                 }
             }
         }
@@ -112,12 +118,15 @@ class CustomFigure(Figure):
         ax.set_title('Graph')
         ax.set_xlim(min_x, max_x)
         ax.set_ylim(min_y, max_y)
-        self._info = ax.text(min_x + 10, max_y - 40, 'frames:\nfps:')
-        self._xxyy = ax.text(min_x + 90, max_y - 40, 'X:\nY:')
+        # self._info = ax.text(min_x + 10, max_y - 40, 'frames:\nfps:')
+        # self._xxyy = ax.text(min_x + 90, max_y - 40, 'X:\nY:')
+        self._info = ax.text(0.1, 0.9, 'frames:\nfps:', transform=ax.transAxes)
+        self._xxyy = ax.text(0.5, 0.9, 'X:\nY:', transform=ax.transAxes)
         ax.plot(bound_x, bound_y, "--b")
         for v in self._pd.values():
             v['handle'], = ax.plot([], [], v['fmt'], **v['kwargs'])
         ax.legend(loc='lower left')
+        self._ax = ax
 
     def update_seam(self, *args):
         d, id, fps = seam_data.get()
@@ -154,6 +163,17 @@ class CustomFigure(Figure):
 
         self.canvas.draw_idle()
 
+    def update_limit(self, x, y):
+        self._ax.set_xlim(x[0], x[1])
+        self._ax.set_ylim(y[0], y[1])
+        self.canvas.draw_idle()
+
+    def update_src(self, l: list):
+        x = [i for (i, j) in l if i is not None]
+        y = [j for (i, j) in l if j is not None]
+        self._pd['src']['handle'].set_data(x, y)
+        self.canvas.draw_idle()
+
 
 class CustomFigureT(Figure):
     """A figure with a text watermark."""
@@ -178,6 +198,9 @@ class CustomFigureT(Figure):
         self.plot_y_pick, = ay.plot([], [], '.b', label='pushed', markersize=3)
         self.plot_y_move, = ay.plot([], [], 'sr', label='moved', markersize=3)
         ay.legend(loc='upper right')
+
+        self._ax = ax
+        self._ay = ay
 
     def update_seam(self, *args):
         d, id = seam_data.get_trajectory()
@@ -208,3 +231,8 @@ class CustomFigureT(Figure):
         # if mask_move.size:
         #     self.plot_x_move.set_data(mask_move, data_move['x'])
         #     self.plot_y_move.set_data(mask_move, data_move['y'])
+
+    def update_limit(self, x, y):
+        self._ax.set_ylim(x[0], x[1])
+        self._ay.set_ylim(y[0], y[1])
+        self.canvas.draw_idle()
