@@ -487,3 +487,67 @@ def dialog_homography(app, **kwargs):
     return {
         'homography_matrix': d._H
         } if d._ok else None
+
+
+class DialogLimits(Dialog):
+    """Dialog for Homography."""
+
+    def __init__(self, parent, title):
+        self._ok = True
+        super().__init__(parent, title)
+
+    def body(self, frame):
+        label = tk.Label(frame, width=4, text='Min')
+        label.grid(row=0, column=1, sticky=tk.EW)
+        label = tk.Label(frame, width=4, text='Max')
+        label.grid(row=0, column=2, sticky=tk.EW)
+        label = tk.Label(frame, width=4, text='X')
+        label.grid(row=1, column=0, sticky=tk.EW)
+        label = tk.Label(frame, width=4, text='Y')
+        label.grid(row=2, column=0, sticky=tk.EW)
+        self._minx = tk.Entry(frame, width=10)
+        self._minx.grid(row=1, column=1, sticky=tk.EW)
+        self._maxx = tk.Entry(frame, width=10)
+        self._maxx.grid(row=1, column=2, sticky=tk.EW)
+        self._miny = tk.Entry(frame, width=10)
+        self._miny.grid(row=2, column=1, sticky=tk.EW)
+        self._maxy = tk.Entry(frame, width=10)
+        self._maxy.grid(row=2, column=2, sticky=tk.EW)
+
+        return frame
+
+    def ok_pressed(self):
+        try:
+            self.minx = int(self._minx.get())
+            self.maxx = int(self._maxx.get())
+            self.miny = int(self._miny.get())
+            self.maxy = int(self._maxy.get())
+            self.destroy()
+        except Exception:
+            pass
+        # pass
+        # try:
+        #     dst = []
+        #     for x, y in zip(self._x, self._y):
+        #         dst.append((float(x.get()), float(y.get())))
+        #     self._H = getNewHomography(self._src, dst, self._H, remap=(0, 1024, 0, 1536))
+        #     self.destroy()
+        # except Exception:
+        #     pass
+
+    def cancel_pressed(self):
+        self._ok = False
+        self.destroy()
+
+    def buttonbox(self):
+        self.ok_button = tk.Button(self, text='OK', width=5, command=self.ok_pressed)
+        self.ok_button.pack(side='left')
+        cancel_button = tk.Button(self, text='Cancel', width=5, command=self.cancel_pressed)
+        cancel_button.pack(side='right')
+        self.bind('<Return>', lambda event: self.ok_pressed())
+        self.bind('<Escape>', lambda event: self.cancel_pressed())
+
+
+def dialog_limits(app, **kwargs):
+    d = DialogLimits(title='Figure limits', parent=app, **kwargs)
+    return d.minx, d.maxx, d.miny, d.maxy if d._ok else None

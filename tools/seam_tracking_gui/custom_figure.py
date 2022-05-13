@@ -109,6 +109,18 @@ class CustomFigure(Figure):
                 "kwargs": {
                     "label": "Source",
                 }
+            },
+            "bound_1": {
+                "fmt": "--b",
+                "kwargs": {
+                    "linewidth": 1.
+                }
+            },
+            "bound_2": {
+                "fmt": "--b",
+                "kwargs": {
+                    "linewidth": 1.
+                }
             }
         }
 
@@ -118,11 +130,9 @@ class CustomFigure(Figure):
         ax.set_title('Graph')
         ax.set_xlim(min_x, max_x)
         ax.set_ylim(min_y, max_y)
-        # self._info = ax.text(min_x + 10, max_y - 40, 'frames:\nfps:')
-        # self._xxyy = ax.text(min_x + 90, max_y - 40, 'X:\nY:')
         self._info = ax.text(0.1, 0.9, 'frames:\nfps:', transform=ax.transAxes)
         self._xxyy = ax.text(0.5, 0.9, 'X:\nY:', transform=ax.transAxes)
-        ax.plot(bound_x, bound_y, "--b")
+        # ax.plot(bound_x, bound_y, "--b")
         for v in self._pd.values():
             v['handle'], = ax.plot([], [], v['fmt'], **v['kwargs'])
         ax.legend(loc='lower left')
@@ -172,6 +182,11 @@ class CustomFigure(Figure):
         x = [i for (i, j) in l if i is not None]
         y = [j for (i, j) in l if j is not None]
         self._pd['src']['handle'].set_data(x, y)
+        self.canvas.draw_idle()
+
+    def update_bound(self, a, b, c, d):
+        self._pd['bound_1']['handle'].set_data(a, b)
+        self._pd['bound_2']['handle'].set_data(c, d)
         self.canvas.draw_idle()
 
 
@@ -224,13 +239,6 @@ class CustomFigureT(Figure):
             self.plot_y_move.set_data([], [])
 
         self.canvas.draw_idle()
-        # data_pick, mask_pick, data_move, mask_move = seam_data.get_trajectory()
-        # if mask_pick.size:
-        #     self.plot_x_pick.set_data(mask_pick, data_pick['x'])
-        #     self.plot_y_pick.set_data(mask_pick, data_pick['y'])
-        # if mask_move.size:
-        #     self.plot_x_move.set_data(mask_move, data_move['x'])
-        #     self.plot_y_move.set_data(mask_move, data_move['y'])
 
     def update_limit(self, x, y):
         self._ax.set_ylim(x[0], x[1])

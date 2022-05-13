@@ -57,6 +57,19 @@ def getNewHomography(src, dst, m, *, remap=None):
     return m.ravel().tolist()
 
 
+def getBound(m, remap):
+    if isinstance(m, list):
+        m = np.array(m).reshape((3, 3))
+    x0, x1, y0, y1 = remap
+    src = [(x0, y0), (x1, y0), (x1, y1), (x0, y1)]
+    d = perspectiveTransform(src, m)
+    a = [d[0][0], d[1][0]]
+    b = [d[0][1], d[1][1]]
+    c = [d[3][0], d[2][0]]
+    d = [d[3][1], d[2][1]]
+    return a, b, c, d
+
+
 def main():
     src = [
         (24.124022, 122.92669),

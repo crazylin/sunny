@@ -26,7 +26,8 @@ from ros_node import RosNode, from_parameter_value
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 from custom_figure import CustomFigure, CustomFigureT, msg_to_seam
 from custom_dialog import dialog_delta, dialog_center, dialog_line_filter, dialog_seam_filter
-from custom_dialog import dialog_homography
+from custom_dialog import dialog_homography, dialog_limits
+from perspect import getBound
 from datetime import datetime
 
 
@@ -76,7 +77,8 @@ class App(tk.Tk):
         self._params_cb = {
             'camera_tis_node': {'power': self._params_cb_power},
             'gpio_raspberry_node': {'laser': self._params_cb_laser},
-            'seam_tracking_node': {'task': self._params_cb_task}
+            'seam_tracking_node': {'task': self._params_cb_task},
+            'line_center_reconstruction_node': {'homography_matrix': self._params_cb_homography}
         }
 
         self.title('Seam Tracking GUI')
@@ -167,8 +169,16 @@ class App(tk.Tk):
                     label[i][1].config(text='')
                     self._src[i] = (None, None)
                     self._fig_a.update_src(self._src)
+            for x, y in self._src:
+                if x is None or y is None:
+                    self._menu_edit.entryconfig('Homography...', state='disabled')
+                    break
+            else:
+                self._menu_edit.entryconfig('Homography...', state='normal')
 
         canvas.mpl_connect('key_press_event', on_press)
+        # canvas.mpl_connect('figure_enter_event', lambda event:canvas._tkcanvas.focus_set())
+        canvas.mpl_connect('figure_enter_event', lambda event: canvas.get_tk_widget().focus_set())
 
         self._fig_a = fig
         return frame
@@ -319,7 +329,11 @@ class App(tk.Tk):
         menu_edit.add_command(label='Center...', command=self._cb_menu_center)
         menu_edit.add_command(label='Line filter...', command=self._cb_menu_line_filter)
         menu_edit.add_command(label='Seam filter...', command=self._cb_menu_seam_filter)
-        menu_edit.add_command(label='Homography...', command=self._cb_menu_homography)
+        menu_edit.add_command(
+            label='Homography...',
+            command=self._cb_menu_homography,
+            state='disabled')
+        menu_edit.add_command(label='Limits...', command=self._cb_menu_limits)
         menu_edit.add_command(label='Preserve config', command=self._cb_menu_preserve_config)
         menu_edit.add_command(label='Reboot defaults', command=self._cb_menu_reboot_defaults)
 
@@ -328,6 +342,8 @@ class App(tk.Tk):
         menubar.add_cascade(menu=menu_file, label='File')
         menubar.add_cascade(menu=menu_edit, label='Edit')
         menubar.add_cascade(menu=menu_help, label='Help')
+
+        self._menu_edit = menu_edit
 
     # def _ros_cb_pnts(self, msg):
     #     self.fig.msg_to_pnts(msg)
@@ -470,6 +486,23 @@ class App(tk.Tk):
         self._params['line_center_reconstruction_node'].update(d)
         self._msg(f'New matrix: {d}')
 
+    def _cb_menu_limits(self, *args):
+        d = dialog_limits(self)
+        if d:
+            self._fig_a.update_limit((d[0], d[1]), (d[2], d[3]))
+            self._fig_b.update_limit((d[0], d[1]), (d[2], d[3]))
+        # self._fig_a.update_limit((0, 1024), (0, 1536))
+        # self._fig_b.update_limit((0, 1024), (0, 1536))
+        # d = dialog_homography(
+        #     self,
+        #     initialvalue=self._params['line_center_reconstruction_node'],
+        #     src=self._src,
+        #     dst=self._dst)
+        # if d is None:
+        #     return
+        # self._params['line_center_reconstruction_node'].update(d)
+        # self._msg(f'New matrix: {d}')
+
     def _cb_menu_preserve_config(self, *args):
         self._msg('Menu [Preserve config] clicked')
         msg = yaml.dump(self._params)
@@ -499,6 +532,10 @@ class App(tk.Tk):
     def _params_cb_task(self, task: int):
         self._task = task
         self._update_codes()
+
+    def _params_cb_homography(self, h):
+        a, b, c, d = getBound(list(h), (0, 1024, 0, 1536))
+        self._fig_a.update_bound(a, b, c, d)
 
     def _cb_btn_power(self, *args):
         if self.btn_power['text'] == 'Camera on':
