@@ -422,11 +422,12 @@ def dialog_seam_filter(app, *, initialvalue: dict):
     else:
         return None
 
+
 class DialogHomography(Dialog):
     """Dialog for Homography."""
 
     def __init__(self, parent, title, *, initialvalue: dict, src: list, dst: list):
-        self._ok = True
+        self._ok = False
         self._H = initialvalue['homography_matrix']
         self._src = src
         self._dst = dst
@@ -476,6 +477,7 @@ class DialogHomography(Dialog):
             for x, y in zip(self._x, self._y):
                 dst.append((float(x.get()), float(y.get())))
             self._H = getNewHomography(self._src, dst, self._H, remap=(0, 1024, 0, 1536))
+            self._ok = True
             self.destroy()
         except Exception:
             pass
@@ -495,9 +497,10 @@ class DialogHomography(Dialog):
 
 def dialog_homography(app, **kwargs):
     d = DialogHomography(title='Homography matrix', parent=app, **kwargs)
-    return {
-        'homography_matrix': d._H
-        } if d._ok else None
+    if d._ok:
+        return {'homography_matrix': d._H}
+    else:
+        return None
 
 
 class DialogLimits(Dialog):
@@ -537,15 +540,6 @@ class DialogLimits(Dialog):
             self.destroy()
         except Exception:
             pass
-        # pass
-        # try:
-        #     dst = []
-        #     for x, y in zip(self._x, self._y):
-        #         dst.append((float(x.get()), float(y.get())))
-        #     self._H = getNewHomography(self._src, dst, self._H, remap=(0, 1024, 0, 1536))
-        #     self.destroy()
-        # except Exception:
-        #     pass
 
     def cancel_pressed(self):
         self._ok = False
