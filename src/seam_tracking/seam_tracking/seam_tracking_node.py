@@ -259,8 +259,8 @@ class SeamTracking(Node):
 
         try:
             t = bytes()
-            t += round(u * 100).to_bytes(2, 'big')
-            t += round(v * 100).to_bytes(2, 'big')
+            t += round(u * 100).to_bytes(2, 'big', signed=True)
+            t += round(v * 100).to_bytes(2, 'big', signed=True)
         except Exception:
             s += bytes([0x00, 0x00, 0x00, 0x00, 0x00, 0x00])
         else:

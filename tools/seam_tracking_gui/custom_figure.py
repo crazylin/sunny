@@ -17,12 +17,12 @@ from matplotlib.figure import Figure
 from point_data import SeamData
 
 seam_data = SeamData()
-bound_x = [0, 118, 175, 260, 0]
-bound_y = [519, 0, 0, 519, 519]
-min_x = 0
+# bound_x = [0, 118, 175, 260, 0]
+# bound_y = [519, 0, 0, 519, 519]
+min_x = -100
 min_y = 0
-max_x = 260
-max_y = 260
+max_x = 100
+max_y = 300
 
 
 def msg_to_seam(msg):

@@ -68,9 +68,9 @@ class App(tk.Tk):
                 'length': 30},
             'line_center_reconstruction_node': {
                 'homography_matrix': [
-                    0.302718855716717, 0.2680616514567186, -181.85417936466143,
-                    -0.849229120372951, 0.009089116739800679, 740.9142506876663,
-                    0.006088569213627282, 4.084374210838134e-06, 1.0]
+                    0.16085207487679626, 0.2679666549425936, -205.1548588898662,
+                    -0.7409214060537485, 0.009161773590904738, 758.7035197990384,
+                    0.0060885745075360325, 4.084389881288615e-06, 1.0]
             }
         }
 
@@ -319,6 +319,7 @@ class App(tk.Tk):
         menu_file.add_command(label='New', command=lambda: self.btn_append.invoke())
         menu_file.add_command(label='Open...', command=lambda: self.btn_upload.invoke())
         menu_file.add_command(label='Save...', command=lambda: self.btn_backup.invoke())
+        menu_file.add_command(label='Reboot', command=self._cb_menu_reboot)
         # menu_file.add_command(label='Export...', command=self._cb_menu_export)
         # menu_file.add_command(label='Traj...', command=self._cb_menu_export_traj)
         menu_file.add_command(label='Close', command=self.__exit)
@@ -415,6 +416,13 @@ class App(tk.Tk):
     #         filetypes=[('ASCII text file', '.txt')])
     #     export_traj(filename)
 
+    def _cb_menu_reboot(self, *args):
+        self._msg('Menu [Reboot] clicked')
+        yes = messagebox.askyesno('Question', message='Reboot?')
+        if not yes:
+            return
+        self.ros.pub_config('restart')
+
     def _cb_menu_exposure(self, *args):
         v = self._params['camera_tis_node']['exposure_time']
         v = str(v) if v is not None else ''
@@ -510,6 +518,9 @@ class App(tk.Tk):
 
     def _cb_menu_reboot_defaults(self, *args):
         self._msg('Menu [Reboot defaults] clicked')
+        yes = messagebox.askyesno('Question', message='Reboot with defaults?')
+        if not yes:
+            return
         self.ros.pub_config('')
         self.ros.pub_config('restart')
 

@@ -31,6 +31,8 @@ def findHomography(src, dst):
 
 
 def perspectiveTransform(src, m, *, inv=False):
+    if isinstance(m, list):
+        m = np.array(m).reshape((3, 3))
     if inv:
         m = np.linalg.inv(m)
     src = np.array([(x, y, 1.) for x, y in src])
@@ -51,8 +53,10 @@ def getNewHomography(src, dst, m, *, remap=None):
     x = [d[0] for d in dst]
     y = [d[1] for d in dst]
     min_x = min(x)
+    max_x = max(x)
+    delta_x = (min_x + max_x) / 2.
     min_y = min(y)
-    dst = [(x - min_x, y - min_y) for x, y in dst]
+    dst = [(x - delta_x, y - min_y) for x, y in dst]
     m = findHomography(src, dst)
     return m.ravel().tolist()
 

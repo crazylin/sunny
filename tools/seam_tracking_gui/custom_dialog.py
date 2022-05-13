@@ -21,7 +21,7 @@ class DialogDelta(Dialog):
     """Dialog for offset."""
 
     def __init__(self, parent, title, *, initialvalue: dict):
-        self._ok = True
+        self._ok = False
         self._x = initialvalue['delta_x']
         self._y = initialvalue['delta_y']
         super().__init__(parent, title)
@@ -53,10 +53,10 @@ class DialogDelta(Dialog):
         try:
             self._x = float(self.x_box.get())
             self._y = float(self.y_box.get())
+            self._ok = True
+            self.destroy()
         except Exception:
             pass
-        else:
-            self.destroy()
 
     def cancel_pressed(self):
         self._ok = False
@@ -73,14 +73,17 @@ class DialogDelta(Dialog):
 
 def dialog_delta(app, *, initialvalue: dict):
     d = DialogDelta(title='Offset', parent=app, initialvalue=initialvalue)
-    return {'delta_x': d._x, 'delta_y': d._y} if d._ok else None
+    if d._ok:
+        return {'delta_x': d._x, 'delta_y': d._y}
+    else:
+        return None
 
 
 class DialogLineFilter(Dialog):
     """Dialog for laser line filter."""
 
     def __init__(self, parent, title, *, initialvalue: dict):
-        self._ok = True
+        self._ok = False
         self._b = initialvalue['enable']
         self._ws = initialvalue['window_size']
         self._gap = initialvalue['gap']
@@ -163,10 +166,10 @@ class DialogLineFilter(Dialog):
                 self._dev = float(self.dev_box.get())
                 self._step = float(self.step_box.get())
                 self._length = int(self.length_box.get())
+            self._ok = True
+            self.destroy()
         except Exception:
             pass
-        else:
-            self.destroy()
 
     def cancel_pressed(self):
         self._ok = False
@@ -197,21 +200,24 @@ class DialogLineFilter(Dialog):
 
 def dialog_line_filter(app, *, initialvalue: dict):
     d = DialogLineFilter(title='Laser line filter', parent=app, initialvalue=initialvalue)
-    return {
-        'enable': d._b,
-        'window_size': d._ws,
-        'gap': d._gap,
-        'deviate': d._dev,
-        'step': d._step,
-        'length': d._length
-        } if d._ok else None
+    if d._ok:
+        return {
+            'enable': d._b,
+            'window_size': d._ws,
+            'gap': d._gap,
+            'deviate': d._dev,
+            'step': d._step,
+            'length': d._length
+            }
+    else:
+        return None
 
 
 class DialogCenter(Dialog):
     """Dialog for laser line center."""
 
     def __init__(self, parent, title, *, initialvalue: dict):
-        self._ok = True
+        self._ok = False
         self._ksize = initialvalue['ksize']
         self._threshold = initialvalue['threshold']
         self._wmin = initialvalue['width_min']
@@ -267,10 +273,10 @@ class DialogCenter(Dialog):
             self._threshold = int(self.threshold_box.get())
             self._wmin = float(self.wmin_box.get())
             self._wmax = float(self.wmax_box.get())
+            self._ok = True
+            self.destroy()
         except Exception:
             pass
-        else:
-            self.destroy()
 
     def cancel_pressed(self):
         self._ok = False
@@ -287,19 +293,22 @@ class DialogCenter(Dialog):
 
 def dialog_center(app, *, initialvalue: dict):
     d = DialogCenter(title='Laser line center', parent=app, initialvalue=initialvalue)
-    return {
-        'ksize': d._ksize,
-        'threshold': d._threshold,
-        'width_min': d._wmin,
-        'width_max': d._wmax
-        } if d._ok else None
+    if d._ok:
+        return {
+            'ksize': d._ksize,
+            'threshold': d._threshold,
+            'width_min': d._wmin,
+            'width_max': d._wmax
+            }
+    else:
+        return None
 
 
 class DialogSeamFilter(Dialog):
     """Dialog for seam tracking."""
 
     def __init__(self, parent, title, *, initialvalue: dict):
-        self._ok = True
+        self._ok = False
         self._b = initialvalue['enable']
         self._ws = initialvalue['window_size']
         self._gap = initialvalue['gap']
@@ -370,10 +379,10 @@ class DialogSeamFilter(Dialog):
                 self._gap = int(self.gap_box.get())
                 self._step = float(self.step_box.get())
                 self._length = int(self.length_box.get())
+            self._ok = True
+            self.destroy()
         except Exception:
             pass
-        else:
-            self.destroy()
 
     def cancel_pressed(self):
         self._ok = False
@@ -402,14 +411,16 @@ class DialogSeamFilter(Dialog):
 
 def dialog_seam_filter(app, *, initialvalue: dict):
     d = DialogSeamFilter(title='Seam tracking filter', parent=app, initialvalue=initialvalue)
-    return {
-        'enable': d._b,
-        'window_size': d._ws,
-        'gap': d._gap,
-        'step': d._step,
-        'length': d._length
-        } if d._ok else None
-
+    if d._ok:
+        return {
+            'enable': d._b,
+            'window_size': d._ws,
+            'gap': d._gap,
+            'step': d._step,
+            'length': d._length
+            }
+    else:
+        return None
 
 class DialogHomography(Dialog):
     """Dialog for Homography."""
@@ -493,7 +504,7 @@ class DialogLimits(Dialog):
     """Dialog for Homography."""
 
     def __init__(self, parent, title):
-        self._ok = True
+        self._ok = False
         super().__init__(parent, title)
 
     def body(self, frame):
@@ -522,6 +533,7 @@ class DialogLimits(Dialog):
             self.maxx = int(self._maxx.get())
             self.miny = int(self._miny.get())
             self.maxy = int(self._maxy.get())
+            self._ok = True
             self.destroy()
         except Exception:
             pass
@@ -550,4 +562,7 @@ class DialogLimits(Dialog):
 
 def dialog_limits(app, **kwargs):
     d = DialogLimits(title='Figure limits', parent=app, **kwargs)
-    return d.minx, d.maxx, d.miny, d.maxy if d._ok else None
+    if d._ok:
+        return d.minx, d.maxx, d.miny, d.maxy
+    else:
+        return None
