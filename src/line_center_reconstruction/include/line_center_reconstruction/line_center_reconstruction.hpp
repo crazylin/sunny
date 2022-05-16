@@ -31,7 +31,8 @@ using sensor_msgs::msg::PointCloud2;
  * @brief List of parameter names.
  *
  */
-const std::vector<std::string> KEYS = {"camera_matrix", "distort_coeffs", "homography_matrix"};
+const std::vector<std::string> KEYS = {"homography_matrix"};
+// const std::vector<std::string> KEYS = {"camera_matrix", "distort_coeffs", "homography_matrix"};
 
 /**
  * @brief Group parameters together.
@@ -39,8 +40,8 @@ const std::vector<std::string> KEYS = {"camera_matrix", "distort_coeffs", "homog
  */
 struct Params
 {
-  std::vector<double> camera_matrix;
-  std::vector<double> distort_coeffs;
+  // std::vector<double> camera_matrix;
+  // std::vector<double> distort_coeffs;
   std::vector<double> homography_matrix;
 };
 

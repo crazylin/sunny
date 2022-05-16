@@ -186,8 +186,8 @@ LineCenterReconstruction::~LineCenterReconstruction()
 void LineCenterReconstruction::_declare_parameters()
 {
   Params pm;
-  this->declare_parameter("camera_matrix", pm.camera_matrix);
-  this->declare_parameter("distort_coeffs", pm.distort_coeffs);
+  // this->declare_parameter("camera_matrix", pm.camera_matrix);
+  // this->declare_parameter("distort_coeffs", pm.distort_coeffs);
   this->declare_parameter("homography_matrix", pm.homography_matrix);
 }
 
@@ -196,13 +196,16 @@ Params LineCenterReconstruction::_update_parameters()
   Params pm;
   const auto & vp = this->get_parameters(KEYS);
   for (const auto & p : vp) {
-    if (p.get_name() == "camera_matrix") {
-      pm.camera_matrix = p.as_double_array();
-    } else if (p.get_name() == "distort_coeffs") {
-      pm.distort_coeffs = p.as_double_array();
-    } else if (p.get_name() == "homography_matrix") {
+    if (p.get_name() == "homography_matrix") {
       pm.homography_matrix = p.as_double_array();
     }
+    // if (p.get_name() == "camera_matrix") {
+    //   pm.camera_matrix = p.as_double_array();
+    // } else if (p.get_name() == "distort_coeffs") {
+    //   pm.distort_coeffs = p.as_double_array();
+    // } else if (p.get_name() == "homography_matrix") {
+    //   pm.homography_matrix = p.as_double_array();
+    // }
   }
   return pm;
   // for (const auto & p : vp) {
