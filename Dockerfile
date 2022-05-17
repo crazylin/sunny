@@ -87,15 +87,15 @@ RUN sed -i '/source/c source /workspace/sunny/install/setup.bash' /ros_entrypoin
 
 FROM osrf/ros:galactic-desktop AS desktop
 
-COPY ./tools/seam_tracking_gui /workspace/sunny/tools/seam_tracking_gui
-COPY ./tools/ros2_numpy /usr/lib/python3/dist-packages/ros2_numpy
-
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     && apt-get -y install --no-install-recommends \
     python3-tk \
     python3-pil \
     python3-matplotlib \
     && rm -rf /var/lib/apt/lists/*
+
+COPY ./tools/seam_tracking_gui /workspace/sunny/tools/seam_tracking_gui
+COPY ./tools/ros2_numpy /usr/lib/python3/dist-packages/ros2_numpy
 
 RUN sed -i '/source/a umask 0' /ros_entrypoint.sh
 
