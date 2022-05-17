@@ -20,7 +20,7 @@ from sensor_msgs.msg import PointCloud2
 # from shared_interfaces.srv import SetCode
 from rcl_interfaces.srv import GetParameters, SetParameters
 from rcl_interfaces.msg import Parameter, ParameterType, ParameterValue, Log
-
+from collections.abc import Sequence
 
 def from_parameter_value(p: ParameterValue):
     if p.type == ParameterType.PARAMETER_NOT_SET:
@@ -45,28 +45,33 @@ def from_parameter_value(p: ParameterValue):
         return None
 
 
-def to_parameter_value(v):
-    if type(v) is int:
-        return ParameterValue(type=ParameterType.PARAMETER_INTEGER, integer_value=v)
-    elif type(v) is float:
-        return ParameterValue(type=ParameterType.PARAMETER_DOUBLE, double_value=v)
-    elif type(v) is bool:
-        return ParameterValue(type=ParameterType.PARAMETER_BOOL, bool_value=v)
-    elif type(v) is str:
-        return ParameterValue(type=ParameterType.PARAMETER_STRING, string_value=v)
-    elif type(v) is list:
-        if type(v[0]) is int:
-            return ParameterValue(
-                type=ParameterType.PARAMETER_INTEGER_ARRAY,
-                integer_array_value=v)
-        elif type(v[0]) is float:
-            return ParameterValue(type=ParameterType.PARAMETER_DOUBLE_ARRAY, double_array_value=v)
-        elif type(v[0]) is bool:
-            return ParameterValue(type=ParameterType.PARAMETER_BOOL_ARRAY, bool_array_value=v)
-        elif type(v[0]) is str:
-            return ParameterValue(type=ParameterType.PARAMETER_STRING_ARRAY, string_array_value=v)
-    else:
-        return None
+def to_parameter_value(value):
+    if isinstance(value, bool):
+        return ParameterValue(type=ParameterType.PARAMETER_BOOL, bool_value=value)
+    if isinstance(value, int):
+        return ParameterValue(type=ParameterType.PARAMETER_INTEGER, integer_value=value)
+    if isinstance(value, float):
+        return ParameterValue(type=ParameterType.PARAMETER_DOUBLE, double_value=value)
+    if isinstance(value, str):
+        return ParameterValue(type=ParameterType.PARAMETER_STRING, string_value=value)
+
+    if isinstance(value, Sequence) and all(isinstance(v, str) for v in value):
+        return ParameterValue(
+            type=ParameterType.PARAMETER_STRING_ARRAY,
+            string_array_value=value)
+    if isinstance(value, Sequence) and all(isinstance(v, bool) for v in value):
+        return ParameterValue(
+            type=ParameterType.PARAMETER_BOOL_ARRAY,
+            bool_array_value=value)
+    if isinstance(value, Sequence) and all(isinstance(v, int) for v in value):
+        return ParameterValue(
+            type=ParameterType.PARAMETER_INTEGER_ARRAY,
+            integer_array_value=value)
+    if isinstance(value, Sequence) and all(isinstance(v, float) for v in value):
+        return ParameterValue(
+            type=ParameterType.PARAMETER_DOUBLE_ARRAY,
+            double_array_value=value)
+    return None
 
 
 class RosNode(Node):
@@ -86,8 +91,6 @@ class RosNode(Node):
             self._cli_set[k] = self.create_client(SetParameters, f'/{k}/set_parameters')
 
         self._create_publisher('config', String, '/config_tis_node/config', 10)
-        # self._create_client('get_code', GetCode, '/seam_tracking_node/get_code')
-        # self._create_client('set_code', SetCode, '/seam_tracking_node/set_code')
 
     def pub_config(self, msg: str):
         s = String()
@@ -121,25 +124,6 @@ class RosNode(Node):
             '/rosout',
             cb,
             10)
-
-    # def get_code(self, index: int):
-    #     cli = self._cli['get_code']
-    #     if cli.service_is_ready():
-    #         request = GetCode.Request()
-    #         request.index = index
-    #         return cli.call_async(request)
-    #     else:
-    #         return None
-
-    # def set_code(self, index: int, code: str):
-    #     cli = self._cli['set_code']
-    #     if cli.service_is_ready():
-    #         request = SetCode.Request()
-    #         request.index = index
-    #         request.code = code
-    #         return cli.call_async(request)
-    #     else:
-    #         return None
 
     def get_params(self, name: str, params: list):
         cli = self._cli_get[name]

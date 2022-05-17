@@ -482,8 +482,6 @@ class App(tk.Tk):
             self._msg('Service [seam_tracking_node] is not ready!', level='Warn')
 
     def _cb_menu_homography(self, *args):
-        # self._fig_a.update_limit((0, 1024), (0, 1536))
-        # self._fig_b.update_limit((0, 1024), (0, 1536))
         d = dialog_homography(
             self,
             initialvalue=self._params['line_center_reconstruction_node'],
@@ -491,25 +489,20 @@ class App(tk.Tk):
             dst=self._dst)
         if d is None:
             return
-        self._params['line_center_reconstruction_node'].update(d)
-        self._msg(f'New matrix: {d}')
+        future = self.ros.set_params('line_center_reconstruction_node', d)
+        if future is not None:
+            future.add_done_callback(
+                lambda f: self._cb_set_params_done(f, {'line_center_reconstruction_node': d}))
+        else:
+            self._msg('Service [line_center_reconstruction_node] is not ready!', level='Warn')
+        # self._params['line_center_reconstruction_node'].update(d)
+        # self._msg(f'New matrix: {d}')
 
     def _cb_menu_limits(self, *args):
         d = dialog_limits(self)
         if d:
             self._fig_a.update_limit((d[0], d[1]), (d[2], d[3]))
             self._fig_b.update_limit((d[0], d[1]), (d[2], d[3]))
-        # self._fig_a.update_limit((0, 1024), (0, 1536))
-        # self._fig_b.update_limit((0, 1024), (0, 1536))
-        # d = dialog_homography(
-        #     self,
-        #     initialvalue=self._params['line_center_reconstruction_node'],
-        #     src=self._src,
-        #     dst=self._dst)
-        # if d is None:
-        #     return
-        # self._params['line_center_reconstruction_node'].update(d)
-        # self._msg(f'New matrix: {d}')
 
     def _cb_menu_preserve_config(self, *args):
         self._msg('Menu [Preserve config] clicked')
