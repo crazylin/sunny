@@ -34,13 +34,13 @@ def from_parameter_value(p: ParameterValue):
     elif p.type == ParameterType.PARAMETER_STRING:
         return p.string_value
     elif p.type == ParameterType.PARAMETER_BOOL_ARRAY:
-        return p.bool_array_value
+        return list(p.bool_array_value)
     elif p.type == ParameterType.PARAMETER_DOUBLE_ARRAY:
-        return p.double_array_value
+        return list(p.double_array_value)
     elif p.type == ParameterType.PARAMETER_INTEGER_ARRAY:
-        return p.integer_array_value
+        return list(p.integer_array_value)
     elif p.type == ParameterType.PARAMETER_STRING_ARRAY:
-        return p.string_array_value
+        return list(p.string_array_value)
     else:
         return None
 
