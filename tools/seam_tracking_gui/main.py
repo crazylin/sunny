@@ -102,7 +102,6 @@ class App(tk.Tk):
         self.columnconfigure(1, weight=3)
 
         self.ros = RosNode(self._params)
-        # self.ros.sub_pnts(self._ros_cb_pnts)
         self.ros.sub_seam(self._ros_cb_seam)
         self.ros.sub_log(self._ros_cb_log)
 
