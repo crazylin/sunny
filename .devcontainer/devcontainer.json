@@ -24,10 +24,10 @@
 	"extensions": [
 		"ms-vscode.cpptools",
 		"ms-python.python",
-		"ms-azuretools.vscode-docker",
-		"ms-vscode.cmake-tools",
-		"cschlosser.doxdocgen",
-		"njpwerner.autodocstring"
+		// "ms-azuretools.vscode-docker",
+		// "ms-vscode.cmake-tools",
+		// "cschlosser.doxdocgen",
+		// "njpwerner.autodocstring"
 	],
 
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.

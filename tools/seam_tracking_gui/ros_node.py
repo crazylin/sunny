@@ -16,11 +16,10 @@ from rclpy.node import Node
 from rclpy.qos import qos_profile_sensor_data
 from std_msgs.msg import String
 from sensor_msgs.msg import PointCloud2
-# from shared_interfaces.srv import GetCode
-# from shared_interfaces.srv import SetCode
 from rcl_interfaces.srv import GetParameters, SetParameters
 from rcl_interfaces.msg import Parameter, ParameterType, ParameterValue, Log
 from collections.abc import Sequence
+
 
 def from_parameter_value(p: ParameterValue):
     if p.type == ParameterType.PARAMETER_NOT_SET:
@@ -46,6 +45,8 @@ def from_parameter_value(p: ParameterValue):
 
 
 def to_parameter_value(value):
+    if value is None:
+        return ParameterValue(type=ParameterType.PARAMETER_NOT_SET)
     if isinstance(value, bool):
         return ParameterValue(type=ParameterType.PARAMETER_BOOL, bool_value=value)
     if isinstance(value, int):
@@ -82,7 +83,6 @@ class RosNode(Node):
 
         self._pub = {}
         self._sub = {}
-        self._cli = {}
         self._cli_get = {}
         self._cli_set = {}
 
@@ -155,11 +155,6 @@ class RosNode(Node):
             self.destroy_subscription(self._sub[sub_name])
         self._sub[sub_name] = self.create_subscription(*args, **kwargs)
 
-    def _create_client(self, cli_name: str, *args, **kwargs):
-        if cli_name in self._cli:
-            self.destroy_client(self._cli[cli_name])
-        self._cli[cli_name] = self.create_client(*args, **kwargs)
-
     def _remove_publisher(self, pub_name: str):
         if pub_name in self._pub:
             del self._pub[pub_name]
@@ -167,7 +162,3 @@ class RosNode(Node):
     def _remove_subscription(self, sub_name: str):
         if sub_name in self._sub:
             del self._sub[sub_name]
-
-    def _remove_client(self, cli_name: str):
-        if cli_name in self._cli:
-            del self._cli[cli_name]

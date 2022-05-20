@@ -23,9 +23,9 @@ def findHomography(src, dst):
             [0, 0, 0, x, y, 1, -Y * x, -Y * y],
         ])
 
-    A = np.matrix(in_matrix, dtype=np.float)
+    A = np.array(in_matrix, dtype=np.float)
     B = np.array(dst, dtype=np.float).reshape(8)
-    # af = np.dot(np.linalg.inv(A.T * A) * A.T, B)
+    # H = np.dot(np.linalg.inv(A.T * A) * A.T, B)
     H = np.linalg.solve(A, B)
     return np.append(H, 1.).reshape((3, 3))
 

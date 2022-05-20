@@ -560,3 +560,32 @@ def dialog_limits(app, **kwargs):
         return d.minx, d.maxx, d.miny, d.maxy
     else:
         return None
+
+class DialogTemplate(Dialog):
+    """Dialog for Template."""
+
+    def __init__(self, parent, title: str, d: dict):
+        super().__init__(parent, title)
+        self._d = d
+        self._ok = False
+
+    def body(self, frame):
+        return frame
+
+    def ok_pressed(self):
+        try:
+            self._ok = True
+            self.destroy()
+        except Exception:
+            pass
+
+    def cancel_pressed(self):
+        self.destroy()
+
+    def buttonbox(self):
+        self.ok_button = tk.Button(self, text='OK', width=5, command=self.ok_pressed)
+        self.ok_button.pack(side='left')
+        cancel_button = tk.Button(self, text='Cancel', width=5, command=self.cancel_pressed)
+        cancel_button.pack(side='right')
+        self.bind('<Return>', lambda event: self.ok_pressed())
+        self.bind('<Escape>', lambda event: self.cancel_pressed())
