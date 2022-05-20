@@ -28,13 +28,13 @@ GpioRaspberry::GpioRaspberry(const rclcpp::NodeOptions & options)
 : Node("gpio_raspberry_node", options),
   _chip(gpiod_chip_open_by_name("gpiochip0"), gpiod_chip_close),
   _line_26(gpiod_chip_get_line(_chip.get(), 26), gpiod_line_release),
-  _line_6(gpiod_chip_get_line(_chip.get(), 6), gpiod_line_release)
+  _line_5(gpiod_chip_get_line(_chip.get(), 5), gpiod_line_release)
 {
   // To enforce start with laser off
   this->declare_parameter("laser", false, ParameterDescriptor(), true);
 
   gpiod_line_request_output(_line_26.get(), "ros", 0);
-  gpiod_line_request_output(_line_6.get(), "ros", 1);
+  gpiod_line_request_output(_line_5.get(), "ros", 1);
 
   _handle = this->add_on_set_parameters_callback(
     [this](const std::vector<rclcpp::Parameter> & parameters) {

@@ -77,7 +77,7 @@ private:
    * @brief The handle to gpio line 6.
    *
    */
-  std::unique_ptr<gpiod_line, void (*)(gpiod_line *)> _line_6;
+  std::unique_ptr<gpiod_line, void (*)(gpiod_line *)> _line_5;
 
   /**
    * @brief ROS parameter callback handle.
