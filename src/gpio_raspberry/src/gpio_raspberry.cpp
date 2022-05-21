@@ -17,7 +17,6 @@
 #include <gpiod.h>
 
 #include <vector>
-#include <fstream>
 
 namespace gpio_raspberry
 {
@@ -28,19 +27,14 @@ using rcl_interfaces::msg::SetParametersResult;
 GpioRaspberry::GpioRaspberry(const rclcpp::NodeOptions & options)
 : Node("gpio_raspberry_node", options),
   _chip(gpiod_chip_open_by_name("gpiochip0"), gpiod_chip_close),
-  _line_26(gpiod_chip_get_line(_chip.get(), 26), gpiod_line_release)
-  // _line_6(gpiod_chip_get_line(_chip.get(), 6), gpiod_line_release)
+  _line_26(gpiod_chip_get_line(_chip.get(), 26), gpiod_line_release),
+  _line_22(gpiod_chip_get_line(_chip.get(), 22), gpiod_line_release)
 {
   // To enforce start with laser off
   this->declare_parameter("laser", false, ParameterDescriptor(), true);
 
   gpiod_line_request_output(_line_26.get(), "ros", 0);
-
-  // gpiod_line_request_output(_line_6.get(), "ros", 0);
-  // gpiod_line_set_value(_line_6.get(), 1);
-  std::ofstream ofile("/sys/class/gpio/gpio6/value");
-  ofile << '1' << std::endl;
-  ofile.close();
+  gpiod_line_request_output(_line_22.get(), "ros", 1);
 
   _handle = this->add_on_set_parameters_callback(
     [this](const std::vector<rclcpp::Parameter> & parameters) {
@@ -65,9 +59,6 @@ GpioRaspberry::GpioRaspberry(const rclcpp::NodeOptions & options)
 GpioRaspberry::~GpioRaspberry()
 {
   try {
-    std::ofstream ofile("/sys/class/gpio/gpio6/value");
-    ofile << '0' << std::endl;
-    ofile.close();
     RCLCPP_INFO(this->get_logger(), "Destroyed successfully");
   } catch (const std::exception & e) {
     RCLCPP_FATAL(this->get_logger(), "Exception in destructor: %s", e.what());
