@@ -22,12 +22,18 @@
 # RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
 #     && apt-get -y install --no-install-recommends <your-package-list-here>
 
+# ROS code name: galactic, humble
+ARG TAG
+
+# Ubuntu code name: focal, jammy
+ARG CODENAME
+
 # Build enviroments
-FROM zhuoqiw/ros-opencv:4.5.5 AS opencv
+FROM zhuoqiw/ros-opencv:${CODENAME}-4.5.5 AS opencv
 
-FROM zhuoqiw/ros-tis:0.14.0 AS tiscamera
+FROM zhuoqiw/ros-tis:${CODENAME}-0.14.0 AS tiscamera
 
-FROM ros:galactic AS runtime
+FROM ros:${TAG} AS runtime
 
 COPY --from=tiscamera /tiscamera.deb /tiscamera.deb
 COPY --from=opencv /opt/opencv /opt/opencv
@@ -44,15 +50,17 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
 RUN echo "/opt/opencv/lib" >> /etc/ld.so.conf.d/opencv.conf \
     && ldconfig
 
-RUN echo "source /opt/ros/galactic/setup.bash" >> /root/.bashrc
+RUN echo "source /opt/ros/${TAG}/setup.bash" >> /root/.bashrc
 
 FROM runtime AS dev
+
+ARG TAG
 
 # Create a non-root user
 RUN groupadd --gid 1000 ros \
   && useradd -s /bin/bash --uid 1000 --gid 1000 -m ros \
   && usermod -a -G video ros \
-  && echo "source /opt/ros/galactic/setup.bash" >> /home/ros/.bashrc
+  && echo "source /opt/ros/${TAG}/setup.bash" >> /home/ros/.bashrc
 
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     && apt-get -y install --no-install-recommends \
@@ -85,7 +93,7 @@ RUN sed -i '$c source /workspace/sunny/install/setup.bash' /root/.bashrc
 
 RUN sed -i '/source/c source /workspace/sunny/install/setup.bash' /ros_entrypoint.sh
 
-FROM osrf/ros:galactic-desktop AS desktop
+FROM osrf/ros:${TAG}-desktop-${CODENAME} AS desktop
 
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     && apt-get -y install --no-install-recommends \

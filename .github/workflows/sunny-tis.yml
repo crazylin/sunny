@@ -1,8 +1,18 @@
 # For more details, see https://docs.github.com/en/actions
-name: Build sunny-tis images
+name: Build sunny-tis
 
 # Controls when the workflow will run
-on: workflow_dispatch
+on:
+  workflow_dispatch:
+    inputs:
+      ubuntu_version:
+        description: 'Ubuntu version'
+        required: true
+        default: '22.04'
+        type: choice
+        options:
+        - '20.04'
+        - '22.04'
 
 defaults:
   run:
@@ -12,7 +22,7 @@ defaults:
 jobs:
   runtime:
     name: Runtime
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-${{ github.event.inputs.ubuntu_version }}
     steps:
       -
         name: Set up QEMU
@@ -28,17 +38,35 @@ jobs:
           password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
       -
         name: Build and push
+        if: github.event.inputs.ubuntu_version == '20.04'
         uses: docker/build-push-action@v2
         with:
           target: runtime
           platforms: linux/amd64,linux/arm64
+          build-args: |
+            TAG=galactic
+            CODENAME=focal
           push: true
-          tags: zhuoqiw/sunny-tis:runtime
-          cache-from: type=registry,ref=zhuoqiw/sunny-tis:runtime
+          tags: zhuoqiw/sunny-tis:focal-runtime
+          cache-from: type=registry,ref=zhuoqiw/sunny-tis:focal-runtime
+          cache-to: type=inline
+      -
+        name: Build and push
+        if: github.event.inputs.ubuntu_version == '22.04'
+        uses: docker/build-push-action@v2
+        with:
+          target: runtime
+          platforms: linux/amd64,linux/arm64
+          build-args: |
+            TAG=humble
+            CODENAME=jammy
+          push: true
+          tags: zhuoqiw/sunny-tis:jammy-runtime
+          cache-from: type=registry,ref=zhuoqiw/sunny-tis:jammy-runtime
           cache-to: type=inline
   dev:
     name: Development
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-${{ github.event.inputs.ubuntu_version }}
     needs: [runtime]
     steps:
       -
@@ -55,17 +83,35 @@ jobs:
           password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
       -
         name: Build and push
+        if: github.event.inputs.ubuntu_version == '20.04'
         uses: docker/build-push-action@v2
         with:
           target: dev
           platforms: linux/amd64,linux/arm64
+          build-args: |
+            TAG=galactic
+            CODENAME=focal
           push: true
-          tags: zhuoqiw/sunny-tis:dev
-          cache-from: type=registry,ref=zhuoqiw/sunny-tis:dev
+          tags: zhuoqiw/sunny-tis:focal-dev
+          cache-from: type=registry,ref=zhuoqiw/sunny-tis:focal-dev
+          cache-to: type=inline
+      -
+        name: Build and push
+        if: github.event.inputs.ubuntu_version == '22.04'
+        uses: docker/build-push-action@v2
+        with:
+          target: dev
+          platforms: linux/amd64,linux/arm64
+          build-args: |
+            TAG=humble
+            CODENAME=jammy
+          push: true
+          tags: zhuoqiw/sunny-tis:jammy-dev
+          cache-from: type=registry,ref=zhuoqiw/sunny-tis:jammy-dev
           cache-to: type=inline
   deploy:
     name: Deployment
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-${{ github.event.inputs.ubuntu_version }}
     needs: [dev]
     steps:
       -
@@ -82,17 +128,35 @@ jobs:
           password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
       -
         name: Build and push
+        if: github.event.inputs.ubuntu_version == '20.04'
         uses: docker/build-push-action@v2
         with:
           target: deploy
           platforms: linux/amd64,linux/arm64
+          build-args: |
+            TAG=galactic
+            CODENAME=focal
           push: true
-          tags: zhuoqiw/sunny-tis:deploy
-          cache-from: type=registry,ref=zhuoqiw/sunny-tis:deploy
+          tags: zhuoqiw/sunny-tis:focal-deploy
+          cache-from: type=registry,ref=zhuoqiw/sunny-tis:focal-deploy
+          cache-to: type=inline
+      -
+        name: Build and push
+        if: github.event.inputs.ubuntu_version == '22.04'
+        uses: docker/build-push-action@v2
+        with:
+          target: deploy
+          platforms: linux/amd64,linux/arm64
+          build-args: |
+            TAG=humble
+            CODENAME=jammy
+          push: true
+          tags: zhuoqiw/sunny-tis:jammy-deploy
+          cache-from: type=registry,ref=zhuoqiw/sunny-tis:jammy-deploy
           cache-to: type=inline
   desktop:
     name: Desktop
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-${{ github.event.inputs.ubuntu_version }}
     steps:
       -
         name: Set up QEMU
@@ -108,11 +172,29 @@ jobs:
           password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
       -
         name: Build and push
+        if: github.event.inputs.ubuntu_version == '20.04'
         uses: docker/build-push-action@v2
         with:
           target: desktop
           platforms: linux/amd64
+          build-args: |
+            TAG=galactic
+            CODENAME=focal
           push: true
-          tags: zhuoqiw/sunny-tis:desktop
-          cache-from: type=registry,ref=zhuoqiw/sunny-tis:desktop
+          tags: zhuoqiw/sunny-tis:focal-desktop
+          cache-from: type=registry,ref=zhuoqiw/sunny-tis:focal-desktop
+          cache-to: type=inline
+      -
+        name: Build and push
+        if: github.event.inputs.ubuntu_version == '22.04'
+        uses: docker/build-push-action@v2
+        with:
+          target: desktop
+          platforms: linux/amd64
+          build-args: |
+            TAG=humble
+            CODENAME=jammy
+          push: true
+          tags: zhuoqiw/sunny-tis:jammy-desktop
+          cache-from: type=registry,ref=zhuoqiw/sunny-tis:jammy-desktop
           cache-to: type=inline
