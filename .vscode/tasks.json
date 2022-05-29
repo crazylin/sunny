@@ -52,9 +52,9 @@
         },
         {
             "label": "Run GUI (host)",
-            "detail": "Test GUI use ros2 galactic desktop",
+            "detail": "Test GUI use ros2 humble desktop",
             "type": "shell",
-            "command": "docker run --rm --network=host --env=DISPLAY -v /tmp/.X11-unix -v $(pwd)/tools/seam_tracking_gui:/gui zhuoqiw/sunny-tis:desktop /gui/main.py",
+            "command": "docker run --rm --network=host --env=DISPLAY -v /tmp/.X11-unix -v $(pwd)/tools/seam_tracking_gui:/gui zhuoqiw/sunny-tis:humble-desktop /gui/main.py",
             "problemMatcher": [],
             "group": {
                 "kind": "none",

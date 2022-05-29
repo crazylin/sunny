@@ -23,7 +23,7 @@ def interpolate(d: np.array):
         return np.array([], dtype=dtype)
     length = int(np.max(d['i']))
     ret = np.full((length + 1,), np.nan, dtype=dtype)
-    ret[d['i'].astype(np.int)] = d
+    ret[d['i'].astype(np.int64)] = d
     return ret
 
 

@@ -4,7 +4,7 @@
             "name": "tis",
             "includePath": [
                 "${workspaceFolder}/**",
-                "/opt/ros/galactic/include",
+                "/opt/ros/humble/include",
                 "/opt/opencv/include/opencv4",
                 "/usr/include/modbus",
                 "/usr/include/gstreamer-1.0",
