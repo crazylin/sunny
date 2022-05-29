@@ -93,7 +93,7 @@ RUN sed -i '$c source /workspace/sunny/install/setup.bash' /root/.bashrc
 
 RUN sed -i '/source/c source /workspace/sunny/install/setup.bash' /ros_entrypoint.sh
 
-FROM osrf/ros:${TAG}-desktop-${CODENAME} AS desktop
+FROM ros:${TAG} AS gui
 
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     && apt-get -y install --no-install-recommends \
