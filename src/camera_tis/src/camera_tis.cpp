@@ -37,7 +37,7 @@ using rcl_interfaces::msg::SetParametersResult;
  * The pipeline use appsink plugin to pass image date asynchronously.
  */
 constexpr char PIPELINE_STR[] =
-  "tcambin name=source"
+  "tcamsrc name=source"
   " ! video/x-raw,format=GRAY8,width=3072,height=2048,framerate=30/1"
   " ! videoscale"
   " ! video/x-raw,width=1536,height=1024"
