@@ -13,8 +13,8 @@
 // limitations under the License.
 
 #include <chrono>
-
-#include "impl/center.hpp"
+#include <iostream>
+#include "opencv2/opencv.hpp"
 
 using std::chrono::high_resolution_clock;
 using std::chrono::duration_cast;
@@ -22,20 +22,19 @@ using std::chrono::milliseconds;
 
 int main()
 {
-  int rows = 1080, cols = 1920;
+  int rows = 2048, cols = 3072;
 
-  cv::Mat img(rows, cols, CV_8U, cv::Scalar(0)), buf;
-  auto col = img.colRange(1000, 1010);
-  col = cv::Scalar(100);
+  cv::Mat src(rows, cols, CV_8U, cv::Scalar(0));
+  cv::Mat dst(rows / 2, cols / 2, CV_8U);
 
   auto start = high_resolution_clock::now();
-  for (auto i = 0; i < 10000; ++i) {
-    auto p = center(img, buf);
+  for (auto i = 0; i < 50000; ++i) {
+    cv::resize(src, dst, dst.size(), 0, 0);
   }
   auto stop = high_resolution_clock::now();
 
   auto duration = duration_cast<milliseconds>(stop - start);
 
-  std::cout << "fps: " << 10000 * 1000. / duration.count() << "\n";
+  std::cout << "fps: " << 50000 * 1000. / duration.count() << "\n";
   return 0;
 }
