@@ -7,7 +7,7 @@
             "label": "colcon build (remote)",
             "detail": "Build workspace packages",
             "type": "shell",
-            "command": "colcon build --cmake-args '-DCMAKE_BUILD_TYPE=Release' --packages-up-to ${input:packages}",
+            "command": "colcon build --cmake-args -DCMAKE_BUILD_TYPE=Debug --packages-up-to ${input:packages}",
             "problemMatcher": [],
             "group": {
                 "kind": "build",

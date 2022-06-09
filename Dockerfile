@@ -64,6 +64,7 @@ RUN groupadd --gid 1000 ros \
 
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     && apt-get -y install --no-install-recommends \
+    gdb \
     python3-tk \
     python3-pil \
     python3-matplotlib \
