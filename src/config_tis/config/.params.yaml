@@ -1,7 +1,5 @@
 camera_tis_node:
     exposure_time: 1000         # int, exposure time in in microseconds
-    width: 1536                 # int, width in pixel
-    height: 1024                # int, height in pixel
 
 resize_image_node:
     fx: 0.5                     #double

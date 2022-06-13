@@ -44,6 +44,8 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     nano \
     gpiod \
     libmodbus5 \
+    gstreamer1.0-tools \
+    gstreamer1.0-plugins-good \
     /tiscamera.deb \
     && rm -rf /var/lib/apt/lists/* /tiscamera.deb
 
