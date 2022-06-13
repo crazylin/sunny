@@ -10,7 +10,7 @@
         "type": "python",
         "request": "launch",
         "program": "${file}",
-        "console": "integratedTerminal",
+        "console": "integratedTerminal"
       },
       // Example gdb launch of a ros executable
       {
@@ -19,7 +19,6 @@
         "request": "launch",
         "program": "${workspaceFolder}/install/${input:package}/lib/${input:package}/${input:program}",
         "args": [],
-        "preLaunchTask": "build",
         "stopAtEntry": true,
         "cwd": "${workspaceFolder}",
         "externalConsole": false,
