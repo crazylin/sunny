@@ -93,8 +93,8 @@ void ResizeImage::_worker()
       if (ptr->header.frame_id == "-1" || ptr->data.empty()) {
         prom.set_value(std::move(ptr));
       } else {
-        buf.resize(ptr->width * ptr->height / 4);
-        cv::Mat dst(ptr->width / 2, ptr->height / 2, CV_8UC1, buf.data());
+        buf.resize(ptr->height * ptr->width / 4);
+        cv::Mat dst(ptr->height / 2, ptr->width / 2, CV_8UC1, buf.data());
         cv::Mat img(ptr->height, ptr->width, CV_8UC1, ptr->data.data());
         cv::resize(img, dst, dst.size(), 0, 0);
         std::swap(ptr->data, buf);
