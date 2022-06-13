@@ -3,6 +3,10 @@ camera_tis_node:
     width: 1536                 # int, width in pixel
     height: 1024                # int, height in pixel
 
+resize_image_node:
+    fx: 0.5                     #double
+    fy: 0.5                     #double
+
 rotate_image_node:
     mode: 0                     # int, 0 - 90, 1 - 180, 2 - 270
 

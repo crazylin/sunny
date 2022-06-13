@@ -11,6 +11,7 @@ pipeline_tis::pipeline_tis_node
 This file launchs a bunch of Nodes in certain topology.  
 Briefly, the list of nodes are:
 - camera_tis
+- resize_image
 - rotate_image
 - laser_line_center
 - laser_line_filter

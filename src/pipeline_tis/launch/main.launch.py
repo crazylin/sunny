@@ -58,11 +58,17 @@ def generate_launch_description():
         parameters=[params['camera_tis_node']],
         extra_arguments=[{'use_intra_process_comms': True}])
 
-    params['rotate_image_node']['workers'] = 2
+    resize_image_node = ComposableNode(
+        package='resize_image',
+        plugin='resize_image::ResizeImage',
+        remappings=[('~/image', '/camera_tis_node/image')],
+        parameters=[params['resize_image_node']],
+        extra_arguments=[{'use_intra_process_comms': True}])
+
     rotate_image_node = ComposableNode(
         package='rotate_image',
         plugin='rotate_image::RotateImage',
-        remappings=[('~/image', '/camera_tis_node/image')],
+        remappings=[('~/image', '/resize_image_node/image_resized')],
         parameters=[params['rotate_image_node']],
         extra_arguments=[{'use_intra_process_comms': True}])
 
@@ -97,6 +103,7 @@ def generate_launch_description():
         executable='component_container_mt',
         composable_node_descriptions=[
             camera_tis_node,
+            resize_image_node,
             rotate_image_node,
             laser_line_center_node,
             laser_line_filter_node,
