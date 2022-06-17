@@ -4,7 +4,7 @@
 # ARG VARIANT="bullseye"
 # FROM mcr.microsoft.com/vscode/devcontainers/cpp:0-${VARIANT}
 
-# [Optional] Install CMake version different from what base image has already installed. 
+# [Optional] Install CMake version different from what base image has already installed.
 # CMake reinstall choices: none, 3.21.5, 3.22.2, or versions from https://cmake.org/download/
 # ARG REINSTALL_CMAKE_VERSION_FROM_SOURCE="none"
 
@@ -60,9 +60,9 @@ ARG TAG
 
 # Create a non-root user
 RUN groupadd --gid 1000 ros \
-  && useradd -s /bin/bash --uid 1000 --gid 1000 -m ros \
-  && usermod -a -G video ros \
-  && echo "source /opt/ros/${TAG}/setup.bash" >> /home/ros/.bashrc
+    && useradd -s /bin/bash --uid 1000 --gid 1000 -m ros \
+    && usermod -a -G video ros \
+    && echo "source /opt/ros/${TAG}/setup.bash" >> /home/ros/.bashrc
 
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     && apt-get -y install --no-install-recommends \
