@@ -31,7 +31,7 @@ ARG CODENAME
 # Build enviroments
 FROM zhuoqiw/ros-opencv:${CODENAME}-4.5.5 AS opencv
 
-FROM zhuoqiw/ros-tis:${CODENAME}-0.14.0 AS tiscamera
+FROM zhuoqiw/ros-tis:${CODENAME}-1.0.0 AS tiscamera
 
 FROM ros:${TAG} AS runtime
 
